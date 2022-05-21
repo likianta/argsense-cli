@@ -13,7 +13,8 @@ from . import config
 def draw_title(prog_name: str,
                commands=True,
                options=True,
-               arguments=t.Optional[t.Sequence[str]]) -> str:
+               arguments=t.Optional[t.Sequence[str]],
+               serif_line=False) -> str:
     """
     illustration examples:
         python -m argsense <COMMANDS> [OPTIONS]
@@ -30,17 +31,20 @@ def draw_title(prog_name: str,
                 arguments and '[blue]{}[/]'.format(' '.join(arguments))
             )))
         ),
-        '',  # empty line
-        # # '[yellow dim]{}[/]'.format(  # splitter
-        # #     '─' * len(' '.join(filter(None, (
-        # #         # ' ',
-        # #         prog_name.replace('[bright_red]', '').replace('[/]', ''),
-        # #         commands and f'<COMMANDS>',
-        # #         options and f'[OPTIONS]',
-        # #         arguments and f'<ARGUMENTS>',
-        # #         # ' ',
-        # #     ))))
-        # # ),
+        '' if not serif_line else (
+            '[blue dim]{}[/]'.format(  # splitter
+                '─' * len(' '.join(filter(None, (
+                    # ' ',
+                    prog_name.replace('[green]', '').replace('[/]', ''),
+                    #   ~.replace(...): keep this sync with `cli.py :
+                    #   _detect_program_name()`
+                    commands and f'<COMMANDS>',
+                    options and f'[OPTIONS]',
+                    arguments and ' '.join(arguments),
+                    # ' ',
+                ))))
+            )
+        )
     ))
 
 
@@ -98,6 +102,7 @@ def _draw_panel(data: dict, title: str, style: str, border_style: str):
 
 
 def post_logo(style: t.Literal['magenta', 'blue']) -> Text:
+    """ show logo in gradient color. """
     from rich.color import Color
     if style == 'magenta':
         color_pair = ('#ed3b3b', '#d08bf3')  # rose red -> violet
