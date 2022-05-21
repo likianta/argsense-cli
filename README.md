@@ -2,7 +2,7 @@
 
 > The documentation is under construction.
 
-![](.assets/snip-20220521-110623.png)
+![](.assets/gQqE28Z6lC.png)
 
 **argsense** is a command line interface made with Python.
 
