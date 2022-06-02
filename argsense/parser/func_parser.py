@@ -4,24 +4,22 @@ __all__ = ['parse_function']
 
 
 class T:
-    ArgName = str
-    ArgType = t.Literal[
-        'any', 'bool', 'bytes', 'dict', 'float', 'int',
-        'list', 'none', 'set', 'str', 'tuple'
+    _ParamName = str
+    _ParamType = t.Literal[
+        'any', 'bool', 'dict', 'float', 'int',
+        'list', 'none', 'set', 'str', 'tuple',
     ]
-    DefaultValue = t.Any
+    _DefaultValue = t.Any
     
-    FunctionInfo = t.TypedDict('FunctionInfo', {
+    FuncInfo = t.TypedDict('FuncInfo', {
         'name'  : str,
-        'args'  : t.List[t.Tuple[ArgName, ArgType]],
-        'kwargs': t.List[t.Tuple[ArgName, ArgType, DefaultValue]],
-        # 'has_args': bool,
-        # 'has_kwargs': bool,
-        'return': ArgType,  # noqa
+        'args'  : t.List[t.Tuple[_ParamName, _ParamType]],
+        'kwargs': t.List[t.Tuple[_ParamName, _ParamType, _DefaultValue]],
+        'return': _ParamType,  # noqa
     })
 
 
-def parse_function(func) -> T.FunctionInfo:
+def parse_function(func) -> T.FuncInfo:
     param_count = func.__code__.co_argcount + func.__code__.co_kwonlyargcount
     param_names = func.__code__.co_varnames[:param_count]
     annotations = func.__annotations__
@@ -73,7 +71,5 @@ def parse_function(func) -> T.FunctionInfo:
         'name'  : func_name,
         'args'  : args,
         'kwargs': kwargs,
-        # 'has_args'  : False,
-        # 'has_kwargs': False,
         'return': result,
     }
