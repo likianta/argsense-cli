@@ -3,10 +3,9 @@ from __future__ import annotations
 import os
 import re
 import sys
+import typing as t
 from enum import Enum
 from enum import auto
-
-from . import typehint as t
 
 __all__ = ['parse_argv']
 
@@ -16,6 +15,26 @@ class E:  # Exceptions
     class FailedParsingArgv(Exception): ...
     
     class InvalidCommand(Exception): ...
+
+
+class T:  # Typehint
+    _KwArgName = str
+    _OptionName = str
+    _ParamName = str
+    _ParamType = t.Literal  # i.e. Enum
+    
+    ParamsInfo = t.TypedDict('ParamsInfo', {
+        'args'  : t.Dict[_ParamName, _ParamType],
+        'kwargs': t.Dict[_KwArgName, _ParamType],
+        'index' : t.Dict[_OptionName, _KwArgName],
+    })
+
+
+class ParamType(Enum):
+    TEXT = 'text'
+    NUMBER = 'number'
+    FLAG = 'flag'
+    ANY = 'any'
 
 
 # noinspection PyArgumentList
@@ -56,7 +75,7 @@ class Context:
 def parse_argv(
         argv: list[str],
         mode: t.Literal['group', 'command'],
-        front_matter: t.ParamsInfo,
+        front_matter: T.ParamsInfo,
 ) -> dict:
     path, argv = argv[0], argv[1:]
     out = {
@@ -94,7 +113,7 @@ def parse_argv(
                         option_name = arg.replace('--not-', '--', 1)
                         param_name = front_matter['index'][option_name]
                         param_type = front_matter['kwargs'][param_name]
-                        assert param_type in (t.ParamType.FLAG, t.ParamType.ANY)
+                        assert param_type in (ParamType.FLAG, ParamType.ANY)
                         out['kwargs'][param_name] = False
                         ctx.update(Token.READY)
                         return walking_through_argv(argv)
@@ -102,7 +121,7 @@ def parse_argv(
                         option_name = arg
                         param_name = front_matter['index'][option_name]
                         param_type = front_matter['kwargs'][param_name]
-                        if param_type == t.ParamType.FLAG:
+                        if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
                             ctx.update(Token.READY)
                             return walking_through_argv(argv)
@@ -112,7 +131,7 @@ def parse_argv(
                         option_name = arg.lower()
                         param_name = front_matter['index'][option_name]
                         param_type = front_matter['kwargs'][param_name]
-                        assert param_type in (t.ParamType.FLAG, t.ParamType.ANY)
+                        assert param_type in (ParamType.FLAG, ParamType.ANY)
                         out['kwargs'][param_name] = False
                         ctx.update(Token.READY)
                         return walking_through_argv(argv)
@@ -120,7 +139,7 @@ def parse_argv(
                         option_name = arg
                         param_name = front_matter['index'][option_name]
                         param_type = front_matter['kwargs'][param_name]
-                        if param_type == t.ParamType.FLAG:
+                        if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
                             ctx.update(Token.READY)
                             return walking_through_argv(argv)
@@ -213,17 +232,17 @@ def _eval_arg_value(arg: str, possible_type=None) -> t.Any:
     
     if arg.startswith(('"', "'")):
         assert len(arg) >= 2 and arg.endswith(arg[0])
-        assert possible_type is None or possible_type == t.ParamType.TEXT
+        assert possible_type is None or possible_type == ParamType.TEXT
         return arg[1:-1]
     
     assert possible_type is not None
     
-    if possible_type == t.ParamType.TEXT:
+    if possible_type == ParamType.TEXT:
         return arg
-    elif possible_type == t.ParamType.NUMBER:
+    elif possible_type == ParamType.NUMBER:
         assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg)
         return eval(arg)
-    elif possible_type == t.ParamType.FLAG:
+    elif possible_type == ParamType.FLAG:
         assert arg in ('true', 'false')
         return bool(arg == 'true')
     else:
