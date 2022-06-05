@@ -10,6 +10,14 @@ from rich.text import Text
 from . import config
 
 
+class Color:
+    # some colors are inspired by [oh-my-posh/themes/bubbles
+    # <https://github.com/JanDeDobbeleer/oh-my-posh/blob/main/themes/bubbles
+    # .omp.json>]
+    dim_acrylic = '#29315a'
+    scarlet = '#e64747'
+
+
 def draw_title(prog_name: str,
                commands=True,
                options=True,
@@ -21,13 +29,42 @@ def draw_title(prog_name: str,
         python -m argsense [OPTIONS] <ARGUMENTS>
         python -m argsense [OPTIONS]
     """
+    
+    def render_prog_name():
+        # style: dark-red on dim
+        return _round_wrap(
+            '[{fg} on {bg}]{text}[/]'.format(
+                fg=Color.scarlet,
+                bg=Color.dim_acrylic,
+                text=prog_name if not prog_name.startswith('python ')
+                else prog_name[7:],
+            )
+        )
+    
+    def render_commands():
+        tmpl = _round_wrap('[{} on {}]{{}}[/]'.format(
+            'magenta', Color.dim_acrylic
+        ))
+        if commands:
+            return tmpl.format('<COMMAND>')
+        else:
+            return ''
+    
+    def render_options():
+        tmpl = _round_wrap(f'[dim on {Color.dim_acrylic}]{{}}[/]')
+        if options:
+            return tmpl.format('\\[OPTIONS]')
+        else:
+            return ''
+    
     return '\n'.join((
         '',  # empty line
-        '[b]{}[/]'.format(  # title
+        '[b on {}]{}[/]'.format(  # title
+            Color.dim_acrylic,
             ' '.join(filter(None, (
-                prog_name,
-                commands and f'[magenta]<COMMANDS>[/]',
-                options and f'[dim]\\[OPTIONS][/]',
+                render_prog_name(),
+                render_commands(),
+                render_options(),
                 arguments and '[blue]{}[/]'.format(' '.join(arguments))
             )))
         ),
@@ -172,3 +209,11 @@ def _reformat_name(name: str, style: str) -> str:
         return f'[default]{name}[/]'
     elif style == 'ext':
         return f'[dim]{name}[/]'
+
+
+def _round_wrap(text: str, color=Color.dim_acrylic) -> str:
+    return '{leading_diamon}{text}{trailing_diamond}'.format(
+        leading_diamon=f'[{color}]\ue0b6[/]',
+        text=text,
+        trailing_diamond=f'[{color}]\ue0b4[/]',
+    )
