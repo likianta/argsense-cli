@@ -7,7 +7,7 @@ import typing as t
 from enum import Enum
 from enum import auto
 
-__all__ = ['parse_argv']
+__all__ = ['parse_argv', 'ParamType']
 
 
 class E:  # Exceptions
@@ -28,13 +28,21 @@ class T:  # Typehint
         'kwargs': t.Dict[_KwArgName, _ParamType],
         'index' : t.Dict[_OptionName, _KwArgName],
     })
+    
+    ParsedResult = t.TypedDict('ParsedResult', {
+        'prog_head': str,
+        'command'  : str,
+        'args'     : t.Dict[str, t.Any],
+        'kwargs'   : t.Dict[str, t.Any],
+    })
 
 
+# noinspection PyArgumentList
 class ParamType(Enum):
-    TEXT = 'text'
-    NUMBER = 'number'
-    FLAG = 'flag'
-    ANY = 'any'
+    TEXT = auto()
+    NUMBER = auto()
+    FLAG = auto()
+    ANY = auto()
 
 
 # noinspection PyArgumentList
@@ -42,9 +50,6 @@ class Token(Enum):
     START = auto()
     READY = auto()
     OPTION_NAME = auto()
-    # OPTION_VALUE = auto()
-    # ARGUMENT_NAME = auto()
-    # ARGUMENT_VALUE = auto()
 
 
 class Context:
@@ -76,7 +81,7 @@ def parse_argv(
         argv: list[str],
         mode: t.Literal['group', 'command'],
         front_matter: T.ParamsInfo,
-) -> dict:
+) -> T.ParsedResult:
     path, argv = argv[0], argv[1:]
     out = {
         'prog_head': _get_program_head(path),

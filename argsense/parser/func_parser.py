@@ -1,11 +1,11 @@
 import typing as t
 
-__all__ = ['parse_function']
+__all__ = ['parse_function', 'TParamType']
 
 
 class T:
     _ParamName = str
-    _ParamType = t.Literal[
+    ParamType = t.Literal[
         'any', 'bool', 'dict', 'float', 'int',
         'list', 'none', 'set', 'str', 'tuple',
     ]
@@ -13,10 +13,13 @@ class T:
     
     FuncInfo = t.TypedDict('FuncInfo', {
         'name'  : str,
-        'args'  : t.List[t.Tuple[_ParamName, _ParamType]],
-        'kwargs': t.List[t.Tuple[_ParamName, _ParamType, _DefaultValue]],
-        'return': _ParamType,  # noqa
+        'args'  : t.List[t.Tuple[_ParamName, ParamType]],
+        'kwargs': t.List[t.Tuple[_ParamName, ParamType, _DefaultValue]],
+        'return': ParamType,  # noqa
     })
+
+
+TParamType = T.ParamType
 
 
 def parse_function(func) -> T.FuncInfo:
