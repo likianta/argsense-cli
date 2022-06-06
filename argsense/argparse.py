@@ -82,7 +82,7 @@ def parse_argv(
         mode: t.Literal['group', 'command'],
         front_matter: T.ParamsInfo,
 ) -> T.ParsedResult:
-    print(argv, front_matter, ':l')
+    # print(argv, front_matter, ':l')
     path, argv = argv[0], argv[1:]
     out = {
         'prog_head': _get_program_head(path),
@@ -251,7 +251,7 @@ SPECIAL_ARGS = {
 
 
 def _eval_arg_value(arg: str, possible_type) -> t.Any:
-    print(':pv', arg, possible_type)
+    # print(':pv', arg, possible_type)
     
     global PYTHON_ACCEPTABLE_NUMBER_PATTERN, SPECIAL_ARGS
     

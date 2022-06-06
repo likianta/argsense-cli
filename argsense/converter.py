@@ -1,13 +1,20 @@
+import typing as t
 from .argparse import ParamType as ParamType2
 from .parser.func_parser import TParamType as ParamType1
 
 __all__ = ['name_2_cname', 'type_2_ctype']
 
 
-def name_2_cname(name: str, is_option=False) -> str:
+class T:
+    PresetStyle = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
+
+
+def name_2_cname(name: str, style: T.PresetStyle = None) -> str:
     # convert name from snake_case to kebab-case.
     name = name.lstrip('_').replace('_', '-')
-    if is_option:
+    if style == 'arg':
+        name = name.upper()
+    elif style == 'opt':
         name = '--' + name
     return name
 

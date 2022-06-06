@@ -131,8 +131,17 @@ def _draw_panel(data: dict, title: str, style: str, border_style: str):
     table.add_column('name', style='blue')
     table.add_column('desc', style='default')
     
+    def tint_name(name: str, style) -> str:
+        palette = {
+            'cmd': 'magenta',
+            'arg': 'blue',
+            'opt': 'grey74',
+            'ext': 'dim',
+        }
+        return '[{}]{}[/]'.format(palette[style], name)
+    
     for k, v in data.items():
-        table.add_row(_reformat_name(k, style), v)
+        table.add_row(tint_name(k, style), v)
     
     return Panel(
         table,
@@ -182,35 +191,6 @@ def _blend_text(
         )
         text.stylize(color, index, index + 1)
     return text
-
-
-def _reformat_name(name: str, style: str) -> str:
-    """
-    args:
-        style: literal['cmd', 'arg', 'opt', 'ext']
-    
-    style:
-        style   text color  name form
-        -----   ----------  ------------------------------
-        cmd     magenta     aaa-bbb
-        arg     blue        AAA-BBB
-        opt     default     --aaa-bbb/--not-aaa-bbb, -m/-M
-        ext     dim         --aaa-bbb, -m
-    """
-    name = name.replace('_', '-')
-    if style == 'arg':
-        name = name.upper()
-    elif style in ('opt', 'ext'):
-        name = '--' + name
-    
-    if style == 'cmd':
-        return f'[magenta]{name}[/]'
-    elif style == 'arg':
-        return f'[blue]{name}[/]'
-    elif style == 'opt':
-        return f'[default]{name}[/]'
-    elif style == 'ext':
-        return f'[dim]{name}[/]'
 
 
 # noinspection PyUnusedLocal

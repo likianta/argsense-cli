@@ -44,21 +44,21 @@ class T:
     # WIP proposal
     CommandsDict2 = t.Dict[
         _FunctionId, t.TypedDict('FuncInfo', {
-            'func': t.Callable,
-            'cname': str,
-            'desc': str,
-            'args': t.Dict[
+            'func'  : t.Callable,
+            'cname' : str,
+            'desc'  : str,
+            'args'  : t.Dict[
                 _ArgName, t.TypedDict('ArgInfo', {
                     'cname': str,
                     'ctype': ParamType,  # noqa
-                    'desc': str,
+                    'desc' : str,
                 })
             ],
             'kwargs': t.Dict[
                 _ArgName, t.TypedDict('ArgInfo', {
-                    'cname': str,
-                    'ctype': ParamType,  # noqa
-                    'desc': str,
+                    'cname'  : str,
+                    'ctype'  : ParamType,  # noqa
+                    'desc'   : str,
                     'default': t.Any,
                 })
             ],
@@ -105,27 +105,28 @@ class CommandLineInterface:
             docs_info = parse_docstring(func.__doc__ or '')
             
             self.commands[id(func)] = {
-                'func': func,
-                'cname': name_2_cname(cmd_name),
-                'desc': docs_info['desc'],
-                'args': {
+                'func'  : func,
+                'cname' : name_2_cname(cmd_name),
+                'desc'  : docs_info['desc'],
+                'args'  : {
                     name: {
-                        'cname': name_2_cname(name),
+                        'cname': name_2_cname(name, style='arg'),
                         'ctype': type_2_ctype(type_),
-                        'desc': docs_info['args'].get(name, ''),
+                        'desc' : docs_info['args'].get(name, ''),
                     } for name, type_ in func_info['args']
                 },
                 'kwargs': {
                     name: {
-                        'cname': name_2_cname(name, is_option=True),
-                        'ctype': type_2_ctype(type_),
-                        'desc': docs_info['opts'].get(name, ''),
+                        'cname'  : name_2_cname(name, style='opt'),
+                        'ctype'  : type_2_ctype(type_),
+                        'desc'   : docs_info['opts'].get(name, ''),
                         'default': value,
                     } for name, type_, value in func_info['kwargs']
                 },
             }
             
             return func
+        
         return decorator
     
     # -------------------------------------------------------------------------
@@ -133,19 +134,19 @@ class CommandLineInterface:
     
     def run(self, func=None):
         from .argparse import extract_command_name, parse_argv
-
+        
         mode: T.Mode = 'group' if not func else 'command'  # noqa
-
+        
         if func is None:
             if cmd_name := extract_command_name(sys.argv):
-                print(':v', cmd_name)
+                # print(':v', cmd_name)
                 func = self._cname_2_func[cmd_name]
         
         result = parse_argv(
             argv=sys.argv,
             mode=mode,
             front_matter={
-                'args': {} if func is None else {
+                'args'  : {} if func is None else {
                     k: v['ctype']
                     for k, v in self.commands[id(func)]['args'].items()
                 },
@@ -156,7 +157,7 @@ class CommandLineInterface:
                         for k, v in self.commands[id(func)]['kwargs'].items()
                     }
                 },
-                'index': {'--help': 'help', '-h': 'help'} if func is None else {
+                'index' : {'--help': 'help', '-h': 'help'} if func is None else {
                     '--help': 'help', '-h': 'help', **{
                         n: k
                         for k, v in self.commands[id(func)]['kwargs'].items()
@@ -165,43 +166,32 @@ class CommandLineInterface:
                 },
             }
         )
-        print(':lv', result)
+        # print(':lv', result)
         if result['command']:
             func = self._cname_2_func[result['command']]
         # FIXME: we take '--help' as the most important option to check. the
         #   '--help' is the only global option for now.
         if result['kwargs'].get('help'):
-            self.show(func, mode)
+            self.show(func)
         else:
             self.exec(func, result['args'], result['kwargs'])
     
-    def show(self, func, mode: t.Literal['group', 'command']):
+    def show(self, func):
         """
         reference:
             [lib:click]/core.py : BaseCommand.main()
         """
-        # excerpt
-        desc = '' if mode == 'group' else self.commands[id(func)]['desc']
-        args = None if mode == 'group' else tuple(
-            x.upper()
-            for x in self.commands[id(func)]['args'].keys()
-        )
-        has_args = bool(args)
-        # has_args = False if mode == 'group' else bool(
-        #     self.commands[name]['info']['args']
-        # )
-        
-        console.print(
-            artist.draw_title(
-                prog_name=_detect_program_name(),
-                commands=bool(mode == 'group'),
-                arguments=args,
-                serif_line=bool(desc),
-            ),
-            justify='center'
-        )
-        
-        if mode == 'group':
+        if func is None:
+            console.print(
+                artist.draw_title(
+                    prog_name=_detect_program_name(),
+                    commands=True,
+                    arguments=None,
+                    serif_line=False,
+                ),
+                justify='center'
+            )
+            
             console.print(
                 artist.draw_commands_panel({
                     v['cname']: v['desc']
@@ -209,30 +199,47 @@ class CommandLineInterface:
                 })
             )
         
-        if mode == 'command' and desc:
-            # console.print(indent(desc, ' ') + '\n')
-            # console.print(indent(desc, ' '))
-            # TEST
-            from rich.text import Text
-            rich_desc = Text.from_markup(indent(desc, ' '))
-            rich_desc.stylize('grey74')
-            console.print(rich_desc)
-        
-        if has_args:
-            keys = (id(func),) if func else self.commands.keys()
-            for k in keys:
-                v = self.commands[k]['args']
+        else:
+            func_info = self.commands[id(func)]
+            desc = func_info['desc']
+            
+            console.print(
+                artist.draw_title(
+                    prog_name=_detect_program_name(),
+                    commands=False,
+                    arguments=tuple(
+                        v['cname'] for v in func_info['args'].values()
+                    ),
+                    serif_line=bool(desc),
+                ),
+                justify='center'
+            )
+            if desc:
+                from rich.text import Text
+                rich_desc = Text.from_markup(indent(desc, ' '))
+                rich_desc.stylize('grey74')
+                console.print(rich_desc)
+            
+            if args := func_info['args']:
                 console.print(
                     artist.draw_arguments_panel({
-                        v2['cname']: v2['desc']
-                        for k2, v2 in v.items()
+                        v['cname']: v['desc']
+                        for k, v in args.items()
+                    })
+                )
+            
+            if kwargs := func_info['kwargs']:
+                console.print(
+                    artist.draw_options_panel({
+                        v['cname']: v['desc']
+                        for k, v in kwargs.items()
                     })
                 )
         
         # show logo in right-bottom corner.
         # noinspection PyTypeChecker
         console.print(
-            artist.post_logo(style='red' if mode == 'group' else 'blue'),
+            artist.post_logo(style='white' if func else 'magenta'),
             justify='right', style='bold', end=' \n'
         )
     
