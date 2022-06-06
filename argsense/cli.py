@@ -209,7 +209,9 @@ class CommandLineInterface:
             if kwargs := func_info['kwargs']:
                 console.print(
                     artist.draw_options_panel((
-                        (v['cname'], v['ctype'].name, v['desc'],
+                        (v['cname'].replace(',', ', '),
+                         v['ctype'].name,
+                         v['desc'],
                          '[red dim](default={})[/]'.format(v['default']))
                         for v in kwargs.values()
                     ))

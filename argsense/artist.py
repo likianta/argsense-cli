@@ -126,7 +126,7 @@ def draw_extensions_panel(extensions: T.PanelData) -> Panel:
     return _draw_panel(
         fields=('name', 'type', 'desc', 'default'),
         data=extensions,
-        title='OPTIONS [dim](EX)[/]',
+        title='OPTIONS [dim](EXT)[/]',
         border_style=config.EXT_BORDER_STYLE,
     )
 

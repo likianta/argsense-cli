@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "argsense"
+version = "0.1.0"
+homepage = "https://github.com/likianta/argsense-cli"
+description = "New command line interface based on Python Rich library."
+readme = "README.md"
+authors = ["Likianta <likianta@foxmail.com>"]
+license = "MIT"
+
+[[tool.poetry.source]]
+name = "tsinghua"
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+default = true
+
+[tool.poetry.dependencies]
+python = "^3.8"
+rich = ""
+
+[tool.poetry.extras]
+
+[build-system]
+requires = ["poetry"]
+build-backend = "poetry.masonry.api"

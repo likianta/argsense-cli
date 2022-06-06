@@ -243,10 +243,12 @@ PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(  # noqa
 )
 
 SPECIAL_ARGS = {
-    ':true': True,
+    ':true' : True,
     ':false': False,
-    ':none': None,
-    ':cwd': os.getcwd(),
+    ':t'    : True,
+    ':f'    : False,
+    ':none' : None,
+    ':cwd'  : os.getcwd(),
 }
 
 
