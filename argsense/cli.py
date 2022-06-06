@@ -6,7 +6,6 @@ from textwrap import indent
 from . import artist
 from .argparse import ParamType
 from .console import console
-from .name_converter import name_2_cname
 from .parser import parse_docstring
 from .parser import parse_function
 
@@ -45,6 +44,7 @@ class T:
         _FunctionId, t.TypedDict('FuncInfo', {
             'func': t.Callable,
             'cname': str,
+            'desc': str,
             'args': t.Dict[
                 _ArgName, t.TypedDict('ArgInfo', {
                     'cname': str,
@@ -84,25 +84,10 @@ class CommandLineInterface:
             def foo(...):
                 ...
         """
-        from .parser.func_parser import TParamType as ParamType1
-        from .argparse import ParamType as ParamType2
-
-        def type_2_ctype(t: ParamType1) -> ParamType2:
-            return {
-                'str'  : ParamType2.TEXT,
-                'int'  : ParamType2.NUMBER,
-                'float': ParamType2.NUMBER,
-                'bool' : ParamType2.FLAG,
-                # 'list' : ParamType2.LIST,
-                # 'tuple': ParamType2.LIST,
-                # 'set'  : ParamType2.LIST,
-                # 'dict' : ParamType2.DICT,
-                'any'  : ParamType2.ANY,
-                # 'none': ParamType2.NONE,
-            }.get(t, ParamType2.ANY)
-
+        from .converter import name_2_cname, type_2_ctype
+        
         def decorator(func: t.Callable) -> t.Callable:
-            nonlocal name, type_2_ctype
+            nonlocal name
             cmd_name = name or func.__name__
             if cmd_name in self._cname_2_func and \
                     (new := func) is not (old := self._cname_2_func[cmd_name]):
@@ -113,11 +98,12 @@ class CommandLineInterface:
                 )
             
             func_info = parse_function(func)
-            docs_info = parse_docstring(func.__doc__)
+            docs_info = parse_docstring(func.__doc__ or '')
             
             self.commands[id(func)] = {
                 'func': func,
                 'cname': name_2_cname(cmd_name),
+                'desc': docs_info['desc'],
                 'args': {
                     name: {
                         'cname': name_2_cname(name),
@@ -129,12 +115,12 @@ class CommandLineInterface:
                     name: {
                         'cname': name_2_cname(name, is_option=True),
                         'ctype': type_2_ctype(type_),
-                        'desc': docs_info['args'].get(name, ''),
+                        'desc': docs_info['opts'].get(name, ''),
                         'default': value,
                     } for name, type_, value in func_info['kwargs']
                 },
             }
-        
+            
             return func
         return decorator
     
@@ -152,20 +138,28 @@ class CommandLineInterface:
                     for k, v in self.commands[id(func)]['args'].items()
                 },
                 # FIXME: if func is None, use global options.
-                'kwargs': {
-                    k: v['ctype']
-                    for k, v in self.commands[id(func)]['kwargs'].items()
+                'kwargs': {'help': ParamType.FLAG} if func is None else {
+                    'help': ParamType.FLAG, **{
+                        k: v['ctype']
+                        for k, v in self.commands[id(func)]['kwargs'].items()
+                    }
                 },
-                'index': {
-                    n: k
-                    for k, v in self.commands[id(func)]['kwargs'].items()
-                    for n in v['cname'].split(';')
+                'index': {'--help': 'help'} if func is None else {
+                    '--help': 'help', **{
+                        n: k
+                        for k, v in self.commands[id(func)]['kwargs'].items()
+                        for n in v['cname'].split(',')
+                    }
                 },
             }
         )
         print(':lv', result)
-        self.show(func)
-        self.exec(func, sys.argv[1:])
+        # FIXME: we take '--help' as the most important option to check. the
+        #   '--help' is the only global option for now.
+        if result['kwargs'].get('help'):
+            self.show(func)
+        else:
+            self.exec(func, sys.argv[1:])
     
     def show(self, func=None):
         """
@@ -175,10 +169,10 @@ class CommandLineInterface:
         # excerpt
         mode = 'group' if not func else 'command'
         name = func and func.__name__  # optional[str]
-        desc = '' if mode == 'group' else self.commands[name]['info']['desc']
+        desc = '' if mode == 'group' else self.commands[id(func)]['desc']
         args = None if mode == 'group' else tuple(
             x[0].upper()
-            for x in self.commands[name]['info']['args']
+            for x in self.commands[id(func)]['args'].keys()
         )
         has_args = bool(args)
         # has_args = False if mode == 'group' else bool(
@@ -198,8 +192,8 @@ class CommandLineInterface:
         if mode == 'group':
             console.print(
                 artist.draw_commands_panel({
-                    k: v['info']['desc']
-                    for k, v in self.commands.items()
+                    v['cname']: v['desc']
+                    for v in self.commands.values()
                 })
             )
         
@@ -213,20 +207,20 @@ class CommandLineInterface:
             console.print(rich_desc)
         
         if has_args:
-            keys = (name,) if func else self.commands.keys()
+            keys = (id(func),) if func else self.commands.keys()
             for k in keys:
-                v = self.commands[k]['info']
+                v = self.commands[k]['args']
                 console.print(
                     artist.draw_arguments_panel({
-                        x[0]: v['args.docs'].get(x[0], '')
-                        for x in v['args']
+                        v2['cname']: v2['desc']
+                        for k2, v2 in v.items()
                     })
                 )
         
         # show logo in right-bottom corner.
         # noinspection PyTypeChecker
         console.print(
-            artist.post_logo(style='magenta' if mode == 'group' else 'blue'),
+            artist.post_logo(style='red' if mode == 'group' else 'blue'),
             justify='right', style='bold', end=' \n'
         )
     

@@ -21,7 +21,7 @@ class T:  # Typehint
     _KwArgName = str
     _OptionName = str
     _ParamName = str
-    _ParamType = t.Literal  # i.e. Enum
+    _ParamType = 'ParamType'  # i.e. Enum
     
     ParamsInfo = t.TypedDict('ParamsInfo', {
         'args'  : t.Dict[_ParamName, _ParamType],
