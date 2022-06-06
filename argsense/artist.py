@@ -143,18 +143,11 @@ def _draw_panel(data: dict, title: str, style: str, border_style: str):
     )
 
 
-def post_logo(style: t.Literal['red', 'blue', 'tan']) -> Text:
+def post_logo(style: t.Literal['blue', 'magenta', 'tan', 'white']) -> Text:
     """ show logo in gradient color. """
     from .style.color_scheme import DefaultGradient
     from rich.color import Color
-    
-    color_pair: tuple
-    if style == 'red':
-        color_pair = DefaultGradient.red
-    elif style == 'blue':
-        color_pair = DefaultGradient.blue
-    else:
-        color_pair = DefaultGradient.tan
+    color_pair: tuple = getattr(DefaultGradient, style)
     return _blend_text(
         '♥ powered by argsense',
         *(Color.parse(x).triplet for x in color_pair)

@@ -14,5 +14,7 @@ class Color:
 class Gradient:
     blue = ('#0a87ee', '#9294f0')  # calm blue -> light blue
     # blue = ('#2d34f1', '#9294f0')  # ocean blue -> light blue
-    red = ('#ed3b3b', '#d08bf3')  # rose red -> violet
+    # magenta = ('#ed3b3b', '#d08bf3')  # rose red -> violet
+    magenta = ('#f38cfd', '#d08bf3')  # light magenta -> violet
     tan = ('#f47fa4', '#f49364')  # cold sandy -> camel tan
+    white = ('#ffffff', '#a8a8a8')  # bleach -> dim gray
