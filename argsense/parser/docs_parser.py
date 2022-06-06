@@ -71,10 +71,9 @@ def parse_docstring(docstring: str) -> T.DocsInfo:
             elif not line.startswith('    '):
                 scope = 'other'
                 continue
-        # lk.logt('[D3125]', line, scope)
         
         if scope == 'root':
-            result['desc'] += _pretty_line_feed(line)
+            result['desc'] = _feed_line(line, result['desc'])
         elif scope == 'args' or scope == 'opts':
             node = result[scope]  # dict[str field, str text]
             line = line[4:]  # dedent 4 spaces
@@ -86,36 +85,15 @@ def parse_docstring(docstring: str) -> T.DocsInfo:
                 continue
             else:
                 line = line[4:]
-                node[last_key] += _pretty_line_feed(line)
-    
-    # sanitize result
-    result['desc'] = _sanitize_text(result['desc'])
-    for scope in ('args', 'opts'):
-        for field, text in result[scope].items():
-            result[scope][field] = _sanitize_text(text)
-    
-    # lk.logp(result, h='parent')
+                node[last_key] = _feed_line(line, node[last_key])
     
     return result
 
 
-def _pretty_line_feed(line: str) -> str:
-    def is_soft_wrap_line(line: str) -> bool:
-        if len(line) >= 2 and (line[0] == ' ' and line[1] != ' '):
-            return True
-        else:
-            return False
-    
-    if is_soft_wrap_line(line):
-        return ' ' + line.strip()
+def _feed_line(line: str, refer: str = ''):
+    if not refer:
+        return line
+    if refer.endswith(' -'):
+        return refer[:-1] + line.rstrip()
     else:
-        return '\n' + line
-
-
-def _sanitize_text(text: str) -> str:
-    """
-    note:
-        in rich-click, single newline (\n) will be removed, double newlines
-        (\n\n) will be preserved as one newline.
-    """
-    return text.strip().replace('\n', '\n\n')
+        return refer + '\n' + line.rstrip()
