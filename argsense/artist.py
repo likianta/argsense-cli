@@ -56,6 +56,12 @@ def draw_title(prog_name: str,
         else:
             return ''
     
+    def render_arguments() -> str:
+        if arguments:
+            return '[blue]{}[/]'.format(' '.join(arguments))
+        else:
+            return ''
+    
     return '\n'.join((
         '',  # empty line
         '[b]{}[/]'.format(  # title
@@ -64,7 +70,7 @@ def draw_title(prog_name: str,
                 render_prog_name(),
                 render_commands(),
                 render_options(),
-                arguments and '[blue]{}[/]'.format(' '.join(arguments))
+                render_arguments(),
             )))
         ),
         '' if not serif_line else (

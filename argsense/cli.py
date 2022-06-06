@@ -171,7 +171,7 @@ class CommandLineInterface:
         name = func and func.__name__  # optional[str]
         desc = '' if mode == 'group' else self.commands[id(func)]['desc']
         args = None if mode == 'group' else tuple(
-            x[0].upper()
+            x.upper()
             for x in self.commands[id(func)]['args'].keys()
         )
         has_args = bool(args)
