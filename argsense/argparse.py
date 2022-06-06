@@ -7,7 +7,7 @@ import typing as t
 from enum import Enum
 from enum import auto
 
-__all__ = ['parse_argv', 'ParamType']
+__all__ = ['extract_command_name', 'parse_argv', 'ParamType']
 
 
 class E:  # Exceptions
@@ -82,6 +82,7 @@ def parse_argv(
         mode: t.Literal['group', 'command'],
         front_matter: T.ParamsInfo,
 ) -> T.ParsedResult:
+    print(argv, front_matter, ':l')
     path, argv = argv[0], argv[1:]
     out = {
         'prog_head': _get_program_head(path),
@@ -95,9 +96,6 @@ def parse_argv(
     def walking_through_argv(argv: list[str]):
         if argv:
             arg = argv.pop(0)
-            tmp = arg.replace('-', '')
-            assert tmp.isupper() or tmp.islower(), \
-                'arg must be in all lower case or upper case!'
         else:
             return
         
@@ -170,7 +168,8 @@ def parse_argv(
             try:
                 param_name = tuple(front_matter['args'])[len(out['args'])]
             except IndexError:
-                raise E.FailedParsingArgv('too many arguments', arg)
+                raise E.FailedParsingArgv('too many arguments', arg,
+                                          front_matter, out)
             else:
                 param_type = front_matter['args'][param_name]
                 param_value = _eval_arg_value(arg, param_type)
@@ -190,6 +189,18 @@ def parse_argv(
     walking_through_argv(argv)
     
     return out
+
+
+def extract_command_name(argv: list[str]) -> t.Optional[str]:
+    option_scope = False
+    for arg in argv[1:]:
+        if arg.startswith('-'):
+            option_scope = True
+        elif option_scope:
+            option_scope = False
+        else:
+            return arg
+    return None
 
 
 def _get_program_head(path: str) -> str:
@@ -231,16 +242,21 @@ PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(  # noqa
     r'^-?(?:[0-9]+|[0-9]*\.[0-9]+|0b[01]+|0x[0-9a-fA-F]+)$'
 )
 
+SPECIAL_ARGS = {
+    ':true': True,
+    ':false': False,
+    ':none': None,
+    ':cwd': os.getcwd(),
+}
 
-def _eval_arg_value(arg: str, possible_type=None) -> t.Any:
-    global PYTHON_ACCEPTABLE_NUMBER_PATTERN
+
+def _eval_arg_value(arg: str, possible_type) -> t.Any:
+    print(':pv', arg, possible_type)
     
-    if arg.startswith(('"', "'")):
-        assert len(arg) >= 2 and arg.endswith(arg[0])
-        assert possible_type is None or possible_type == ParamType.TEXT
-        return arg[1:-1]
+    global PYTHON_ACCEPTABLE_NUMBER_PATTERN, SPECIAL_ARGS
     
-    assert possible_type is not None
+    if arg in SPECIAL_ARGS:
+        return SPECIAL_ARGS[arg]
     
     if possible_type == ParamType.TEXT:
         return arg
@@ -248,14 +264,10 @@ def _eval_arg_value(arg: str, possible_type=None) -> t.Any:
         assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg)
         return eval(arg)
     elif possible_type == ParamType.FLAG:
-        assert arg in ('true', 'false')
+        assert arg in (':true', ':false')
         return bool(arg == 'true')
     else:
-        if arg in ('true', 'false'):
-            return bool(arg == 'true')
-        elif arg == 'none':
-            return None
-        elif PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg):
+        if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg):
             return eval(arg)
         else:
             return arg
