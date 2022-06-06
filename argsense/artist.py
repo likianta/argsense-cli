@@ -127,7 +127,7 @@ def draw_extensions_panel(extensions: dict):
 
 
 def _draw_panel(data: dict, title: str, style: str, border_style: str):
-    table = Table.grid(expand=True)
+    table = Table.grid(expand=False, padding=(0, 4))
     table.add_column('name', style='blue')
     table.add_column('desc', style='default')
     
