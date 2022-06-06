@@ -9,6 +9,7 @@ class T:
         'any', 'bool', 'dict', 'float', 'int',
         'list', 'none', 'set', 'str', 'tuple',
     ]
+    FallbackType = t.Literal['any', 'str']
     _DefaultValue = t.Any
     
     FuncInfo = t.TypedDict('FuncInfo', {
@@ -22,7 +23,9 @@ class T:
 TParamType = T.ParamType
 
 
-def parse_function(func) -> T.FuncInfo:
+# TODO: fallback_type is not used in current version.
+# noinspection PyUnusedLocal
+def parse_function(func, fallback_type: T.FallbackType = 'any') -> T.FuncInfo:
     param_count = func.__code__.co_argcount + func.__code__.co_kwonlyargcount
     param_names = func.__code__.co_varnames[:param_count]
     annotations = func.__annotations__
