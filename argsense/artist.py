@@ -11,6 +11,11 @@ from . import config
 from .style.color_scheme import DefaultColor as Color
 
 
+class T:
+    # Style = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
+    PanelData = t.Iterable[t.Tuple[str, ...]]
+
+
 def draw_title(prog_name: str,
                commands=True,
                options=True,
@@ -90,58 +95,62 @@ def draw_title(prog_name: str,
     ))
 
 
-def draw_commands_panel(commands: dict):
+def draw_commands_panel(commands: T.PanelData) -> Panel:
     return _draw_panel(
-        commands,
+        fields=('name', 'desc'),
+        data=commands,
         title='COMMANDS',
-        style='cmd',
         border_style=config.CMD_BORDER_STYLE,
     )
 
 
-def draw_arguments_panel(arguments: dict):
+def draw_arguments_panel(arguments: T.PanelData) -> Panel:
     return _draw_panel(
-        arguments,
+        fields=('name', 'type', 'desc'),
+        data=arguments,
         title='ARGUMENTS',
-        style='arg',
         border_style=config.ARG_BORDER_STYLE,
     )
 
 
-def draw_options_panel(options: dict):
+def draw_options_panel(options: T.PanelData) -> Panel:
     return _draw_panel(
-        options,
+        fields=('name', 'type', 'desc', 'default'),
+        data=options,
         title='OPTIONS',
-        style='opt',
         border_style=config.OPT_BORDER_STYLE,
     )
 
 
-def draw_extensions_panel(extensions: dict):
+def draw_extensions_panel(extensions: T.PanelData) -> Panel:
     return _draw_panel(
-        extensions,
+        fields=('name', 'type', 'desc', 'default'),
+        data=extensions,
         title='OPTIONS [dim](EX)[/]',
-        style='ext',
         border_style=config.EXT_BORDER_STYLE,
     )
 
 
-def _draw_panel(data: dict, title: str, style: str, border_style: str):
-    table = Table.grid(expand=False, padding=(0, 4))
-    table.add_column('name', style='blue')
-    table.add_column('desc', style='default')
-    
-    def tint_name(name: str, style) -> str:
-        palette = {
-            'cmd': 'magenta',
-            'arg': 'blue',
-            'opt': 'grey74',
-            'ext': 'dim',
+def _draw_panel(
+        fields: t.Sequence[str],
+        data: T.PanelData,
+        title: str,
+        border_style: str
+) -> Panel:
+    def tint_field(field: str) -> str:
+        style = {
+            'name'   : border_style,
+            'type'   : 'yellow',
+            'desc'   : 'default',
+            'default': 'dim',
         }
-        return '[{}]{}[/]'.format(palette[style], name)
+        return style[field]
     
-    for k, v in data.items():
-        table.add_row(tint_name(k, style), v)
+    table = Table.grid(expand=False, padding=(0, 4))
+    for field in fields:
+        table.add_column(field, style=tint_field(field))
+    for row in data:
+        table.add_row(*map(str, row))
     
     return Panel(
         table,

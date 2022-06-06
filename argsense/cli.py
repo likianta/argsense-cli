@@ -13,51 +13,27 @@ __all__ = ['cli']
 
 
 class T:
-    # reading order:
-    #   follow the tailed marks of code comment: A -> B -> C -> ...
-    
     Mode = t.Literal['group', 'command']
     
-    _ArgName = str  # C1
-    _ArgType = str  # C2
-    _DefaultValue = t.Any  # C3
-    
-    CommandInfo = t.TypedDict('CommandInfo', {  # B2
-        'desc'       : str,
-        'args'       : t.List[t.Tuple[_ArgName, _ArgType]],
-        'args.docs'  : t.Dict[_ArgName, str],
-        'kwargs'     : t.List[t.Tuple[_ArgName, _ArgType, _DefaultValue]],
-        'kwargs.docs': t.Dict[_ArgName, str],
-    })
-    
-    _FunctionName = str  # name in snake_case.  # B1
     _FunctionId = int
-    _CommandName = str  # name in kebab-case.  # B2
-    CommandsDict = t.Dict[  # A1
-        _FunctionName, t.TypedDict('CommandsDict', {
-            # 'name': _CommandName,  # noqa
-            'func': t.Callable,
-            'info': CommandInfo,  # noqa
-        })
-    ]
-    
-    # WIP proposal
-    CommandsDict2 = t.Dict[
+    _ParamName = str
+    _ParamType = ParamType
+    CommandsCollect = t.Dict[
         _FunctionId, t.TypedDict('FuncInfo', {
             'func'  : t.Callable,
             'cname' : str,
             'desc'  : str,
             'args'  : t.Dict[
-                _ArgName, t.TypedDict('ArgInfo', {
+                _ParamName, t.TypedDict('ArgInfo', {
                     'cname': str,
-                    'ctype': ParamType,  # noqa
+                    'ctype': _ParamType,  # noqa
                     'desc' : str,
                 })
             ],
             'kwargs': t.Dict[
-                _ArgName, t.TypedDict('ArgInfo', {
+                _ParamName, t.TypedDict('ArgInfo', {
                     'cname'  : str,
-                    'ctype'  : ParamType,  # noqa
+                    'ctype'  : _ParamType,  # noqa
                     'desc'   : str,
                     'default': t.Any,
                 })
@@ -72,7 +48,7 @@ class CommandLineInterface:
     """
     
     def __init__(self):
-        self.commands: T.CommandsDict2 = {}
+        self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
     
     # -------------------------------------------------------------------------
@@ -195,10 +171,10 @@ class CommandLineInterface:
             )
             
             console.print(
-                artist.draw_commands_panel({
-                    v['cname']: v['desc']
+                artist.draw_commands_panel((
+                    (v['cname'], v['desc'])
                     for v in self.commands.values()
-                })
+                ))
             )
         
         else:
@@ -224,18 +200,19 @@ class CommandLineInterface:
             
             if args := func_info['args']:
                 console.print(
-                    artist.draw_arguments_panel({
-                        v['cname']: v['desc']
-                        for k, v in args.items()
-                    })
+                    artist.draw_arguments_panel((
+                        (v['cname'], v['ctype'].name, v['desc'])
+                        for v in args.values()
+                    ))
                 )
             
             if kwargs := func_info['kwargs']:
                 console.print(
-                    artist.draw_options_panel({
-                        v['cname']: v['desc']
-                        for k, v in kwargs.items()
-                    })
+                    artist.draw_options_panel((
+                        (v['cname'], v['ctype'].name, v['desc'],
+                         '[red dim](default={})[/]'.format(v['default']))
+                        for v in kwargs.values()
+                    ))
                 )
         
         # show logo in right-bottom corner.
