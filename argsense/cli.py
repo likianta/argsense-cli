@@ -88,7 +88,7 @@ class CommandLineInterface:
         
         def decorator(func: t.Callable) -> t.Callable:
             nonlocal name
-            cmd_name = name or func.__name__
+            cmd_name = name or name_2_cname(func.__name__)
             if cmd_name in self._cname_2_func and \
                     (new := func) is not (old := self._cname_2_func[cmd_name]):
                 raise Exception(
@@ -96,6 +96,8 @@ class CommandLineInterface:
                     f'the recorded function is: {old}',
                     f'the incoming function is: {new}',
                 )
+            else:
+                self._cname_2_func[cmd_name] = func
             
             func_info = parse_function(func)
             docs_info = parse_docstring(func.__doc__ or '')
@@ -154,6 +156,8 @@ class CommandLineInterface:
             }
         )
         print(':lv', result)
+        if result['command']:
+            func = self._cname_2_func[result['command']]
         # FIXME: we take '--help' as the most important option to check. the
         #   '--help' is the only global option for now.
         if result['kwargs'].get('help'):
@@ -168,7 +172,6 @@ class CommandLineInterface:
         """
         # excerpt
         mode = 'group' if not func else 'command'
-        name = func and func.__name__  # optional[str]
         desc = '' if mode == 'group' else self.commands[id(func)]['desc']
         args = None if mode == 'group' else tuple(
             x.upper()
