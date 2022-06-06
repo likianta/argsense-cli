@@ -133,8 +133,10 @@ class CommandLineInterface:
     # run
     
     def run(self, func=None):
+        from . import config
         from .argparse import extract_command_name, parse_argv
         
+        console.width = config.CONSOLE_WIDTH
         mode: T.Mode = 'group' if not func else 'command'  # noqa
         
         if func is None:

@@ -2,7 +2,9 @@
 
 > The documentation is under construction.
 
-![](.assets/gQqE28Z6lC.png)
+![](.assets/gQqE28Z6lC.png "(outdated)")
+
+![](.assets/20220606164759.jpg "latest")
 
 **argsense** is a command line interface made with Python.
 

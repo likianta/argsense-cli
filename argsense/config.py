@@ -1,6 +1,8 @@
 USE_RICH_MARKUP = True
 DEFAULT_TEXT_FOR_NO_DESC = ''
-#   suggested option: '[dim]no description[/]'
+#   suggested alternative: '[dim]no description[/]'
+
+CONSOLE_WIDTH = None
 
 CMD_BORDER_STYLE = 'magenta'
 ARG_BORDER_STYLE = 'blue'
