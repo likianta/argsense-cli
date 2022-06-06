@@ -16,6 +16,8 @@ class T:
     # reading order:
     #   follow the tailed marks of code comment: A -> B -> C -> ...
     
+    Mode = t.Literal['group', 'command']
+    
     _ArgName = str  # C1
     _ArgType = str  # C2
     _DefaultValue = t.Any  # C3
@@ -130,10 +132,18 @@ class CommandLineInterface:
     # run
     
     def run(self, func=None):
-        from .argparse import parse_argv
+        from .argparse import extract_command_name, parse_argv
+
+        mode: T.Mode = 'group' if not func else 'command'  # noqa
+
+        if func is None:
+            if cmd_name := extract_command_name(sys.argv):
+                print(':v', cmd_name)
+                func = self._cname_2_func[cmd_name]
+        
         result = parse_argv(
             argv=sys.argv,
-            mode='group' if not func else 'command',  # noqa
+            mode=mode,
             front_matter={
                 'args': {} if func is None else {
                     k: v['ctype']
@@ -146,8 +156,8 @@ class CommandLineInterface:
                         for k, v in self.commands[id(func)]['kwargs'].items()
                     }
                 },
-                'index': {'--help': 'help'} if func is None else {
-                    '--help': 'help', **{
+                'index': {'--help': 'help', '-h': 'help'} if func is None else {
+                    '--help': 'help', '-h': 'help', **{
                         n: k
                         for k, v in self.commands[id(func)]['kwargs'].items()
                         for n in v['cname'].split(',')
@@ -161,17 +171,16 @@ class CommandLineInterface:
         # FIXME: we take '--help' as the most important option to check. the
         #   '--help' is the only global option for now.
         if result['kwargs'].get('help'):
-            self.show(func)
+            self.show(func, mode)
         else:
-            self.exec(func, sys.argv[1:])
+            self.exec(func, result['args'], result['kwargs'])
     
-    def show(self, func=None):
+    def show(self, func, mode: t.Literal['group', 'command']):
         """
         reference:
             [lib:click]/core.py : BaseCommand.main()
         """
         # excerpt
-        mode = 'group' if not func else 'command'
         desc = '' if mode == 'group' else self.commands[id(func)]['desc']
         args = None if mode == 'group' else tuple(
             x.upper()
@@ -227,8 +236,12 @@ class CommandLineInterface:
             justify='right', style='bold', end=' \n'
         )
     
-    def exec(self, func, argv):
-        pass
+    @staticmethod
+    def exec(func: t.Callable, args: t.Sequence, kwargs: dict):
+        try:
+            func(*args, **kwargs)
+        except Exception:
+            console.print_exception(show_locals=True)
 
 
 def _detect_program_name() -> str:
