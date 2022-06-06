@@ -8,14 +8,7 @@ from rich.table import Table
 from rich.text import Text
 
 from . import config
-
-
-class Color:
-    # some colors are inspired by [oh-my-posh/themes/bubbles
-    # <https://github.com/JanDeDobbeleer/oh-my-posh/blob/main/themes/bubbles
-    # .omp.json>]
-    dim_acrylic = '#29315a'
-    scarlet = '#e64747'
+from .style.color_scheme import DefaultColor as Color
 
 
 def draw_title(prog_name: str,
@@ -32,26 +25,32 @@ def draw_title(prog_name: str,
     
     def render_prog_name():
         # style: dark-red on dim
-        return _round_wrap(
-            '[{fg} on {bg}]{text}[/]'.format(
-                fg=Color.scarlet,
-                bg=Color.dim_acrylic,
-                text=prog_name if not prog_name.startswith('python ')
-                else prog_name[7:],
+        if prog_name.startswith('python '):
+            return 'python ' + _round_wrap(
+                '[{fg}]{text}[/]'.format(
+                    fg=Color.scarlet,
+                    # bg=Color.dim_acrylic,
+                    text=prog_name[7:],
+                )
             )
-        )
+        else:
+            return _round_wrap(
+                '[{fg}]{text}[/]'.format(
+                    fg=Color.scarlet,
+                    # bg=Color.dim_acrylic,
+                    text=prog_name
+                )
+            )
     
     def render_commands():
-        tmpl = _round_wrap('[{} on {}]{{}}[/]'.format(
-            'magenta', Color.dim_acrylic
-        ))
+        tmpl = _round_wrap(f'[{Color.magenta}]{{}}[/]')
         if commands:
             return tmpl.format('<COMMAND>')
         else:
             return ''
     
     def render_options():
-        tmpl = _round_wrap(f'[dim on {Color.dim_acrylic}]{{}}[/]')
+        tmpl = _round_wrap(f'[dim]{{}}[/]')
         if options:
             return tmpl.format('\\[OPTIONS]')
         else:
@@ -59,8 +58,8 @@ def draw_title(prog_name: str,
     
     return '\n'.join((
         '',  # empty line
-        '[b on {}]{}[/]'.format(  # title
-            Color.dim_acrylic,
+        '[b]{}[/]'.format(  # title
+            # Color.dim_acrylic,
             ' '.join(filter(None, (
                 render_prog_name(),
                 render_commands(),
@@ -138,14 +137,18 @@ def _draw_panel(data: dict, title: str, style: str, border_style: str):
     )
 
 
-def post_logo(style: t.Literal['magenta', 'blue']) -> Text:
+def post_logo(style: t.Literal['red', 'blue', 'tan']) -> Text:
     """ show logo in gradient color. """
+    from .style.color_scheme import DefaultGradient
     from rich.color import Color
-    if style == 'magenta':
-        color_pair = ('#ed3b3b', '#d08bf3')  # rose red -> violet
+    
+    color_pair: tuple
+    if style == 'red':
+        color_pair = DefaultGradient.red
+    elif style == 'blue':
+        color_pair = DefaultGradient.blue
     else:
-        # color_pair = ('#2d34f1', '#9294f0')  # ocean blue -> light blue
-        color_pair = ('#0a87ee', '#9294f0')  # calm blue -> light blue
+        color_pair = DefaultGradient.tan
     return _blend_text(
         '♥ powered by argsense',
         *(Color.parse(x).triplet for x in color_pair)
@@ -211,9 +214,19 @@ def _reformat_name(name: str, style: str) -> str:
         return f'[dim]{name}[/]'
 
 
+# noinspection PyUnusedLocal
 def _round_wrap(text: str, color=Color.dim_acrylic) -> str:
-    return '{leading_diamon}{text}{trailing_diamond}'.format(
-        leading_diamon=f'[{color}]\ue0b6[/]',
-        text=text,
-        trailing_diamond=f'[{color}]\ue0b4[/]',
-    )
+    """
+    warning: this requires nerd fonts.
+    """
+    return text
+    # return '{space}{text}{space}'.format(
+    #     space=f'[default on {color}] [/]',
+    #     text=text
+    # )
+    # TODO: not ready for production.
+    # # return '{leading_diamon}{text}{trailing_diamond}'.format(
+    # #     leading_diamon=f'[{color}]\ue0b6[/]',
+    # #     text=text,
+    # #     trailing_diamond=f'[{color}]\ue0b4[/]',
+    # # )
