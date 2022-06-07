@@ -17,13 +17,13 @@ class T:
 
 
 def draw_title(prog_name: str,
-               commands=True,
-               options=True,
+               command='<COMMAND>',
+               options='[OPTIONS]',
                arguments=t.Optional[t.Sequence[str]],
                serif_line=False) -> str:
     """
     illustration examples:
-        python -m argsense <COMMANDS> [OPTIONS]
+        python -m argsense <COMMAND> [OPTIONS]
         python -m argsense [OPTIONS] <ARGUMENTS>
         python -m argsense [OPTIONS]
     """
@@ -47,22 +47,28 @@ def draw_title(prog_name: str,
                 )
             )
     
-    def render_commands():
+    def render_command():
         tmpl = _round_wrap(f'[{Color.magenta}]{{}}[/]')
-        if commands:
-            return tmpl.format('<COMMAND>')
-        else:
-            return ''
+        return tmpl.format(command)
     
     def render_options():
         tmpl = _round_wrap(f'[dim]{{}}[/]')
-        if options:
-            return tmpl.format('\\[OPTIONS]')
+        if '[' in options:
+            return tmpl.format(options.replace('[', '\\['))
         else:
-            return ''
+            return tmpl.format(options)
     
     def render_arguments() -> str:
+        # experimental: if the length of arguments is longer than 3, use
+        # stagger color (light-blue and dark-blue) to improve readability.
         if arguments:
+            if len(arguments) >= 3:
+                return ' '.join(
+                    '[{fg}]{text}[/]'.format(
+                        fg='blue' if i % 2 == 0 else 'cornflower_blue',
+                        text=x
+                    ) for i, x in enumerate(arguments)
+                )
             return '[blue]{}[/]'.format(' '.join(arguments))
         else:
             return ''
@@ -73,7 +79,7 @@ def draw_title(prog_name: str,
             # Color.dim_acrylic,
             ' '.join(filter(None, (
                 render_prog_name(),
-                render_commands(),
+                render_command(),
                 render_options(),
                 render_arguments(),
             )))
@@ -85,8 +91,8 @@ def draw_title(prog_name: str,
                     prog_name.replace('[green]', '').replace('[/]', ''),
                     #   ~.replace(...): keep this sync with `cli.py :
                     #   _detect_program_name()`
-                    commands and f'<COMMANDS>',
-                    options and f'[OPTIONS]',
+                    command,
+                    options,
                     arguments and ' '.join(arguments),
                     # ' ',
                 ))))
