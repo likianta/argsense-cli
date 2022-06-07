@@ -140,14 +140,28 @@ class CommandLineInterface:
                     for k, v in self.commands[id(func)]['args'].items()
                 },
                 # FIXME: if func is None, use global options.
-                'kwargs': {'help': ParamType.FLAG} if func is None else {
-                    'help': ParamType.FLAG, **{
+                'kwargs': {
+                    'help' : ParamType.FLAG,
+                    'helpx': ParamType.FLAG
+                } if func is None else {
+                    'help' : ParamType.FLAG,
+                    'helpx': ParamType.FLAG,
+                    **{
                         k: v['ctype']
                         for k, v in self.commands[id(func)]['kwargs'].items()
                     }
                 },
-                'index' : {'--help': 'help', '-h': 'help'} if func is None else {
-                    '--help': 'help', '-h': 'help', **{
+                'index' : {
+                    '--help' : 'help',
+                    '-h'     : 'help',
+                    '--helpx': 'helpx',
+                    '-hh'    : 'helpx',
+                } if func is None else {
+                    '--help' : 'help',
+                    '-h'     : 'help',
+                    '--helpx': 'helpx',
+                    '-hh'    : 'helpx',
+                    **{
                         n: k
                         for k, v in self.commands[id(func)]['kwargs'].items()
                         for n in v['cname'].split(',')
@@ -162,6 +176,10 @@ class CommandLineInterface:
         #   '--help' is the only global option for now.
         if result['kwargs'].get('help'):
             self.show(func)
+        elif result['kwargs'].get('helpx'):
+            self.show(None)
+            for func_info in self.commands.values():
+                self.show(func_info['func'])
         else:
             self.exec(func, result['args'], result['kwargs'])
     
