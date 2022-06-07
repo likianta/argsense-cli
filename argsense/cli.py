@@ -177,9 +177,10 @@ class CommandLineInterface:
         if result['kwargs'].get('help'):
             self.show(func)
         elif result['kwargs'].get('helpx'):
-            self.show(None)
-            for func_info in self.commands.values():
-                self.show(func_info['func'])
+            self.show2()
+            # self.show(None)
+            # for func_info in self.commands.values():
+            #     self.show(func_info['func'])
         else:
             self.exec(func, result['args'], result['kwargs'])
     
@@ -225,7 +226,8 @@ class CommandLineInterface:
             if has_args and has_kwargs:
                 from .config import Dynamic
                 Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
-                    *map(len, (x['cname'] for x in func_info['args'].values())),
+                    *map(len, (x['cname']
+                               for x in func_info['args'].values())),
                     *map(len, (x['cname'].replace(',', ', ')
                                for x in func_info['kwargs'].values())),
                 ))
@@ -280,6 +282,194 @@ class CommandLineInterface:
             justify='right', style='bold', end=' \n'
         )
     
+    def show2(self):
+        """
+        warning: this is an experimental method for testing new style of 'helpx'.
+        """
+        from rich.align import Align
+        from rich.padding import Padding
+
+        def show(func: t.Optional[t.Callable], show_logo: bool) -> dict:
+            is_group: bool
+            has_args: bool
+            has_kwargs: bool
+            
+            collect_renderables = {
+                'title': None,
+                'desc': None,
+                'cmd_panel': None,
+                'arg_panel': None,
+                'opt_panel': None,
+                'logo': None,
+            }
+    
+            if func is None:
+                is_group = True
+                has_args = False
+                has_kwargs = False
+        
+                collect_renderables['title'] = Align.center(
+                    artist.draw_title(
+                        prog_name=_detect_program_name(),
+                        command='<COMMAND>',
+                        arguments=None,
+                        serif_line=False,
+                    )
+                )
+        
+                collect_renderables['cmd_panel'] = (
+                    artist.draw_commands_panel((
+                        (v['cname'], v['desc'])
+                        for v in self.commands.values()
+                    ))
+                )
+    
+            else:
+                func_info = self.commands[id(func)]
+                desc = func_info['desc']
+                is_group = False
+                has_args = bool(func_info['args'])
+                has_kwargs = bool(func_info['kwargs'])
+        
+                # experimental
+                if has_args and has_kwargs:
+                    from .config import Dynamic
+                    Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
+                        *map(len, (x['cname']
+                                   for x in func_info['args'].values())),
+                        *map(len, (x['cname'].replace(',', ', ')
+                                   for x in func_info['kwargs'].values())),
+                    ))
+                    print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
+
+                collect_renderables['title'] = Align.center(
+                    artist.draw_title(
+                        prog_name=_detect_program_name(),
+                        command=func_info['cname'],
+                        arguments=tuple(
+                            v['cname'] for v in func_info['args'].values()
+                        ),
+                        serif_line=bool(desc),
+                    )
+                )
+                if desc:
+                    from rich.text import Text
+                    rich_desc = Text.from_markup(indent(desc, ' '))
+                    rich_desc.stylize('grey74')
+                    collect_renderables['desc'] = rich_desc
+        
+                if args := func_info['args']:
+                    collect_renderables['arg_panel'] = (
+                        artist.draw_arguments_panel((
+                            (v['cname'], v['ctype'].name, v['desc'])
+                            for v in args.values()
+                        ))
+                    )
+        
+                if kwargs := func_info['kwargs']:
+                    collect_renderables['opt_panel'] = (
+                        artist.draw_options_panel((
+                            (v['cname'].replace(',', ', '),
+                             v['ctype'].name,
+                             v['desc'],
+                             '[red dim](default={})[/]'.format(v['default']))
+                            for v in kwargs.values()
+                        ))
+                    )
+    
+            # show logo in right-bottom corner.
+            if show_logo:
+                if not is_group and not has_args and not has_kwargs:
+                    return collect_renderables
+                # noinspection PyTypeChecker
+                collect_renderables['logo'] = Padding(
+                    Align.right(
+                        artist.post_logo(
+                            style='magenta' if is_group
+                            else 'white' if has_kwargs
+                            else 'blue'
+                        ), style='bold'
+                    ), (0, 1, 0, 0)
+                )
+            
+            return collect_renderables
+        
+        parts = []  # noqa
+        parts.append(show(None, show_logo=True))
+        parts.extend(show(v['func'], show_logo=False)
+                     for v in self.commands.values())
+        
+        def render():
+            from rich.columns import Columns
+            from rich.console import Group
+            from rich.panel import Panel
+            
+            preferred_field_width = {
+                'command_field': max(
+                    map(len, (v['cname']
+                              for v in self.commands.values()))
+                ),
+                'param_field': max((
+                    *map(len, (w['cname']
+                               for v in self.commands.values()
+                               for w in v['args'].values())),
+                    *map(len, (w['cname'].replace(',', ', ')
+                               for v in self.commands.values()
+                               for w in v['kwargs'].values())),
+                )),
+                'type_field': len('NUMBER'),
+            }
+            print(preferred_field_width, ':v')
+            
+            def tint(text: str, color: str) -> str:
+                # a simple function to tint a text snippet.
+                return f'[{color}]{text}[/]'
+            
+            console.print(parts[0]['title'])
+            assert not parts[0]['desc']
+            
+            group = []
+            for index, func_info in enumerate(self.commands.values()):
+                cmd_name = func_info['cname']
+                cmd_desc = func_info['desc']
+                col = Columns((
+                    tint(cmd_name.ljust(
+                        preferred_field_width['command_field']
+                    ), 'magenta'),
+                    cmd_desc
+                ), padding=(0, 4))
+                # TODO: how to highlight its background in the full console width?
+                # from rich.box import Box
+                # col = Panel(col, box=Box(''), style='default on yellow')
+                group.append(col)
+                
+                sub_part = parts[index + 1]
+                sub_panel = Padding(Panel(
+                    Group(*filter(
+                        lambda x: x is not None,
+                        (
+                            # sub_part['title'],
+                            sub_part['desc'],
+                            sub_part['arg_panel'],
+                            sub_part['opt_panel'],
+                        )
+                    )),
+                    border_style='dim',
+                    title=str(sub_part['title']).split('\\n')[1].replace(
+                        '\\[OPTIONS]', '[OPTIONS]'
+                    ),
+                    title_align='center',
+                ), pad=(0, 0, 0, 4))
+                group.append(sub_panel)
+                
+                group.append('')
+        
+            group.append(parts[0]['logo'])
+        
+            return Panel(Group(*group), border_style='magenta')
+        
+        console.print(render())
+
     @staticmethod
     def exec(func: t.Callable, args: t.Sequence, kwargs: dict):
         try:
