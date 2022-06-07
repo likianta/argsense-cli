@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import typing as t
@@ -119,6 +121,23 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     # run
     
+    class GlobalOptions:
+        name_2_type = {
+            ':help' : ParamType.FLAG,
+            ':helpx': ParamType.FLAG,
+        }
+        
+        cname_2_name = {
+            '--:help' : ':help',
+            '-:h'     : ':help',
+            '--help'  : ':help',
+            '-h'      : ':help',
+            '--:helpx': ':helpx',
+            '-:hh'    : ':helpx',
+            '--helpx' : ':helpx',
+            '-hh'     : ':helpx',
+        }
+    
     def run(self, func=None):
         from . import config
         from .argparse import extract_command_name, parse_argv
@@ -139,34 +158,25 @@ class CommandLineInterface:
                     k: v['ctype']
                     for k, v in self.commands[id(func)]['args'].items()
                 },
-                # FIXME: if func is None, use global options.
-                'kwargs': {
-                    'help' : ParamType.FLAG,
-                    'helpx': ParamType.FLAG
-                } if func is None else {
-                    'help' : ParamType.FLAG,
-                    'helpx': ParamType.FLAG,
-                    **{
-                        k: v['ctype']
-                        for k, v in self.commands[id(func)]['kwargs'].items()
+                'kwargs': (
+                    self.GlobalOptions.name_2_type if func is None
+                    else {
+                        **self.GlobalOptions.name_2_type,
+                        **{k: v['ctype']
+                           for k, v in self.commands[
+                               id(func)]['kwargs'].items()}
                     }
-                },
-                'index' : {
-                    '--help' : 'help',
-                    '-h'     : 'help',
-                    '--helpx': 'helpx',
-                    '-hh'    : 'helpx',
-                } if func is None else {
-                    '--help' : 'help',
-                    '-h'     : 'help',
-                    '--helpx': 'helpx',
-                    '-hh'    : 'helpx',
-                    **{
-                        n: k
-                        for k, v in self.commands[id(func)]['kwargs'].items()
-                        for n in v['cname'].split(',')
+                ),
+                'index' : (
+                    self.GlobalOptions.cname_2_name if func is None
+                    else {
+                        **self.GlobalOptions.cname_2_name,
+                        **{n: k
+                           for k, v in self.commands[
+                               id(func)]['kwargs'].items()
+                           for n in v['cname'].split(',')}
                     }
-                },
+                ),
             }
         )
         # print(':lv', result)
@@ -174,9 +184,9 @@ class CommandLineInterface:
             func = self._cname_2_func[result['command']]
         # FIXME: we take '--help' as the most important option to check. the
         #   '--help' is the only global option for now.
-        if result['kwargs'].get('help'):
+        if result['kwargs'].get(':help'):
             self.show(func)
-        elif result['kwargs'].get('helpx'):
+        elif result['kwargs'].get(':helpx'):
             self.show2()
             # self.show(None)
             # for func_info in self.commands.values():
@@ -288,26 +298,26 @@ class CommandLineInterface:
         """
         from rich.align import Align
         from rich.padding import Padding
-
+        
         def show(func: t.Optional[t.Callable], show_logo: bool) -> dict:
             is_group: bool
             has_args: bool
             has_kwargs: bool
             
             collect_renderables = {
-                'title': None,
-                'desc': None,
+                'title'    : None,
+                'desc'     : None,
                 'cmd_panel': None,
                 'arg_panel': None,
                 'opt_panel': None,
-                'logo': None,
+                'logo'     : None,
             }
-    
+            
             if func is None:
                 is_group = True
                 has_args = False
                 has_kwargs = False
-        
+                
                 collect_renderables['title'] = Align.center(
                     artist.draw_title(
                         prog_name=_detect_program_name(),
@@ -316,21 +326,21 @@ class CommandLineInterface:
                         serif_line=False,
                     )
                 )
-        
+                
                 collect_renderables['cmd_panel'] = (
                     artist.draw_commands_panel((
                         (v['cname'], v['desc'])
                         for v in self.commands.values()
                     ))
                 )
-    
+            
             else:
                 func_info = self.commands[id(func)]
                 desc = func_info['desc']
                 is_group = False
                 has_args = bool(func_info['args'])
                 has_kwargs = bool(func_info['kwargs'])
-        
+                
                 # experimental
                 if has_args and has_kwargs:
                     from .config import Dynamic
@@ -341,7 +351,7 @@ class CommandLineInterface:
                                    for x in func_info['kwargs'].values())),
                     ))
                     print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
-
+                
                 collect_renderables['title'] = Align.center(
                     artist.draw_title(
                         prog_name=_detect_program_name(),
@@ -357,7 +367,7 @@ class CommandLineInterface:
                     rich_desc = Text.from_markup(indent(desc, ' '))
                     rich_desc.stylize('grey74')
                     collect_renderables['desc'] = rich_desc
-        
+                
                 if args := func_info['args']:
                     collect_renderables['arg_panel'] = (
                         artist.draw_arguments_panel((
@@ -365,7 +375,7 @@ class CommandLineInterface:
                             for v in args.values()
                         ))
                     )
-        
+                
                 if kwargs := func_info['kwargs']:
                     collect_renderables['opt_panel'] = (
                         artist.draw_options_panel((
@@ -376,7 +386,7 @@ class CommandLineInterface:
                             for v in kwargs.values()
                         ))
                     )
-    
+            
             # show logo in right-bottom corner.
             if show_logo:
                 if not is_group and not has_args and not has_kwargs:
@@ -409,7 +419,7 @@ class CommandLineInterface:
                     map(len, (v['cname']
                               for v in self.commands.values()))
                 ),
-                'param_field': max((
+                'param_field'  : max((
                     *map(len, (w['cname']
                                for v in self.commands.values()
                                for w in v['args'].values())),
@@ -417,7 +427,7 @@ class CommandLineInterface:
                                for v in self.commands.values()
                                for w in v['kwargs'].values())),
                 )),
-                'type_field': len('NUMBER'),
+                'type_field'   : len('NUMBER'),
             }
             print(preferred_field_width, ':v')
             
@@ -454,7 +464,7 @@ class CommandLineInterface:
                             sub_part['opt_panel'],
                         )
                     )),
-                    border_style='dim',
+                    border_style='#f49364',  # dim | #f49364
                     title=str(sub_part['title']).split('\\n')[1].replace(
                         '\\[OPTIONS]', '[OPTIONS]'
                     ),
@@ -463,13 +473,14 @@ class CommandLineInterface:
                 group.append(sub_panel)
                 
                 group.append('')
-        
-            group.append(parts[0]['logo'])
-        
+            
+            assert group[-1] == ''
+            group[-1] = parts[0]['logo']
+            
             return Panel(Group(*group), border_style='magenta')
         
         console.print(render())
-
+    
     @staticmethod
     def exec(func: t.Callable, args: t.Sequence, kwargs: dict):
         try:
