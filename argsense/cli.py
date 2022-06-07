@@ -9,7 +9,7 @@ from .console import console
 from .parser import parse_docstring
 from .parser import parse_function
 
-__all__ = ['cli']
+__all__ = ['cli', 'CommandLineInterface']
 
 
 class T:
@@ -47,7 +47,8 @@ class CommandLineInterface:
     TODO: we will add group feature in future version.
     """
     
-    def __init__(self):
+    def __init__(self, name=None):
+        self.name = name
         self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
     
@@ -274,4 +275,4 @@ def _detect_program_name() -> str:
     return f'python -m {py_module}'
 
 
-cli = CommandLineInterface()
+cli = CommandLineInterface(name='argsense-cli')

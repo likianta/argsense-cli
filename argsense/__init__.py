@@ -12,6 +12,7 @@ d88P     888 888    "Y899888i  "Y8888P"   "Y8888  888  888  88888P'  "Y8888
                     "Y8888P"
 """
 from . import config
+from .cli import CommandLineInterface
 from .cli import cli
 
 __version__ = '0.1.0'
