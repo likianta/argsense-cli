@@ -16,7 +16,8 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
     # convert name from snake_case to kebab-case.
     name = name.lstrip('_').replace('_', '-')
     if style == 'arg':
-        name = name.upper()
+        # # name = name.upper()
+        name = name.replace('-', '_').upper()
     elif style == 'opt':
         name = '--' + name
     return name
