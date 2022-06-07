@@ -153,8 +153,16 @@ def _draw_panel(
         return style[field]
     
     table = Table.grid(expand=False, padding=(0, 4))
-    for field in fields:
-        table.add_column(field, style=tint_field(field))
+    for i, field in enumerate(fields):
+        if field == 'name' and \
+                (w := config.Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME):
+            width = w
+        elif field == 'type' and \
+                (w := config.Dynamic.PREFERRED_FIELD_WIDTH_OF_TYPE):
+            width = w
+        else:
+            width = None
+        table.add_column(field, style=tint_field(field), width=width)
     for row in data:
         table.add_row(*map(str, row))
     

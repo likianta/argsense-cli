@@ -203,6 +203,16 @@ class CommandLineInterface:
             has_args = bool(func_info['args'])
             has_kwargs = bool(func_info['kwargs'])
             
+            # experimental
+            if has_args and has_kwargs:
+                from .config import Dynamic
+                Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
+                    *map(len, (x['cname'] for x in func_info['args'].values())),
+                    *map(len, (x['cname'].replace(',', ', ')
+                               for x in func_info['kwargs'].values())),
+                ))
+                print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
+            
             console.print(
                 artist.draw_title(
                     prog_name=_detect_program_name(),

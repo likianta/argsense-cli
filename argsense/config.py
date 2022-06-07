@@ -15,6 +15,11 @@ EXT_BORDER_STYLE = 'dim'
 ERR_BORDER_STYLE = 'red'
 
 
+class Dynamic:
+    PREFERRED_FIELD_WIDTH_OF_NAME = 0
+    PREFERRED_FIELD_WIDTH_OF_TYPE = len('NUMBER')
+
+
 def apply_changes():
     if CONSOLE_WIDTH is not None:
         from .console import console
