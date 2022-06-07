@@ -170,11 +170,19 @@ class CommandLineInterface:
         reference:
             [lib:click]/core.py : BaseCommand.main()
         """
+        is_group: bool
+        has_args: bool
+        has_kwargs: bool
+        
         if func is None:
+            is_group = True
+            has_args = False
+            has_kwargs = False
+            
             console.print(
                 artist.draw_title(
                     prog_name=_detect_program_name(),
-                    commands=True,
+                    command='<COMMAND>',
                     arguments=None,
                     serif_line=False,
                 ),
@@ -191,11 +199,14 @@ class CommandLineInterface:
         else:
             func_info = self.commands[id(func)]
             desc = func_info['desc']
+            is_group = False
+            has_args = bool(func_info['args'])
+            has_kwargs = bool(func_info['kwargs'])
             
             console.print(
                 artist.draw_title(
                     prog_name=_detect_program_name(),
-                    commands=False,
+                    command=func_info['cname'],
                     arguments=tuple(
                         v['cname'] for v in func_info['args'].values()
                     ),
@@ -229,9 +240,15 @@ class CommandLineInterface:
                 )
         
         # show logo in right-bottom corner.
+        if not is_group and not has_args and not has_kwargs:
+            return
         # noinspection PyTypeChecker
         console.print(
-            artist.post_logo(style='white' if func else 'magenta'),
+            artist.post_logo(
+                style='magenta' if is_group
+                else 'white' if has_kwargs
+                else 'blue'
+            ),
             justify='right', style='bold', end=' \n'
         )
     
