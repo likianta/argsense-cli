@@ -88,14 +88,24 @@ class CommandLineInterface:
                     name: {
                         'cname': name_2_cname(name, style='arg'),
                         'ctype': type_2_ctype(type_),
-                        'desc' : docs_info['args'].get(name, ''),
+                        'desc' : (
+                            '' if name not in docs_info['args']
+                            else docs_info['args'][name]['desc']
+                        ),
                     } for name, type_ in func_info['args']
                 },
                 'kwargs': {
                     name: {
-                        'cname'  : name_2_cname(name, style='opt'),
+                        'cname'  : (
+                            name_2_cname(name, style='opt')
+                            if name not in docs_info['kwargs']
+                            else docs_info['kwargs'][name]['cname']
+                        ),
                         'ctype'  : type_2_ctype(type_),
-                        'desc'   : docs_info['opts'].get(name, ''),
+                        'desc'   : (
+                            '' if name not in docs_info['kwargs']
+                            else docs_info['kwargs'][name]['desc']
+                        ),
                         'default': value,
                     } for name, type_, value in func_info['kwargs']
                 },
@@ -112,7 +122,7 @@ class CommandLineInterface:
         from . import config
         from .argparse import extract_command_name, parse_argv
         
-        console.width = config.CONSOLE_WIDTH
+        config.apply_changes()
         mode: T.Mode = 'group' if not func else 'command'  # noqa
         
         if func is None:
