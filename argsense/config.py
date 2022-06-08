@@ -2,6 +2,7 @@ import typing as _t
 
 USE_RICH_MARKUP = True
 
+# TODO: not used yet. see also `./parser/func_parser.py`
 FALLBACK_TYPE = 'any'  # type: _t.Literal['any', 'str']
 FALLBACK_DESC = ''
 # suggested:
@@ -17,6 +18,7 @@ ERR_BORDER_STYLE = 'red'
 
 ALIGN_ARGS_AND_OPTS_FIELD_WIDTH = False
 
+WARNING_IF_RUNNING_ON_PYCHARM_CONSOLE = False
 CONSOLE_WIDTH = None
 
 EXPAND_HELP_INFO = 0  # int[0, 1, 2]
