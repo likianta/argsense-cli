@@ -213,7 +213,6 @@ class CommandLineInterface:
                     prog_name=_detect_program_name(),
                     command='<COMMAND>',
                     arguments=None,
-                    serif_line=False,
                 ),
                 justify='center'
             )
@@ -250,15 +249,11 @@ class CommandLineInterface:
                     arguments=tuple(
                         v['cname'] for v in func_info['args'].values()
                     ),
-                    serif_line=bool(desc),
                 ),
                 justify='center'
             )
             if desc:
-                from rich.text import Text
-                rich_desc = Text.from_markup(indent(desc, ' '))
-                rich_desc.stylize('grey74')
-                console.print(rich_desc)
+                console.print(indent(desc, ' '))
             
             if args := func_info['args']:
                 console.print(
@@ -323,7 +318,6 @@ class CommandLineInterface:
                         prog_name=_detect_program_name(),
                         command='<COMMAND>',
                         arguments=None,
-                        serif_line=False,
                     )
                 )
                 
@@ -359,14 +353,10 @@ class CommandLineInterface:
                         arguments=tuple(
                             v['cname'] for v in func_info['args'].values()
                         ),
-                        serif_line=bool(desc),
                     )
                 )
                 if desc:
-                    from rich.text import Text
-                    rich_desc = Text.from_markup(indent(desc, ' '))
-                    rich_desc.stylize('grey74')
-                    collect_renderables['desc'] = rich_desc
+                    collect_renderables['desc'] = indent(desc, ' ')
                 
                 if args := func_info['args']:
                     collect_renderables['arg_panel'] = (
@@ -410,7 +400,7 @@ class CommandLineInterface:
                      for v in self.commands.values())
         
         def render():
-            from rich.columns import Columns
+            # from rich.columns import Columns
             from rich.console import Group
             from rich.panel import Panel
             
@@ -440,18 +430,21 @@ class CommandLineInterface:
             
             group = []
             for index, func_info in enumerate(self.commands.values()):
+                # # cmd_name = func_info['cname']
+                # # cmd_desc = func_info['desc']
+                # # col = Columns((
+                # #     tint(cmd_name.ljust(
+                # #         preferred_field_width['command_field']
+                # #     ), 'magenta'),
+                # #     cmd_desc
+                # # ), padding=(0, 4))
+                # # # TODO: how to highlight its background in the full console
+                # # #   width?
+                # # # from rich.box import Box
+                # # # col = Panel(col, box=Box(''), style='default on yellow')
+                # # group.append(col)
                 cmd_name = func_info['cname']
-                cmd_desc = func_info['desc']
-                col = Columns((
-                    tint(cmd_name.ljust(
-                        preferred_field_width['command_field']
-                    ), 'magenta'),
-                    cmd_desc
-                ), padding=(0, 4))
-                # TODO: how to highlight its background in the full console width?
-                # from rich.box import Box
-                # col = Panel(col, box=Box(''), style='default on yellow')
-                group.append(col)
+                group.append(tint(f' {cmd_name} ', 'b dark_magenta on yellow'))
                 
                 sub_part = parts[index + 1]
                 sub_panel = Padding(Panel(

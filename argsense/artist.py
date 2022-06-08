@@ -26,6 +26,8 @@ def draw_title(prog_name: str,
         python -m argsense <COMMAND> [OPTIONS]
         python -m argsense [OPTIONS] <ARGUMENTS>
         python -m argsense [OPTIONS]
+    
+    DELETE: the param `serif_line` is abandoned. it will be removed soon.
     """
     
     def render_prog_name():
