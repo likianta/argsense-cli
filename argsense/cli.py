@@ -201,7 +201,7 @@ class CommandLineInterface:
                 # # for func_info in self.commands.values():
                 # #     self.show(func_info['func'])
         else:
-            self.exec(func, result['args'], result['kwargs'])
+            self.exec(func, result['args'].values(), result['kwargs'])
     
     def show(self, func):
         """
@@ -489,7 +489,7 @@ class CommandLineInterface:
         console.print(render())
     
     @staticmethod
-    def exec(func: t.Callable, args: t.Sequence, kwargs: dict):
+    def exec(func: t.Callable, args: t.Iterable, kwargs: dict):
         try:
             func(*args, **kwargs)
         except Exception:
