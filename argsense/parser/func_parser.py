@@ -40,7 +40,6 @@ def parse_function(func, fallback_type: T.FallbackType = 'any') -> T.FuncInfo:
     type_2_str = {
         None : 'none',
         bool : 'bool',
-        bytes: 'bytes',
         dict : 'dict',
         float: 'float',
         int  : 'int',
@@ -67,9 +66,11 @@ def parse_function(func, fallback_type: T.FallbackType = 'any') -> T.FuncInfo:
                 zip(param_names[-len(kw_defaults):], kw_defaults)
             )
         for name, value in kw_defaults.items():
-            kwargs.append(
-                (name, type_2_str.get(annotations.get(name, str), 'any'), value)
-            )
+            if name in annotations:
+                type_ = type_2_str.get(annotations[name], fallback_type)
+            else:
+                type_ = _deduce_param_type_by_default_value(value)
+            kwargs.append((name, type_, value))
     
     result = type_2_str.get(annotations.get('return', None), 'any')
     
@@ -79,3 +80,17 @@ def parse_function(func, fallback_type: T.FallbackType = 'any') -> T.FuncInfo:
         'kwargs': kwargs,
         'return': result,
     }
+
+
+def _deduce_param_type_by_default_value(default: t.Any) -> T.ParamType:
+    dict_ = {
+        bool : 'bool',
+        dict : 'dict',
+        float: 'float',
+        int  : 'int',
+        list : 'list',
+        set  : 'set',
+        str  : 'str',
+        tuple: 'tuple',
+    }
+    return dict_.get(type(default), 'any')
