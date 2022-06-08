@@ -470,7 +470,10 @@ class CommandLineInterface:
             assert group[-1] == ''
             group[-1] = parts[0]['logo']
             
-            return Panel(Group(*group), border_style='magenta')
+            # TODO: (below) both A and B are good, i would make it customizable
+            #   in the future.
+            return Panel(Group(*group), border_style='magenta')  # A
+            # return Group(*group)  # B
         
         console.print(render())
     

@@ -183,7 +183,7 @@ def post_logo(style: t.Literal['blue', 'magenta', 'tan', 'white']) -> Text:
     from rich.color import Color
     color_pair: tuple = getattr(DefaultGradient, style)
     return _blend_text(
-        '♥ powered by argsense',
+        '♥ powered by argsense',  # TODO: embed a homepage link to the name.
         *(Color.parse(x).triplet for x in color_pair)
     )
 
