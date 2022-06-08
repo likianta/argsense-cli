@@ -184,13 +184,20 @@ class CommandLineInterface:
             func = self._cname_2_func[result['command']]
         # FIXME: we take '--help' as the most important option to check. the
         #   '--help' is the only global option for now.
+        if not result['args'] and not result['kwargs']:
+            if self.commands[id(func)]['args'] \
+                    or self.commands[id(func)]['kwargs']:
+                result['kwargs'][':help'] = True
         if result['kwargs'].get(':help'):
             self.show(func)
         elif result['kwargs'].get(':helpx'):
-            self.show2()
-            # self.show(None)
-            # for func_info in self.commands.values():
-            #     self.show(func_info['func'])
+            if func:
+                self.show(func)
+            else:
+                self.show2()
+                # # self.show(None)
+                # # for func_info in self.commands.values():
+                # #     self.show(func_info['func'])
         else:
             self.exec(func, result['args'], result['kwargs'])
     
@@ -240,7 +247,7 @@ class CommandLineInterface:
                     *map(len, (x['cname'].replace(',', ', ')
                                for x in func_info['kwargs'].values())),
                 ))
-                print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
+                # print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
             
             console.print(
                 artist.draw_title(
@@ -344,7 +351,6 @@ class CommandLineInterface:
                         *map(len, (x['cname'].replace(',', ', ')
                                    for x in func_info['kwargs'].values())),
                     ))
-                    print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
                 
                 collect_renderables['title'] = Align.center(
                     artist.draw_title(
@@ -404,22 +410,22 @@ class CommandLineInterface:
             from rich.console import Group
             from rich.panel import Panel
             
-            preferred_field_width = {
-                'command_field': max(
-                    map(len, (v['cname']
-                              for v in self.commands.values()))
-                ),
-                'param_field'  : max((
-                    *map(len, (w['cname']
-                               for v in self.commands.values()
-                               for w in v['args'].values())),
-                    *map(len, (w['cname'].replace(',', ', ')
-                               for v in self.commands.values()
-                               for w in v['kwargs'].values())),
-                )),
-                'type_field'   : len('NUMBER'),
-            }
-            print(preferred_field_width, ':v')
+            # preferred_field_width = {
+            #     'command_field': max(
+            #         map(len, (v['cname']
+            #                   for v in self.commands.values()))
+            #     ),
+            #     'param_field'  : max((
+            #         *map(len, (w['cname']
+            #                    for v in self.commands.values()
+            #                    for w in v['args'].values())),
+            #         *map(len, (w['cname'].replace(',', ', ')
+            #                    for v in self.commands.values()
+            #                    for w in v['kwargs'].values())),
+            #     )),
+            #     'type_field'   : len('NUMBER'),
+            # }
+            # print(preferred_field_width, ':v')
             
             def tint(text: str, color: str) -> str:
                 # a simple function to tint a text snippet.
