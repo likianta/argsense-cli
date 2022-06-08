@@ -185,8 +185,10 @@ class CommandLineInterface:
         # FIXME: we take '--help' as the most important option to check. the
         #   '--help' is the only global option for now.
         if not result['args'] and not result['kwargs']:
-            if self.commands[id(func)]['args'] \
-                    or self.commands[id(func)]['kwargs']:
+            if self.commands[id(func)]['args']:
+                # it means user is not providing sufficient arguments.
+                # instead of rasing an exception, we guide user to see the help
+                # message.
                 result['kwargs'][':help'] = True
         if result['kwargs'].get(':help'):
             self.show(func)
@@ -344,14 +346,16 @@ class CommandLineInterface:
                 has_kwargs = bool(func_info['kwargs'])
                 
                 # experimental
-                if has_args and has_kwargs:
-                    from .config import Dynamic
-                    Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
-                        *map(len, (x['cname']
-                                   for x in func_info['args'].values())),
-                        *map(len, (x['cname'].replace(',', ', ')
-                                   for x in func_info['kwargs'].values())),
-                    ))
+                from . import config
+                if config.ALIGN_ARGS_AND_OPTS_FIELD_WIDTH:
+                    if has_args and has_kwargs:
+                        config.Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
+                            *map(len, (x['cname']
+                                       for x in func_info['args'].values())),
+                            *map(len, (x['cname'].replace(',', ', ')
+                                       for x in func_info['kwargs'].values())),
+                        ))
+                        # print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
                 
                 collect_renderables['title'] = Align.center(
                     artist.draw_title(
