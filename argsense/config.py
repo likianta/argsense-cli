@@ -35,7 +35,8 @@ class Dynamic:
 def apply_changes():
     if CONSOLE_WIDTH is not None:
         from .console import console
-        console.width = CONSOLE_WIDTH
+        if console.width > CONSOLE_WIDTH:
+            console.width = CONSOLE_WIDTH
     if FALLBACK_TYPE == 'str':
         # TODO: see [./parser/func_parser.py : def parse_function].
         pass
