@@ -500,7 +500,7 @@ def _detect_program_name() -> str:
     """
     determine the program name to be `python ...` or `python -m ...`.
     
-    source: ~/click/utils.py : _detect_program_name()
+    source: [lib:click/utrils.py : def _detect_program_name()]
     
     return:
         examples:
@@ -512,8 +512,13 @@ def _detect_program_name() -> str:
     path = sys.argv[0]
     name = os.path.splitext(os.path.basename(path))[0]
     
+    from .config import TITLE_STYLE
+    head = 'python' if TITLE_STYLE == 'fixed' else (
+        'py' if os.name == 'nt' else 'python3'
+    )
+    
     if getattr(main, '__package__', None) is None:
-        return f'python {name}.py'
+        return f'{head} {name}.py'
     elif (
             os.name == 'nt'
             and main.__package__ == ''
@@ -525,7 +530,8 @@ def _detect_program_name() -> str:
     py_module = t.cast(str, main.__package__)
     if name != '__main__':  # a submodule like 'example.cli'
         py_module = f'{py_module}.{name}'.lstrip('.')
-    return f'python -m {py_module}'
+    
+    return f'{head} -m {py_module}'
 
 
 cli = CommandLineInterface(name='argsense-cli')

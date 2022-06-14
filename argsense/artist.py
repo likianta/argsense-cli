@@ -31,23 +31,21 @@ def draw_title(prog_name: str,
     """
     
     def render_prog_name():
+        # reference: [./cli.py : def _detect_program_name()]
         # style: dark-red on dim
-        if prog_name.startswith('python '):
-            return 'python ' + _round_wrap(
-                '[{fg}]{text}[/]'.format(
-                    fg=Color.scarlet,
-                    # bg=Color.dim_acrylic,
-                    text=prog_name[7:],
-                )
-            )
+        if prog_name.endswith('.exe'):
+            return '[{fg}]{text}[/]'.format(fg=Color.scarlet, text=prog_name)
         else:
-            return _round_wrap(
-                '[{fg}]{text}[/]'.format(
-                    fg=Color.scarlet,
-                    # bg=Color.dim_acrylic,
-                    text=prog_name
+            if ' -m ' in prog_name:
+                p, m, t = prog_name.split(' ', 2)
+                return '{python} [yellow]-m[/] [{fg}]{text}[/]'.format(
+                    python=p, fg=Color.scarlet, text=t
                 )
-            )
+            else:
+                p, t = prog_name.split(' ', 1)
+                return '{python} [{fg}]{text}[/]'.format(
+                    python=p, fg=Color.scarlet, text=t
+                )
     
     def render_command():
         tmpl = _round_wrap(f'[{Color.magenta}]{{}}[/]')

@@ -1,14 +1,25 @@
-import typing as _t
+import typing as t
 
+TITLE_STYLE = 'system_dependent'  # type: t.Literal['system_dependent', 'fixed']
+''' the difference:
+        system      system_dependent    fixed
+        ------      ----------------    -----
+        unix        python3             python
+        unix        python3 -m          python -m
+        windows     py                  python
+        windows     py -m               python -m
+        windows     xxx.exe             xxx.exe
+'''
 USE_RICH_MARKUP = True
 
 # TODO: not used yet. see also `./parser/func_parser.py`
-FALLBACK_TYPE = 'any'  # type: _t.Literal['any', 'str']
+FALLBACK_TYPE = 'any'  # type: t.Literal['any', 'str']
 FALLBACK_DESC = ''
-# suggested:
-#   <empty string>
-#   [dim]no description[/]
-#   [dim]there is no description provided.[/]
+''' suggested:
+        <empty string>
+        [dim]no description[/]
+        [dim]there is no description provided.[/]
+'''
 
 CMD_BORDER_STYLE = 'magenta'
 ARG_BORDER_STYLE = 'blue'
