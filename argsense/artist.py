@@ -12,16 +12,20 @@ from .style.color_scheme import DefaultColor as Color
 
 
 class T:
-    SimpleTitleParam = t.Optional[str]
+    class Title:
+        Command = t.Optional[str]
+        Options = t.Optional[str]
+        Arguments = t.Optional[t.Sequence[str]]
+        # Align = t.Literal['left', 'center']
     
     # Style = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
     PanelData = t.Iterable[t.Tuple[str, ...]]
 
 
 def draw_title(prog_name: str,
-               command: T.SimpleTitleParam = '<COMMAND>',
-               options: T.SimpleTitleParam = '[OPTIONS]',
-               arguments=t.Optional[t.Sequence[str]],
+               command: T.Title.Command = '<COMMAND>',
+               options: T.Title.Options = '[OPTIONS]',
+               arguments: T.Title.Arguments = None,
                serif_line=False) -> str:
     """
     illustration examples:
@@ -81,7 +85,6 @@ def draw_title(prog_name: str,
     return '\n'.join((
         '',  # empty line
         '[b]{}[/]'.format(  # title
-            # Color.dim_acrylic,
             ' '.join(filter(None, (
                 render_prog_name(),
                 render_command(),
@@ -90,16 +93,11 @@ def draw_title(prog_name: str,
             )))
         ),
         '' if not serif_line else (
-            '[blue dim]{}[/]'.format(  # splitter
+            '[dim]{}[/]'.format(  # splitter
+                # note: '─' for solid line, or '-' for dotted line.
                 '─' * len(' '.join(filter(None, (
-                    # ' ',
-                    prog_name.replace('[green]', '').replace('[/]', ''),
-                    #   ~.replace(...): keep this sync with `cli.py :
-                    #   _detect_program_name()`
-                    command,
-                    options,
+                    prog_name, command, options,
                     arguments and ' '.join(arguments),
-                    # ' ',
                 ))))
             )
         )

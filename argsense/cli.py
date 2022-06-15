@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 import sys
 import typing as t
-from textwrap import indent
 
 from . import artist
+from . import config
 from .argparse import ParamType
 from .console import console
 from .parser import parse_docstring
@@ -139,7 +139,6 @@ class CommandLineInterface:
         }
     
     def run(self, func=None):
-        from . import config
         from .argparse import extract_command_name, parse_argv
         
         config.apply_changes()
@@ -222,8 +221,7 @@ class CommandLineInterface:
                     command='<COMMAND>',
                     options='[OPTIONS]',
                     arguments=None,
-                ),
-                justify='center'
+                ), justify='center'
             )
             
             console.print(
@@ -241,7 +239,6 @@ class CommandLineInterface:
             has_kwargs = bool(func_info['kwargs'])
             
             # experimental
-            from . import config
             if config.ALIGN_ARGS_AND_OPTS_FIELD_WIDTH:
                 if has_args and has_kwargs:
                     config.Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
@@ -252,19 +249,35 @@ class CommandLineInterface:
                     ))
                     # print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
             
-            console.print(
-                artist.draw_title(
-                    prog_name=_detect_program_name(),
-                    command=func_info['cname'],
-                    options='[OPTIONS]' if has_kwargs else None,
-                    arguments=tuple(
-                        v['cname'] for v in func_info['args'].values()
-                    ),
-                ),
-                justify='center'
-            )
-            if desc:
-                console.print(indent(desc, ' '))
+            from textwrap import indent
+            if (has_args or has_kwargs) or (not desc):
+                console.print(
+                    artist.draw_title(
+                        prog_name=_detect_program_name(),
+                        command=func_info['cname'],
+                        options='[OPTIONS]' if has_kwargs else None,
+                        arguments=tuple(
+                            v['cname'] for v in func_info['args'].values()
+                        ),
+                    ), justify='center'
+                )
+                if desc: console.print(indent(desc, ' '))
+            else:
+                # assert desc
+                console.print('\n'.join((
+                    '',
+                    indent(artist.draw_title(
+                        prog_name=_detect_program_name(),
+                        command=func_info['cname'],
+                        options='[OPTIONS]' if has_kwargs else None,
+                        arguments=tuple(
+                            v['cname'] for v in func_info['args'].values()
+                        ),
+                        serif_line=True,
+                    ), '    '),
+                    indent(f'[grey74]{desc}[/]', '    '),
+                    ''
+                )))
             
             if args := func_info['args']:
                 console.print(
@@ -348,7 +361,6 @@ class CommandLineInterface:
                 has_kwargs = bool(func_info['kwargs'])
                 
                 # experimental
-                from . import config
                 if config.ALIGN_ARGS_AND_OPTS_FIELD_WIDTH:
                     if has_args and has_kwargs:
                         config.Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
@@ -370,6 +382,7 @@ class CommandLineInterface:
                     )
                 )
                 if desc:
+                    from textwrap import indent
                     collect_renderables['desc'] = indent(desc, ' ')
                 
                 if args := func_info['args']:
@@ -516,8 +529,8 @@ def _detect_program_name() -> str:
     path = sys.argv[0]
     name = os.path.splitext(os.path.basename(path))[0]
     
-    from .config import TITLE_STYLE
-    head = 'python' if TITLE_STYLE == 'fixed' else (
+    from .config import TITLE_HEAD_STYLE
+    head = 'python' if TITLE_HEAD_STYLE == 'fixed' else (
         'py' if os.name == 'nt' else 'python3'
     )
     

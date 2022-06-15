@@ -1,6 +1,9 @@
 import typing as t
 
-TITLE_STYLE = 'system_dependent'  # type: t.Literal['system_dependent', 'fixed']
+# -----------------------------------------------------------------------------
+# rich style
+
+TITLE_HEAD_STYLE: t.Literal['system_dependent', 'fixed'] = 'system_dependent'
 ''' the difference:
         system      system_dependent    fixed
         ------      ----------------    -----
@@ -13,7 +16,7 @@ TITLE_STYLE = 'system_dependent'  # type: t.Literal['system_dependent', 'fixed']
 USE_RICH_MARKUP = True
 
 # TODO: not used yet. see also `./parser/func_parser.py`
-FALLBACK_TYPE = 'any'  # type: t.Literal['any', 'str']
+FALLBACK_TYPE: t.Literal['any', 'str'] = 'any'
 FALLBACK_DESC = ''
 ''' suggested:
         <empty string>
