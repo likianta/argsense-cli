@@ -144,7 +144,7 @@ def parse_argv(
                         param_type = front_matter['kwargs'][param_name]
                         if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
-                            ctx.update(Token.READY)
+                            ctx.update(ctx.token)
                             return walking_through_argv(argv)
                 ctx.update(Token.OPTION_NAME)
                 ctx.store_param_info(param_name, param_type)
