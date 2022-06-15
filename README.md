@@ -1,22 +1,21 @@
 # Argsense CLI
 
-> The documentation is under construction.
-
+<!--
 ![](.assets/gQqE28Z6lC.png "(outdated)")
 
 ![](.assets/20220606164759.jpg "latest")
+-->
+
+![](.assets/20220615125340.jpg)
+
+![](.assets/20220615125501.jpg)
+
+![](.assets/20220615125505.jpg)
 
 **argsense** is a command line interface made with Python.
 
 ## Usage
 
-```python
-from argsense import cli
+> Currently this section is under construction.
 
-@cli.cmd
-def hello(name: str):
-    print(f'Hello {name}!')
-
-if __name__ == '__main__':
-    cli.run()
-```
+> Please check the folder ./examples for your reference.

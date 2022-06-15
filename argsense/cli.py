@@ -399,9 +399,10 @@ class CommandLineInterface:
                 collect_renderables['logo'] = Padding(
                     Align.right(
                         artist.post_logo(
-                            style='magenta' if is_group
-                            else 'white' if has_kwargs
-                            else 'blue'
+                            style='tan'
+                            # style='magenta' if is_group
+                            # else 'white' if has_kwargs
+                            # else 'blue'
                         ), style='bold'
                     ), (0, 1, 0, 0)
                 )
