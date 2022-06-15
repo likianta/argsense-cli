@@ -12,13 +12,15 @@ from .style.color_scheme import DefaultColor as Color
 
 
 class T:
+    SimpleTitleParam = t.Optional[str]
+    
     # Style = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
     PanelData = t.Iterable[t.Tuple[str, ...]]
 
 
 def draw_title(prog_name: str,
-               command='<COMMAND>',
-               options='[OPTIONS]',
+               command: T.SimpleTitleParam = '<COMMAND>',
+               options: T.SimpleTitleParam = '[OPTIONS]',
                arguments=t.Optional[t.Sequence[str]],
                serif_line=False) -> str:
     """
@@ -52,11 +54,14 @@ def draw_title(prog_name: str,
         return tmpl.format(command)
     
     def render_options():
-        tmpl = _round_wrap(f'[dim]{{}}[/]')
-        if '[' in options:
-            return tmpl.format(options.replace('[', '\\['))
+        if options:
+            tmpl = _round_wrap(f'[dim]{{}}[/]')
+            if '[' in options:
+                return tmpl.format(options.replace('[', '\\['))
+            else:
+                return tmpl.format(options)
         else:
-            return tmpl.format(options)
+            return ''
     
     def render_arguments() -> str:
         # experimental: if the length of arguments is longer than 3, use

@@ -205,8 +205,7 @@ class CommandLineInterface:
     
     def show(self, func):
         """
-        reference:
-            [lib:click]/core.py : BaseCommand.main()
+        reference: [lib:click/core.py : BaseCommand.main()]
         """
         is_group: bool
         has_args: bool
@@ -221,6 +220,7 @@ class CommandLineInterface:
                 artist.draw_title(
                     prog_name=_detect_program_name(),
                     command='<COMMAND>',
+                    options='[OPTIONS]',
                     arguments=None,
                 ),
                 justify='center'
@@ -256,6 +256,7 @@ class CommandLineInterface:
                 artist.draw_title(
                     prog_name=_detect_program_name(),
                     command=func_info['cname'],
+                    options='[OPTIONS]' if has_kwargs else None,
                     arguments=tuple(
                         v['cname'] for v in func_info['args'].values()
                     ),
@@ -327,6 +328,7 @@ class CommandLineInterface:
                     artist.draw_title(
                         prog_name=_detect_program_name(),
                         command='<COMMAND>',
+                        options='[OPTIONS]',
                         arguments=None,
                     )
                 )
@@ -361,6 +363,7 @@ class CommandLineInterface:
                     artist.draw_title(
                         prog_name=_detect_program_name(),
                         command=func_info['cname'],
+                        options='[OPTIONS]' if has_kwargs else None,
                         arguments=tuple(
                             v['cname'] for v in func_info['args'].values()
                         ),
