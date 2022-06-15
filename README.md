@@ -2,17 +2,13 @@
 
 **argsense** is a command line interface made with Python.
 
-<!--
-![](.assets/gQqE28Z6lC.png "(outdated)")
+![](.assets/eg01/20220615143658.jpg)
 
-![](.assets/20220606164759.jpg "latest")
--->
+![](.assets/eg01/20220615143730.jpg)
 
-![](.assets/20220615125340.jpg)
+![](.assets/eg01/20220615143751.jpg)
 
-![](.assets/20220615125501.jpg)
-
-![](.assets/20220615125505.jpg)
+![](.assets/eg01/20220615143817.jpg)
 
 ## Usage
 

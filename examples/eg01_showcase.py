@@ -5,9 +5,10 @@ example commands:
     py examples/eg01_showcase.py hello-world -h
     py examples/eg01_showcase.py hello-to-someone -h
 screenshots:
-    .assets/20220615125340.jpg
-    .assets/20220615125501.jpg
-    .assets/20220615125505.jpg
+    .assets/eg01/20220615143658.jpg
+    .assets/eg01/20220615143730.jpg
+    .assets/eg01/20220615143751.jpg
+    .assets/eg01/20220615143817.jpg
 """
 from argsense import cli
 
