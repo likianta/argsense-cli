@@ -191,6 +191,10 @@ def _walking_through_argv(
     
     # post check
     if len(out['args']) < len(front_matter['args']):
+        if not out['args'] and not out['kwargs']:
+            # cancel check. return [out] as is. (it will be guided to [--help]
+            # or [--helpx] by external caller.)
+            return out
         if ':help' not in out['kwargs'] and ':helpx' not in out['kwargs']:
             raise e.InsufficientArguments(
                 tuple(front_matter['args'].keys())[len(out['args']):]
@@ -208,15 +212,6 @@ def extract_command_name(argv: list[str]) -> str | None:
             continue
         return arg
     return None
-    # # option_scope = False
-    # # for arg in argv[1:]:
-    # #     if arg.startswith('-'):
-    # #         option_scope = True
-    # #     elif option_scope:
-    # #         option_scope = False
-    # #     else:
-    # #         return arg
-    # # return None
 
 
 PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(  # noqa
