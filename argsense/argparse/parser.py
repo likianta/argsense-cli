@@ -6,16 +6,10 @@ import typing as t
 from enum import Enum
 from enum import auto
 
+from . import exceptions as e
 from .argv2 import ArgvVendor
 
 __all__ = ['extract_command_name', 'parse_argv', 'ParamType']
-
-
-class E:  # Exceptions
-    
-    class FailedParsingArgv(Exception): ...
-    
-    class InvalidCommand(Exception): ...
 
 
 class T:  # Typehint
@@ -55,15 +49,15 @@ def parse_argv(
     argv_vendor = ArgvVendor(argv)
     try:
         return _walking_through_argv(argv_vendor, mode, front_matter)
-    except:
-        argv_vendor.report('TODO')
+    except Exception as err:
+        argv_vendor.report(str(err))
 
 
 def _walking_through_argv(
         argv_vendor: ArgvVendor,
         mode: t.Literal['group', 'command'],
         front_matter: T.ParamsInfo
-):
+) -> T.ParsedResult:
     """
     all possible cases (examples):
         python main.py
@@ -86,11 +80,19 @@ def _walking_through_argv(
         if ctx.token in (Token.START, Token.READY):
             if arg.startswith('-'):
                 if arg.startswith('--'):
+                    try:
+                        assert arg == arg.lower()
+                    except AssertionError:
+                        raise e.MixinCase()
+                    
                     if arg.startswith('--not-'):
                         option_name = arg.replace('--not-', '--', 1)
                         param_name = front_matter['index'][option_name]
                         param_type = front_matter['kwargs'][param_name]
-                        assert param_type in (ParamType.FLAG, ParamType.ANY)
+                        try:
+                            assert param_type in (ParamType.FLAG, ParamType.ANY)
+                        except AssertionError:
+                            raise e.TypeNotCorrect(expected_type='bool')
                         out['kwargs'][param_name] = False
                         ctx.update(Token.READY)
                         continue
@@ -103,12 +105,23 @@ def _walking_through_argv(
                             ctx.update(Token.READY)
                             continue
                 else:
-                    assert arg.count('-') == 1
+                    try:
+                        assert arg.count('-') == 1
+                    except AssertionError:
+                        raise e.ShortOptionFormat(arg)
+                    try:
+                        assert arg == arg.lower() or arg == arg.upper()
+                    except AssertionError:
+                        raise e.MixinCase()
+                    
                     if arg[1:].isupper():
                         option_name = arg.lower()
                         param_name = front_matter['index'][option_name]
                         param_type = front_matter['kwargs'][param_name]
-                        assert param_type in (ParamType.FLAG, ParamType.ANY)
+                        try:
+                            assert param_type in (ParamType.FLAG, ParamType.ANY)
+                        except AssertionError:
+                            raise e.TypeNotCorrect(expected_type='bool')
                         out['kwargs'][param_name] = False
                         ctx.update(Token.READY)
                         continue
@@ -142,8 +155,7 @@ def _walking_through_argv(
             try:
                 param_name = tuple(front_matter['args'])[len(out['args'])]
             except IndexError:
-                raise E.FailedParsingArgv('too many arguments', arg,
-                                          front_matter, out)
+                raise e.TooManyArguments()
             else:
                 param_type = front_matter['args'][param_name]
                 param_value = _eval_arg_value(arg, param_type)
@@ -159,6 +171,8 @@ def _walking_through_argv(
             out['kwargs'][param_name] = param_value
             ctx.update(Token.READY)
             continue
+    
+    return out
 
 
 def extract_command_name(argv: list[str]) -> t.Optional[str]:

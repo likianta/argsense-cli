@@ -17,24 +17,42 @@ class ArgvVendor:
             yield arg
     
     def report(self, msg: str):
+        """
+        accurately report that which element is parsing failed.
+    
+        conception:
+            input: py test.py foo --bar baz
+            report:
+                py test.py foo --bar baz
+                               ~~~~~
+                    `--bar` was not recognized as a valid option in `foo`
+                    command. did you mean "--bart"?
+                
+        see also:
+            ./exceptions.py
+        """
         from rich.panel import Panel
         from textwrap import dedent
         from ..console import console
         
-        console.print(Panel(dedent('''
-            Failed parsing command line arguments -- there was an error -
-            happened in the following position:
-            
-            {argv}
-            {indicator}
-            
-            {reason}
-        ''').strip().replace(' -\n', ' ').format(
-            argv=' '.join(self.argv),
-            #   TODO: highlight the command line.
-            indicator='{spaces}[red]{wave}[/]'.format(
-                spaces=' ' * len(' '.join(self.argv[:self.pointer])),
-                wave='~' * len(self.argv[self.pointer])
+        console.print(Panel(
+            dedent('''
+                Failed parsing command line arguments -- there was an error -
+                happened in the following position:
+                
+                {argv}
+                {indicator}
+                
+                {reason}
+            ''').strip().replace(' -\n', ' ').format(
+                argv=' '.join(self.argv),  # TODO: highlight the command line.
+                indicator='{spaces}[red]{wave}[/]'.format(
+                    spaces=' ' * len(' '.join(self.argv[:self.pointer])),
+                    wave='~' * len(self.argv[self.pointer])
+                ),
+                reason=msg
             ),
-            reason=msg
-        ), title='Argparsing failed', title_align='left'))
+            border_style='red',
+            title='Argparsing failed',
+            title_align='left',
+        ))
