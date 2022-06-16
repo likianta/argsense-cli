@@ -184,7 +184,7 @@ class CommandLineInterface:
                 ),
             }
         )
-        print(':lv', result)
+        # print(':lv', result)
         if result['command']:
             func = self._cname_2_func[result['command']]
         # FIXME: we take '--help' as the most important option to check. the

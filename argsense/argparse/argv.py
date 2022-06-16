@@ -20,7 +20,7 @@ class ArgvVendor:
     def report(self, msg: str):
         """
         accurately report that which element is parsing failed.
-    
+        
         conception:
             input: py test.py foo --bar baz
             report:
@@ -28,7 +28,7 @@ class ArgvVendor:
                                ~~~~~
                     `--bar` was not recognized as a valid option in `foo`
                     command. did you mean "--bart"?
-                
+        
         see also:
             ./exceptions.py
         """

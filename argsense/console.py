@@ -13,7 +13,7 @@ if config.WARNING_IF_RUNNING_ON_PYCHARM_CONSOLE \
     # support. so just remind me to tick the checkbox of "emulate output in
     # terminal" in pycharm configurations.
     # [1]: https://github.com/Textualize/rich/issues/206
-    print('[argsense]/console.py:13  >>  warning: argsense cli does not '
+    print('[argsense]/console.py:16  >>  warning: argsense cli does not '
           'perform well in pycharm console. \n'
           'you may tick the checkbox of '
           '"emulate output in terminal" in pycharm configurations to demolish '
