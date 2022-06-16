@@ -83,4 +83,8 @@ class ArgvVendor:
             title_align='left',
         ))
         
+        # from ..config import FALLBACK_TO_HELP_IF_ARGPARSE_FAILED
+        # if FALLBACK_TO_HELP_IF_ARGPARSE_FAILED:
+        #     pass
+        
         exit(1)

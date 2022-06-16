@@ -15,14 +15,16 @@ TITLE_HEAD_STYLE: t.Literal['system_dependent', 'fixed'] = 'system_dependent'
 '''
 USE_RICH_MARKUP = True
 
-# TODO: not used yet. see also `./parser/func_parser.py`
-FALLBACK_TYPE: t.Literal['any', 'str'] = 'any'
-FALLBACK_DESC = ''
+FALLBACK_TYPE: t.Literal['any', 'str'] = 'any'  # see [./parser/func_parser.py]
+FALLBACK_DESC = '[dim]no description[/]'
 ''' suggested:
         <empty string>
         [dim]no description[/]
         [dim]there is no description provided.[/]
+    see also: [./cli.py : def show2() : def show()]
 '''
+FALLBACK_TO_HELP_IF_ARGPARSE_FAILED = False
+#   see [./argparse/argv2.py : def report]
 
 CMD_BORDER_STYLE = 'magenta'
 ARG_BORDER_STYLE = 'blue'
@@ -34,11 +36,6 @@ ALIGN_ARGS_AND_OPTS_FIELD_WIDTH = False
 
 WARNING_IF_RUNNING_ON_PYCHARM_CONSOLE = False
 CONSOLE_WIDTH = None
-
-EXPAND_HELP_INFO = 0  # int[0, 1, 2]
-#   0: the default help method.
-#   1: add title line for each command item.
-#   2: iterate all commands help method after showing commands panel.
 
 
 class Dynamic:

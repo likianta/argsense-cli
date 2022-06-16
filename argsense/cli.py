@@ -325,6 +325,13 @@ class CommandLineInterface:
         from rich.padding import Padding
         
         def show(func: t.Optional[t.Callable], show_logo: bool) -> dict:
+            """
+            warning:
+                this function is not the same with [self.show()]. some minor
+                changes are made.
+                if we want to merge them into one in the future, be careful
+                comparing the difference between them.
+            """
             is_group: bool
             has_args: bool
             has_kwargs: bool
@@ -361,7 +368,7 @@ class CommandLineInterface:
             
             else:
                 func_info = self.commands[id(func)]
-                desc = func_info['desc']
+                desc = func_info['desc'] or config.FALLBACK_DESC
                 is_group = False
                 has_args = bool(func_info['args'])
                 has_kwargs = bool(func_info['kwargs'])

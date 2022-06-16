@@ -19,7 +19,6 @@ lk_logger.setup(show_varnames=True, quiet=True)
 
 @cli.cmd()
 def hello_world():
-    """ Print 'Hello World!' in the terminal. """
     print('Hello World!')
 
 
