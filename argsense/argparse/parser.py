@@ -80,6 +80,22 @@ def _walking_through_argv(
         # print(':v', arg)
         if ctx.token in (Token.START, Token.READY):
             if arg.startswith('-'):
+                if (
+                        ctx.token == Token.START
+                        and mode == 'group'
+                        and out['command'] == ''
+                        and front_matter['index'].get(arg)
+                        not in (':help', ':helpx')
+                ):
+                    raise e.ParamAheadOfCommand()
+                # else:  # debug
+                #     print(':vl', (
+                #         ctx.token == Token.START,
+                #         mode == 'group',
+                #         out['command'] == '',
+                #         front_matter['index'].get(arg)
+                #     ))
+                
                 if arg.startswith('--'):
                     try:
                         assert arg == arg.lower()
@@ -173,19 +189,34 @@ def _walking_through_argv(
             ctx.update(Token.READY)
             continue
     
+    # post check
+    if len(out['args']) < len(front_matter['args']):
+        if ':help' not in out['kwargs'] and ':helpx' not in out['kwargs']:
+            raise e.InsufficientArguments(
+                tuple(front_matter['args'].keys())[len(out['args']):]
+            )
+    # elif len(out['args']) > len(front_matter['args']):
+    #     raise e.TooManyArguments()
+    
     return out
 
 
-def extract_command_name(argv: list[str]) -> t.Optional[str]:
-    option_scope = False
+def extract_command_name(argv: list[str]) -> str | None:
+    # TODO: need to be improved
     for arg in argv[1:]:
         if arg.startswith('-'):
-            option_scope = True
-        elif option_scope:
-            option_scope = False
-        else:
-            return arg
+            continue
+        return arg
     return None
+    # # option_scope = False
+    # # for arg in argv[1:]:
+    # #     if arg.startswith('-'):
+    # #         option_scope = True
+    # #     elif option_scope:
+    # #         option_scope = False
+    # #     else:
+    # #         return arg
+    # # return None
 
 
 PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(  # noqa

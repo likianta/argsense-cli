@@ -14,7 +14,7 @@ import lk_logger
 
 from argsense import cli
 
-lk_logger.setup(show_varnames=True)
+lk_logger.setup(show_varnames=True, quiet=True)
 
 
 @cli.cmd()

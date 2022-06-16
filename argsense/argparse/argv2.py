@@ -15,6 +15,7 @@ class ArgvVendor:
             if i == 0:
                 continue
             yield arg
+        self.pointer = 0
     
     def report(self, msg: str):
         """
@@ -35,24 +36,51 @@ class ArgvVendor:
         from textwrap import dedent
         from ..console import console
         
+        def create_argv_string():
+            # TODO: highlight the command line.
+            # scheme A
+            if self.pointer == 0:
+                return ' '.join(self.argv) + ' [dim]???[/]'
+            else:
+                return '{} [red]{}[/] {}'.format(
+                    ' '.join(self.argv[:self.pointer]),
+                    self.argv[self.pointer],
+                    ' '.join(self.argv[self.pointer + 1:]),
+                )
+            # scheme B (abandoned)
+            # # out = ' '.join(self.argv)
+            # # if self.pointer == 0:
+            # #     return out + ' [dim]???[/]'
+            # # else:
+            # #     return out
+        
+        def create_indicator():
+            if self.pointer:
+                return '{spaces} [red dim]{wave}[/]'.format(
+                    spaces=' ' * len(' '.join(self.argv[:self.pointer])),
+                    wave='~' * len(self.argv[self.pointer])
+                )
+            else:
+                return '{spaces} [red dim]~~~[/]'.format(
+                    spaces=' ' * len(' '.join(self.argv))
+                )
+        
         console.print(Panel(
             dedent('''
                 Failed parsing command line arguments -- there was an error -
                 happened in the following position:
                 
-                {argv}
-                {indicator}
-                
+                [bold cyan]>[/] {argv}
+                  {indicator}
                 {reason}
             ''').strip().replace(' -\n', ' ').format(
-                argv=' '.join(self.argv),  # TODO: highlight the command line.
-                indicator='{spaces}[red]{wave}[/]'.format(
-                    spaces=' ' * len(' '.join(self.argv[:self.pointer])),
-                    wave='~' * len(self.argv[self.pointer])
-                ),
+                argv=create_argv_string(),
+                indicator=create_indicator(),
                 reason=msg
             ),
             border_style='red',
-            title='Argparsing failed',
+            title='\\[argsense] argparsing failed',
             title_align='left',
         ))
+        
+        exit(1)

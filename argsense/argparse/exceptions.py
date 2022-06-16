@@ -1,10 +1,27 @@
+from __future__ import annotations
+
+
 class ArgvParsingFailed(Exception):
     pass
 
 
-class InsufficientParams(ArgvParsingFailed):
+class InsufficientArguments(ArgvParsingFailed):
+    
+    def __init__(self, args: tuple[str, ...] = None):
+        self.args = args
+    
     def __str__(self):
-        return 'Insufficient parameters.'
+        if self.args is None:
+            return 'Insufficient arguments!'
+        else:
+            from textwrap import indent
+            return _dedent('''
+                Insufficient arguments! You may miss the following arguments:
+                {args}
+            ''').format(args=indent(
+                '\n'.join(f'[dim]-[/] {x.upper()}' for x in self.args),
+                '    '
+            ))
 
 
 class MixinCase(ArgvParsingFailed):
