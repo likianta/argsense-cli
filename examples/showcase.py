@@ -10,7 +10,11 @@ screenshots:
     .assets/eg01/20220615143751.jpg
     .assets/eg01/20220615143817.jpg
 """
+import lk_logger
+
 from argsense import cli
+
+lk_logger.setup(show_varnames=True)
 
 
 @cli.cmd()
