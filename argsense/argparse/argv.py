@@ -88,3 +88,20 @@ class ArgvVendor:
         #     pass
         
         exit(1)
+
+
+def _did_you_mean(wrong_word: str, known_words: t.Iterable[str]) -> str | None:
+    """ a simple function (no third party dependency) to find the closest word.
+    
+    note: we are using the built-in library - [#1 difflib] - to implement this.
+    
+    [#1: https://docs.python.org/3/library/difflib.html]
+    
+    TODO: this function is created but not used yet. i will use it in further
+        version. see also [./exceptions.py : class ParamNotFound].
+    """
+    from difflib import get_close_matches
+    if r := get_close_matches(wrong_word, known_words, n=1, cutoff=0.8):
+        return str(r[0])
+    else:
+        return None
