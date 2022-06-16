@@ -149,7 +149,11 @@ class CommandLineInterface:
         if func is None:
             if cmd_name := extract_command_name(sys.argv):
                 # print(':v', cmd_name)
-                func = self._cname_2_func[cmd_name]
+                try:
+                    func = self._cname_2_func[cmd_name]
+                except KeyError:
+                    console.print(f'[red]Unknown command: {cmd_name}')
+                    sys.exit(1)
         
         result = parse_argv(
             argv=sys.argv,
