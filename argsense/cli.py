@@ -141,6 +141,8 @@ class CommandLineInterface:
     def run(self, func=None):
         from .argparse import extract_command_name, parse_argv
         
+        # print(':lv', self.commands, self._cname_2_func)
+        
         config.apply_changes()
         mode: T.Mode = 'group' if not func else 'command'  # noqa
         
@@ -178,13 +180,13 @@ class CommandLineInterface:
                 ),
             }
         )
-        # print(':lv', result)
+        print(':lv', result)
         if result['command']:
             func = self._cname_2_func[result['command']]
         # FIXME: we take '--help' as the most important option to check. the
         #   '--help' is the only global option for now.
         if not result['args'] and not result['kwargs']:
-            if self.commands[id(func)]['args']:
+            if func is None or self.commands[id(func)]['args']:
                 # it means user is not providing sufficient arguments.
                 # instead of rasing an exception, we guide user to see the help
                 # message.

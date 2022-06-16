@@ -45,7 +45,7 @@ def parse_argv(
         front_matter: T.ParamsInfo,
 ) -> T.ParsedResult:
     # print(argv, front_matter, ':l')
-    path, argv = argv[0], argv[1:]
+    # path, argv = argv[0], argv[1:]
     argv_vendor = ArgvVendor(argv)
     try:
         return _walking_through_argv(argv_vendor, mode, front_matter)
@@ -77,6 +77,7 @@ def _walking_through_argv(
     }
     
     for arg in argv_vendor:
+        # print(':v', arg)
         if ctx.token in (Token.START, Token.READY):
             if arg.startswith('-'):
                 if arg.startswith('--'):
