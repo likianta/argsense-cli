@@ -7,7 +7,7 @@ from enum import Enum
 from enum import auto
 
 from . import exceptions as e
-from .argv2 import ArgvVendor
+from .argv import ArgvVendor
 
 __all__ = ['extract_command_name', 'parse_argv', 'ParamType']
 
