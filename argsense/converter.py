@@ -24,11 +24,17 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
 
 
 def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
+    """
+    related:
+        from: [./parser/func_parser.py : def parse_function()]
+        to: [./argparse/parser.py : def parse_argv()]
+    """
     return {
         'str'  : ParamType.TEXT,
         'int'  : ParamType.NUMBER,
         'float': ParamType.NUMBER,
-        'bool' : ParamType.FLAG,
+        'flag' : ParamType.FLAG,
+        'bool' : ParamType.BOOL,
         # 'list' : ParamType.LIST,
         # 'tuple': ParamType.LIST,
         # 'set'  : ParamType.LIST,

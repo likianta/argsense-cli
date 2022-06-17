@@ -36,6 +36,7 @@ class ParamType(Enum):
     TEXT = auto()
     NUMBER = auto()
     FLAG = auto()
+    BOOL = auto()
     ANY = auto()
 
 
@@ -250,7 +251,9 @@ def _eval_arg_value(arg: str, possible_type) -> t.Any:
     elif possible_type == ParamType.NUMBER:
         assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg)
         return eval(arg)
-    elif possible_type == ParamType.FLAG:
+    elif possible_type == ParamType.FLAG or possible_type == ParamType.BOOL:
+        # ps: i think the ParamType.FLAG is never matched in this case. because
+        #   it was checked before this function called.
         assert arg in (':true', ':false')
         return bool(arg == 'true')
     else:

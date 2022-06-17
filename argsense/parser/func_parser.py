@@ -6,7 +6,7 @@ __all__ = ['parse_function', 'TParamType']
 class T:
     _ParamName = str
     ParamType = t.Literal[
-        'any', 'bool', 'dict', 'float', 'int',
+        'any', 'bool', 'dict', 'flag', 'float', 'int',
         'list', 'none', 'set', 'str', 'tuple',
     ]
     FallbackType = t.Literal['any', 'str']
@@ -70,6 +70,8 @@ def parse_function(func, fallback_type: T.FallbackType = 'any') -> T.FuncInfo:
                 type_ = type_2_str.get(annotations[name], fallback_type)
             else:
                 type_ = _deduce_param_type_by_default_value(value)
+            if type_ == 'bool':
+                type_ = 'flag'
             kwargs.append((name, type_, value))
     
     result = type_2_str.get(annotations.get('return', None), 'any')
