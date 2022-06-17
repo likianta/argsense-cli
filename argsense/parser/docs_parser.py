@@ -1,7 +1,6 @@
 import re
 import typing as t
 from enum import Enum
-from enum import auto
 from textwrap import dedent
 
 from ..converter import name_2_cname
@@ -88,7 +87,7 @@ def parse_docstring(docstring: str) -> T.DocsInfo:
         ROOT = 'desc'
         ARGS = 'args'
         KWARGS = 'kwargs'
-        OTHER = auto()
+        OTHER = 'other'
     
     # walk through lines
     scope = Scope.ROOT
