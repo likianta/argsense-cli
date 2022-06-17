@@ -42,4 +42,15 @@ def login(username: str, password: str, remember_me=False):
     print('login', username, password, remember_me)
 
 
+@cli.cmd()
+def auto_type_conversion(a: int, b: str, c):
+    """
+    test cases:
+        wrong type of parameters:
+            python3 argparse_errors.py auto-type-conversion :true bbb ccc
+            python3 argparse_errors.py auto-type-conversion 111 :true ccc
+    """
+    print(a, b, c)
+
+
 cli.run()

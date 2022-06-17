@@ -83,7 +83,7 @@ def _walking_through_argv(
             return front_matter['index'][cname]
         except KeyError:
             raise e.ParamNotFound(cname, front_matter['index'].keys())
-
+    
     # -------------------------------------------------------------------------
     
     for arg in argv_vendor:
@@ -231,8 +231,8 @@ PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(  # noqa
 SPECIAL_ARGS = {
     ':true' : True,
     ':false': False,
-    ':t'    : True,
-    ':f'    : False,
+    # ':t'    : True,
+    # ':f'    : False,
     ':none' : None,
     ':cwd'  : os.getcwd(),
 }
@@ -244,7 +244,22 @@ def _eval_arg_value(arg: str, possible_type) -> t.Any:
     global PYTHON_ACCEPTABLE_NUMBER_PATTERN, SPECIAL_ARGS
     
     if arg in SPECIAL_ARGS:
-        return SPECIAL_ARGS[arg]
+        out = SPECIAL_ARGS[arg]
+        if (
+                (type(out) is bool and possible_type not in (
+                        ParamType.FLAG, ParamType.BOOL, ParamType.ANY))
+                or
+                (out is None and possible_type not in (
+                        ParamType.ANY,))
+                or
+                (type(out) is str and possible_type not in (
+                        ParamType.TEXT, ParamType.ANY))
+        ):
+            raise e.TypeConversionError(
+                expected_type=possible_type.name,
+                given_type=str(out)
+            )
+        return out
     
     if possible_type == ParamType.TEXT:
         return arg
@@ -255,7 +270,7 @@ def _eval_arg_value(arg: str, possible_type) -> t.Any:
         # ps: i think the ParamType.FLAG is never matched in this case. because
         #   it was checked before this function called.
         assert arg in (':true', ':false')
-        return bool(arg == 'true')
+        return bool(arg == ':true')
     else:
         if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg):
             return eval(arg)

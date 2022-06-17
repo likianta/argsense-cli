@@ -5,6 +5,8 @@ __all__ = ['parse_function', 'TParamType']
 
 class T:
     _ParamName = str
+    # FIXME: shall i use [../argparse/parser.py : class ParamType] (the Enum
+    #   type) instead of the plain literals?
     ParamType = t.Literal[
         'any', 'bool', 'dict', 'flag', 'float', 'int',
         'list', 'none', 'set', 'str', 'tuple',

@@ -98,7 +98,7 @@ class TypeConversionError(ArgvParsingFailed):
     def __str__(self):
         return _dedent('''
             The given type [red]{given_type}[/] is not compatible with -
-            expected type: [cyan]{expected_type}[/].
+            expected type [cyan]{expected_type}[/].
         ''').format(
             expected_type=self.expected_type,
             given_type=self.given_type
