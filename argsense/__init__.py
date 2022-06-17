@@ -15,4 +15,4 @@ from . import config
 from .cli import CommandLineInterface
 from .cli import cli
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'

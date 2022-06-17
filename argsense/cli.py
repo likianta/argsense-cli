@@ -152,7 +152,12 @@ class CommandLineInterface:
                 try:
                     func = self._cname_2_func[cmd_name]
                 except KeyError:
-                    console.print(f'[red]Unknown command: {cmd_name}')
+                    from .general import did_you_mean
+                    if x := did_you_mean(cmd_name, self._cname_2_func):
+                        console.print('[red]Command "{}" not found, did you '
+                                      'mean "{}"?[/]'.format(cmd_name, x))
+                    else:
+                        console.print(f'[red]Unknown command: {cmd_name}[/]')
                     sys.exit(1)
         
         result = parse_argv(
@@ -368,7 +373,7 @@ class CommandLineInterface:
             
             else:
                 func_info = self.commands[id(func)]
-                desc = func_info['desc'] or config.FALLBACK_DESC
+                desc = func_info['desc']
                 is_group = False
                 has_args = bool(func_info['args'])
                 has_kwargs = bool(func_info['kwargs'])
@@ -397,6 +402,8 @@ class CommandLineInterface:
                 if desc:
                     from textwrap import indent
                     collect_renderables['desc'] = indent(desc, ' ')
+                elif has_args or has_kwargs:
+                    collect_renderables['desc'] = ' ' + config.FALLBACK_DESC
                 
                 if args := func_info['args']:
                     collect_renderables['arg_panel'] = (

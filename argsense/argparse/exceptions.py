@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import typing as t
+
 
 class ArgvParsingFailed(Exception):
     pass
@@ -52,16 +54,21 @@ class ParamAheadOfCommand(ArgvParsingFailed):
 
 class ParamNotFound(ArgvParsingFailed):
     
-    def __init__(self, command: str, param: str):
-        self.command = command
+    def __init__(self, param: str, index: t.Iterable[str]):
         self.param = param
+        self.index = index
     
     def __str__(self):
-        return _dedent('''
-            The param [red]"{param}"[/] is not found in command -
-            ([cyan]{command}[/]) parameters. It maybe a typo or surplus problem.
-            Please check your command `--help` and try again.
-        ''').format(param=self.param, command=self.command)
+        from ..general import did_you_mean
+        if x := did_you_mean(self.param, self.index):
+            return _dedent('''
+                Parameter "{}" not found, did you mean "{}"?
+            ''').format(self.param, x)
+        else:
+            return _dedent('''
+                Parameter "{}" not found, it may be a typo or redundant problem.
+                Please check your command `--help` for more information.
+            ''')
 
 
 class ShortOptionFormat(ArgvParsingFailed):

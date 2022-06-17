@@ -6,6 +6,24 @@ lk_logger.setup(show_varnames=True, quiet=True)
 
 
 @cli.cmd()
+def version(add_v_prefix=False):
+    """
+    test cases:
+        typo on command name:
+            python3 argparse_errors.py verison
+                                       ~~~~~~~
+        typo on option name:
+            python3 argparse_errors.py version --add-prefix
+                                               ~~~~~~~~~~~~
+    """
+    from argsense import __version__
+    if add_v_prefix:
+        print('v' + __version__)
+    else:
+        print(__version__)
+
+
+@cli.cmd()
 def login(username: str, password: str, remember_me=False):
     """
     test cases:

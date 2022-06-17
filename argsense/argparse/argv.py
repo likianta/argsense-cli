@@ -17,7 +17,7 @@ class ArgvVendor:
             yield arg
         self.pointer = 0
     
-    def report(self, msg: str):
+    def report(self, msg: str, err_type: str = None):
         """
         accurately report that which element is parsing failed.
         
@@ -36,7 +36,13 @@ class ArgvVendor:
         from textwrap import dedent
         from ..console import console
         
-        def create_argv_string():
+        def make_title() -> str:
+            if err_type:
+                return f'\\[argsense.{err_type}] argparsing failed'
+            else:
+                return '\\[argsense] argparsing failed'
+        
+        def make_argv_string():
             # TODO: highlight the command line.
             # scheme A
             if self.pointer == 0:
@@ -54,7 +60,7 @@ class ArgvVendor:
             # # else:
             # #     return out
         
-        def create_indicator():
+        def make_indicator():
             if self.pointer:
                 return '{spaces} [red dim]{wave}[/]'.format(
                     spaces=' ' * len(' '.join(self.argv[:self.pointer])),
@@ -74,12 +80,12 @@ class ArgvVendor:
                   {indicator}
                 {reason}
             ''').strip().replace(' -\n', ' ').format(
-                argv=create_argv_string(),
-                indicator=create_indicator(),
+                argv=make_argv_string(),
+                indicator=make_indicator(),
                 reason=msg
             ),
             border_style='red',
-            title='\\[argsense] argparsing failed',
+            title=make_title(),
             title_align='left',
         ))
         
@@ -88,20 +94,3 @@ class ArgvVendor:
         #     pass
         
         exit(1)
-
-
-def _did_you_mean(wrong_word: str, known_words: t.Iterable[str]) -> str | None:
-    """ a simple function (no third party dependency) to find the closest word.
-    
-    note: we are using the built-in library - [#1 difflib] - to implement this.
-    
-    [#1: https://docs.python.org/3/library/difflib.html]
-    
-    TODO: this function is created but not used yet. i will use it in further
-        version. see also [./exceptions.py : class ParamNotFound].
-    """
-    from difflib import get_close_matches
-    if r := get_close_matches(wrong_word, known_words, n=1, cutoff=0.8):
-        return str(r[0])
-    else:
-        return None
