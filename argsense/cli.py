@@ -402,7 +402,7 @@ class CommandLineInterface:
                 if desc:
                     from textwrap import indent
                     collect_renderables['desc'] = indent(desc, ' ')
-                elif has_args or has_kwargs:
+                elif not (has_args or has_kwargs):  # no panel besides the desc.
                     collect_renderables['desc'] = ' ' + config.FALLBACK_DESC
                 
                 if args := func_info['args']:
