@@ -2,9 +2,10 @@ from rich import get_console
 
 from . import config
 
-__all__ = ['console']
+__all__ = ['console', 'rprint']
 
 console = get_console()
+rprint = console.print
 
 if config.WARNING_IF_RUNNING_ON_PYCHARM_CONSOLE \
         and console.color_system is None:

@@ -3,6 +3,7 @@ import typing as t
 # -----------------------------------------------------------------------------
 # rich style
 
+# PRETTY_ERROR = True
 TITLE_HEAD_STYLE: t.Literal['system_dependent', 'fixed'] = 'system_dependent'
 ''' the difference:
         system      system_dependent    fixed

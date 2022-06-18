@@ -305,7 +305,9 @@ class CommandLineInterface:
                         (v['cname'].replace(',', ', '),
                          v['ctype'].name,
                          v['desc'],
-                         '[red dim](default={})[/]'.format(v['default']))
+                         '[red dim](default={})[/]'.format(
+                             v['default'] if v['default'] != '' else '""'
+                         ))
                         for v in kwargs.values()
                     ))
                 )

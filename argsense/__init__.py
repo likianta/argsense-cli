@@ -14,5 +14,6 @@ d88P     888 888    "Y899888i  "Y8888P"   "Y8888  888  888  88888P'  "Y8888
 from . import config
 from .cli import CommandLineInterface
 from .cli import cli
+from .console import rprint
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
