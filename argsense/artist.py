@@ -7,8 +7,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from . import config
-from .style.color_scheme import DefaultColor as Color
+from .style import palette
 
 
 class T:
@@ -32,34 +31,46 @@ def draw_title(prog_name: str,
         python -m argsense <COMMAND> [OPTIONS]
         python -m argsense [OPTIONS] <ARGUMENTS>
         python -m argsense [OPTIONS]
-    
-    DELETE: the param `serif_line` is abandoned. it will be removed soon.
     """
     
     def render_prog_name():
         # reference: [./cli.py : def _detect_program_name()]
-        # style: dark-red on dim
+        
+        color = palette.title.prog_name
+        
         if prog_name.endswith('.exe'):
-            return '[{fg}]{text}[/]'.format(fg=Color.scarlet, text=prog_name)
+            return '[{fg}]{fname}[/]'.format(
+                fg=color.exe, fname=prog_name
+            )
         else:
             if ' -m ' in prog_name:
                 p, m, t = prog_name.split(' ', 2)
-                return '{python} [yellow]-m[/] [{fg}]{text}[/]'.format(
-                    python=p, fg=Color.scarlet, text=t
-                )
+                return (
+                    '[{fg1}]{python}[/] '
+                    '[{fg2}]-m[/] '
+                    '[{fg3}]{pyfile}[/]'.format(
+                        python=p,
+                        pyfile=t,
+                        fg1=color.python,
+                        fg2=color.m,
+                        fg3=color.py,
+                    ))
             else:
                 p, t = prog_name.split(' ', 1)
-                return '{python} [{fg}]{text}[/]'.format(
-                    python=p, fg=Color.scarlet, text=t
+                return '[{fg1}]{python}[/] [{fg2}]{fname}[/]'.format(
+                    python=p,
+                    fname=t,
+                    fg1=color.python,
+                    fg2=color.py,
                 )
     
     def render_command():
-        tmpl = _round_wrap(f'[{Color.magenta}]{{}}[/]')
+        tmpl = f'[{palette.title.command}]{{}}[/]'
         return tmpl.format(command)
     
     def render_options():
         if options:
-            tmpl = _round_wrap(f'[dim]{{}}[/]')
+            tmpl = f'[{palette.title.option}]{{}}[/]'
             if '[' in options:
                 return tmpl.format(options.replace('[', '\\['))
             else:
@@ -74,11 +85,14 @@ def draw_title(prog_name: str,
             if len(arguments) >= 3:
                 return ' '.join(
                     '[{fg}]{text}[/]'.format(
-                        fg='blue' if i % 2 == 0 else 'cornflower_blue',
+                        fg=palette.title.argument1 if i % 2 == 0
+                        else palette.title.argument2,
                         text=x
                     ) for i, x in enumerate(arguments)
                 )
-            return '[blue]{}[/]'.format(' '.join(arguments))
+            return '[{}]{}[/]'.format(
+                palette.title.argument1, ' '.join(arguments)
+            )
         else:
             return ''
     
@@ -109,7 +123,7 @@ def draw_commands_panel(commands: T.PanelData) -> Panel:
         fields=('name', 'desc'),
         data=commands,
         title='COMMANDS',
-        border_style=config.CMD_BORDER_STYLE,
+        border_style=palette.panel.border.group,
     )
 
 
@@ -118,7 +132,7 @@ def draw_arguments_panel(arguments: T.PanelData) -> Panel:
         fields=('name', 'type', 'desc'),
         data=arguments,
         title='ARGUMENTS',
-        border_style=config.ARG_BORDER_STYLE,
+        border_style=palette.panel.border.argument,
     )
 
 
@@ -127,7 +141,7 @@ def draw_options_panel(options: T.PanelData) -> Panel:
         fields=('name', 'type', 'desc', 'default'),
         data=options,
         title='OPTIONS',
-        border_style=config.OPT_BORDER_STYLE,
+        border_style=palette.panel.border.option,
     )
 
 
@@ -136,7 +150,7 @@ def draw_extensions_panel(extensions: T.PanelData) -> Panel:
         fields=('name', 'type', 'desc', 'default'),
         data=extensions,
         title='OPTIONS [dim](EXT)[/]',
-        border_style=config.EXT_BORDER_STYLE,
+        border_style=palette.panel.border.extension,
     )
 
 
@@ -155,6 +169,7 @@ def _draw_panel(
         }
         return style[field]
     
+    from . import config
     table = Table.grid(expand=False, padding=(0, 4))
     for i, field in enumerate(fields):
         if field == 'name' and \
@@ -178,11 +193,12 @@ def _draw_panel(
     )
 
 
-def post_logo(style: t.Literal['blue', 'magenta', 'tan', 'white']) -> Text:
+def post_logo(style: t.Literal[
+    'group', 'command', 'argument', 'option'
+]) -> Text:
     """ show logo in gradient color. """
-    from .style.color_scheme import DefaultGradient
     from rich.color import Color
-    color_pair: tuple = getattr(DefaultGradient, style)
+    color_pair: tuple = getattr(palette.logo, style)
     return _blend_text(
         '♥ powered by argsense',  # TODO: embed a homepage link to the name.
         *(Color.parse(x).triplet for x in color_pair)
@@ -217,21 +233,3 @@ def _blend_text(
         )
         text.stylize(color, index, index + 1)
     return text
-
-
-# noinspection PyUnusedLocal
-def _round_wrap(text: str, color=Color.dim_acrylic) -> str:
-    """
-    warning: this requires nerd fonts.
-    """
-    return text
-    # return '{space}{text}{space}'.format(
-    #     space=f'[default on {color}] [/]',
-    #     text=text
-    # )
-    # TODO: not ready for production.
-    # # return '{leading_diamon}{text}{trailing_diamond}'.format(
-    # #     leading_diamon=f'[{color}]\ue0b6[/]',
-    # #     text=text,
-    # #     trailing_diamond=f'[{color}]\ue0b4[/]',
-    # # )

@@ -26,12 +26,6 @@ FALLBACK_DESC = '[dim]no description[/]'
 FALLBACK_TO_HELP_IF_ARGPARSE_FAILED = False
 #   see [./argparse/argv2.py : def report]
 
-CMD_BORDER_STYLE = 'magenta'
-ARG_BORDER_STYLE = 'blue'
-OPT_BORDER_STYLE = 'grey74'
-EXT_BORDER_STYLE = 'dim'
-ERR_BORDER_STYLE = 'red'
-
 ALIGN_ARGS_AND_OPTS_FIELD_WIDTH = False
 
 WARNING_IF_RUNNING_ON_PYCHARM_CONSOLE = False

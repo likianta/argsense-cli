@@ -1,1 +1,1 @@
-from . import color_scheme
+from .palette import palette

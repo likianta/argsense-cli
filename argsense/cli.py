@@ -10,6 +10,7 @@ from .argparse import ParamType
 from .console import console
 from .parser import parse_docstring
 from .parser import parse_function
+from .style import palette
 
 __all__ = ['cli', 'CommandLineInterface']
 
@@ -315,9 +316,9 @@ class CommandLineInterface:
         # noinspection PyTypeChecker
         console.print(
             artist.post_logo(
-                style='magenta' if is_group
-                else 'white' if has_kwargs
-                else 'blue'
+                style='group' if is_group
+                else 'option' if has_kwargs
+                else 'argument'
             ),
             justify='right', style='bold', end=' \n'
         )
@@ -432,10 +433,7 @@ class CommandLineInterface:
                 collect_renderables['logo'] = Padding(
                     Align.right(
                         artist.post_logo(
-                            style='tan'
-                            # style='magenta' if is_group
-                            # else 'white' if has_kwargs
-                            # else 'blue'
+                            style='command'
                         ), style='bold'
                     ), (0, 1, 0, 0)
                 )
@@ -478,21 +476,11 @@ class CommandLineInterface:
             
             group = []
             for index, func_info in enumerate(self.commands.values()):
-                # # cmd_name = func_info['cname']
-                # # cmd_desc = func_info['desc']
-                # # col = Columns((
-                # #     tint(cmd_name.ljust(
-                # #         preferred_field_width['command_field']
-                # #     ), 'magenta'),
-                # #     cmd_desc
-                # # ), padding=(0, 4))
-                # # # TODO: how to highlight its background in the full console
-                # # #   width?
-                # # # from rich.box import Box
-                # # # col = Panel(col, box=Box(''), style='default on yellow')
-                # # group.append(col)
                 cmd_name = func_info['cname']
-                group.append(tint(f' {cmd_name} ', 'b dark_magenta on yellow'))
+                group.append(tint(
+                    f' {cmd_name} ',
+                    f'b {palette.panel.command_highlight}'
+                ))
                 
                 sub_part = parts[index + 1]
                 sub_panel = Padding(Panel(
@@ -505,7 +493,7 @@ class CommandLineInterface:
                             sub_part['opt_panel'],
                         )
                     )),
-                    border_style='#f49364',  # dim | #f49364
+                    border_style=palette.panel.border.command,
                     title=str(sub_part['title']).split('\\n')[1].replace(
                         '\\[OPTIONS]', '[OPTIONS]'
                     ),
@@ -520,7 +508,8 @@ class CommandLineInterface:
             
             # TODO: (below) both A and B are good, i would make it customizable
             #   in the future.
-            return Panel(Group(*group), border_style='magenta')  # A
+            return Panel(Group(*group),
+                         border_style=palette.panel.border.group)  # A
             # return Group(*group)  # B
         
         console.print(render())
