@@ -3,41 +3,30 @@ from __future__ import annotations
 import os
 import re
 import typing as t
-from enum import Enum
-from enum import auto
 
 from . import exceptions as e
 from .argv import ArgvVendor
+from .param_type import ParamType
 
-__all__ = ['extract_command_name', 'parse_argv', 'ParamType']
+__all__ = ['extract_command_name', 'parse_argv']
 
 
 class T:  # Typehint
     _KwArgName = str
     _OptionName = str
     _ParamName = str
-    _ParamType = 'ParamType'  # i.e. Enum
     
     ParamsInfo = t.TypedDict('ParamsInfo', {
-        'args'  : t.Dict[_ParamName, _ParamType],
-        'kwargs': t.Dict[_KwArgName, _ParamType],
+        'args'  : t.Dict[_ParamName, ParamType],
+        'kwargs': t.Dict[_KwArgName, ParamType],
         'index' : t.Dict[_OptionName, _KwArgName],
     })
     
     ParsedResult = t.TypedDict('ParsedResult', {
         'command': str,
-        'args'   : t.Dict[str, t.Any],
-        'kwargs' : t.Dict[str, t.Any],
+        'args'   : t.Dict[_ParamName, t.Any],
+        'kwargs' : t.Dict[_ParamName, t.Any],
     })
-
-
-# noinspection PyArgumentList
-class ParamType(Enum):
-    TEXT = auto()
-    NUMBER = auto()
-    FLAG = auto()
-    BOOL = auto()
-    ANY = auto()
 
 
 def parse_argv(
@@ -85,6 +74,10 @@ def _walking_through_argv(
             raise e.ParamNotFound(cname, front_matter['index'].keys())
     
     # -------------------------------------------------------------------------
+    
+    param_name: str
+    param_type: ParamType
+    param_value: t.Any
     
     for arg in argv_vendor:
         # print(':v', arg)
@@ -175,10 +168,6 @@ def _walking_through_argv(
         assert not arg.startswith('-')
         
         if ctx.token == Token.READY:
-            param_name: str
-            param_type: str
-            param_value: t.Union[str, int, float, bool, None]
-            
             try:
                 param_name = tuple(front_matter['args'])[len(out['args'])]
             except IndexError:
@@ -238,41 +227,43 @@ SPECIAL_ARGS = {
 }
 
 
-def _eval_arg_value(arg: str, possible_type) -> t.Any:
+def _eval_arg_value(arg: str, possible_type: ParamType) -> t.Any:
     # print(':pv', arg, possible_type)
     
     global PYTHON_ACCEPTABLE_NUMBER_PATTERN, SPECIAL_ARGS
     
     if arg in SPECIAL_ARGS:
-        out = SPECIAL_ARGS[arg]
-        if (
-                (type(out) is bool and possible_type not in (
-                        ParamType.FLAG, ParamType.BOOL, ParamType.ANY))
-                or
-                (out is None and possible_type not in (
-                        ParamType.ANY,))
-                or
-                (type(out) is str and possible_type not in (
-                        ParamType.TEXT, ParamType.ANY))
-        ):
-            raise e.TypeConversionError(
-                expected_type=possible_type.name,
-                given_type=str(out)
-            )
-        return out
+        arg = SPECIAL_ARGS[arg]
     
-    if possible_type == ParamType.TEXT:
-        return arg
-    elif possible_type == ParamType.NUMBER:
-        assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg)
-        return eval(arg)
-    elif possible_type == ParamType.FLAG or possible_type == ParamType.BOOL:
-        # ps: i think the ParamType.FLAG is never matched in this case. because
-        #   it was checked before this function called.
-        assert arg in (':true', ':false')
-        return bool(arg == ':true')
-    else:
-        if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg):
-            return eval(arg)
-        else:
-            return arg
+    try:
+        if isinstance(arg, str):
+            assert possible_type in (
+                ParamType.TEXT, ParamType.NUMBER, ParamType.ANY
+            )
+            if possible_type == ParamType.TEXT:
+                return arg
+            elif possible_type == ParamType.NUMBER:
+                assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg)
+                return eval(arg)
+            else:
+                if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg):
+                    return eval(arg)
+                else:
+                    return arg
+        elif isinstance(arg, (int, float)):
+            assert possible_type in (
+                ParamType.NUMBER, ParamType.ANY
+            )
+        elif isinstance(arg, bool):
+            assert possible_type in (
+                ParamType.FLAG, ParamType.BOOL, ParamType.ANY
+            )
+        elif arg is None:
+            assert possible_type in (
+                ParamType.ANY,
+            )
+    except AssertionError:
+        raise e.TypeConversionError(
+            expected_type=possible_type.name,
+            given_type=str(arg)
+        )

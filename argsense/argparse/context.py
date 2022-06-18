@@ -1,4 +1,7 @@
-from enum import Enum, auto
+from enum import Enum
+from enum import auto
+
+from .param_type import ParamType
 
 
 # noinspection PyArgumentList
@@ -14,7 +17,7 @@ class Context:
     token: Token = None
     
     param_name: str
-    param_type: str
+    param_type: ParamType
     
     last_last_arg: str = None
     last_arg: str = None
@@ -28,6 +31,6 @@ class Context:
         self.last_token = self.token
         self.token = token
     
-    def store_param_info(self, name: str, type_: str):
+    def store_param_info(self, name: str, type_: ParamType):
         self.param_name = name
         self.param_type = type_
