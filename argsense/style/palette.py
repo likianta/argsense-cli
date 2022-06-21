@@ -106,7 +106,7 @@ class Color(BaseColor):
     scarlet = '#e64747'
     tan = '#f49364'
     yellow = '#ffff00'
-    yellow_dim = '#e5c07b'
+    yellow_accent = '#fffd3c'
 
 
 class ColorPair:
@@ -160,7 +160,7 @@ palette: T.Palette2 = Palette({
             'extension': color.dim,
             'error'    : color.red,
         },
-        'command_highlight': f'{color.dark_magenta} on {color.yellow_dim}',
+        'command_highlight': f'{color.dark_magenta} on {color.yellow_accent}',
     },
     'logo' : {
         'group'   : color_pair.magenta,
