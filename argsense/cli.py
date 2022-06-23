@@ -202,10 +202,10 @@ class CommandLineInterface:
                 # message.
                 result['kwargs'][':help'] = True
         if result['kwargs'].get(':help'):
-            self.show(func)
+            self.show(func, show_func_name_in_title=bool(mode == 'group'))
         elif result['kwargs'].get(':helpx'):
             if func:
-                self.show(func)
+                self.show(func, show_func_name_in_title=bool(mode == 'group'))
             else:
                 self.show2()
                 # # self.show(None)
@@ -214,9 +214,12 @@ class CommandLineInterface:
         else:
             self.exec(func, result['args'].values(), result['kwargs'])
     
-    def show(self, func):
+    def show(self, func, **kwargs):
         """
         reference: [lib:click/core.py : BaseCommand.main()]
+        
+        kwargs:
+            show_func_name_in_title: bool[default True]
         """
         is_group: bool
         has_args: bool
@@ -238,7 +241,7 @@ class CommandLineInterface:
             
             console.print(
                 artist.draw_commands_panel((
-                    (v['cname'], v['desc'])
+                    (v['cname'], v['desc'])  # noqa
                     for v in self.commands.values()
                 ))
             )
@@ -266,7 +269,9 @@ class CommandLineInterface:
                 console.print(
                     artist.draw_title(
                         prog_name=_detect_program_name(),
-                        command=func_info['cname'],
+                        command=func_info['cname']
+                        if kwargs.get('show_func_name_in_title', True)
+                        else '',
                         options='[OPTIONS]' if has_kwargs else None,
                         arguments=tuple(
                             v['cname'] for v in func_info['args'].values()
@@ -280,7 +285,9 @@ class CommandLineInterface:
                     '',
                     indent(artist.draw_title(
                         prog_name=_detect_program_name(),
-                        command=func_info['cname'],
+                        command=func_info['cname']
+                        if kwargs.get('show_func_name_in_title', True)
+                        else '',
                         options='[OPTIONS]' if has_kwargs else None,
                         arguments=tuple(
                             v['cname'] for v in func_info['args'].values()
@@ -369,7 +376,7 @@ class CommandLineInterface:
                 
                 collect_renderables['cmd_panel'] = (
                     artist.draw_commands_panel((
-                        (v['cname'], v['desc'])
+                        (v['cname'], v['desc'])  # noqa
                         for v in self.commands.values()
                     ))
                 )
@@ -444,7 +451,7 @@ class CommandLineInterface:
         
         parts = []  # noqa
         parts.append(show(None, show_logo=True))
-        parts.extend(show(v['func'], show_logo=False)
+        parts.extend(show(v['func'], show_logo=False)  # noqa
                      for v in self.commands.values())
         
         def render():
@@ -478,7 +485,7 @@ class CommandLineInterface:
             
             group = []
             for index, func_info in enumerate(self.commands.values()):
-                cmd_name = func_info['cname']
+                cmd_name = func_info['cname']  # noqa
                 group.append(tint(
                     f' {cmd_name} ',
                     f'b {palette.panel.command_highlight}'
