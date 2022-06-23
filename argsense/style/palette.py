@@ -54,10 +54,11 @@ class T:
                 py: str
                 exe: str
             
-            command: str
-            argument1: str
-            argument2: str
-            option: str
+            func_name: str
+            arg1: str
+            arg2: str
+            kwarg1: str
+            kwarg2: str
         
         # noinspection PyPep8Naming
         class panel:
@@ -99,8 +100,10 @@ class Color(BaseColor):
     blue1 = '#61afef'
     blue2 = '#5f87ff'  # cornflower blue
     dark_magenta = '#8700af'
-    deep_gray = '#bcbcbc'
+    deep_grey = '#bcbcbc'
     dim_acrylic = '#29315a'
+    grey1 = '#777b7f'
+    grey2 = '#909396'
     magenta = '#d08bf3'
     red = 'red'
     scarlet = '#e64747'
@@ -146,17 +149,18 @@ palette: T.Palette2 = Palette({
             'py'    : color.scarlet,
             'exe'   : color.scarlet,
         },
-        'command'  : color.magenta,
-        'argument1': color.blue1,
-        'argument2': color.blue2,
-        'option'   : color.dim,
+        'func_name': color.magenta,
+        'arg1'     : color.blue1,
+        'arg2'     : color.blue2,
+        'kwarg1'   : color.grey1,
+        'kwarg2'   : color.grey2,
     },
     'panel': {
-        'border': {
+        'border'           : {
             'group'    : color.magenta,
             'command'  : color.tan,
             'argument' : color.blue,
-            'option'   : color.deep_gray,
+            'option'   : color.deep_grey,
             'extension': color.dim,
             'error'    : color.red,
         },

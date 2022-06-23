@@ -233,9 +233,9 @@ class CommandLineInterface:
             console.print(
                 artist.draw_title(
                     prog_name=_detect_program_name(),
-                    command='<COMMAND>',
-                    options='[OPTIONS]',
-                    arguments=None,
+                    func_name='FUNCTION',
+                    args=(),
+                    kwargs=('...',)
                 ), justify='center'
             )
             
@@ -269,13 +269,16 @@ class CommandLineInterface:
                 console.print(
                     artist.draw_title(
                         prog_name=_detect_program_name(),
-                        command=func_info['cname']
+                        func_name=func_info['cname']
                         if kwargs.get('show_func_name_in_title', True)
                         else '',
-                        options='[OPTIONS]' if has_kwargs else None,
-                        arguments=tuple(
+                        args=tuple(
                             v['cname'] for v in func_info['args'].values()
                         ),
+                        kwargs=tuple(
+                            v['cname'].split(',', 1)[0]
+                            for v in func_info['kwargs'].values()
+                        )
                     ), justify='center'
                 )
                 if desc: console.print(indent(desc, ' '))
@@ -285,14 +288,17 @@ class CommandLineInterface:
                     '',
                     indent(artist.draw_title(
                         prog_name=_detect_program_name(),
-                        command=func_info['cname']
+                        func_name=func_info['cname']
                         if kwargs.get('show_func_name_in_title', True)
                         else '',
-                        options='[OPTIONS]' if has_kwargs else None,
-                        arguments=tuple(
+                        args=tuple(
                             v['cname'] for v in func_info['args'].values()
                         ),
-                        serif_line=True,
+                        kwargs=tuple(
+                            v['cname'].split(',', 1)[0]
+                            for v in func_info['kwargs'].values()
+                        ),
+                        add_serif_line=True,
                     ), '    '),
                     indent(f'[grey74]{desc}[/]', '    '),
                     ''
@@ -368,9 +374,9 @@ class CommandLineInterface:
                 collect_renderables['title'] = Align.center(
                     artist.draw_title(
                         prog_name=_detect_program_name(),
-                        command='<COMMAND>',
-                        options='[OPTIONS]',
-                        arguments=None,
+                        func_name='FUNCTION',
+                        args=(),
+                        kwargs=('...',)
                     )
                 )
                 
@@ -402,10 +408,13 @@ class CommandLineInterface:
                 collect_renderables['title'] = Align.center(
                     artist.draw_title(
                         prog_name=_detect_program_name(),
-                        command=func_info['cname'],
-                        options='[OPTIONS]' if has_kwargs else None,
-                        arguments=tuple(
+                        func_name=func_info['cname'],
+                        args=tuple(
                             v['cname'] for v in func_info['args'].values()
+                        ),
+                        kwargs=tuple(
+                            v['cname'].split(',', 1)[0]
+                            for v in func_info['kwargs'].values()
                         ),
                     )
                 )

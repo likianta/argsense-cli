@@ -12,28 +12,29 @@ from .style import palette
 
 class T:
     class Title:
-        Command = t.Optional[str]
-        Options = t.Optional[str]
-        Arguments = t.Optional[t.Sequence[str]]
-        # Align = t.Literal['left', 'center']
+        ProgName = str
+        FuncName = t.Optional[str]
+        Args = t.Sequence[str]
+        KwArgs = t.Sequence[str]
     
     # Style = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
     PanelData = t.Iterable[t.Tuple[str, ...]]
 
 
-def draw_title(prog_name: str,
-               command: T.Title.Command = '<COMMAND>',
-               options: T.Title.Options = '[OPTIONS]',
-               arguments: T.Title.Arguments = None,
-               serif_line=False) -> str:
+def draw_title(prog_name: T.Title.ProgName,
+               func_name: T.Title.FuncName = '<FUNCTION>',
+               args: T.Title.Args = (),
+               kwargs: T.Title.KwArgs = ('...',),
+               add_serif_line=False) -> str:
     """
     illustration examples:
-        python -m argsense <COMMAND> [OPTIONS]
-        python -m argsense [OPTIONS] <ARGUMENTS>
-        python -m argsense [OPTIONS]
+        python -m argsense ...
+        python -m argsense FUNCTION ...
+        python -m argsense FUNCTION ARG1 ARG2 ...
+        python -m argsense FUNCTION ARG1 ARG2 ... OPT1 OPT2 ...
     """
     
-    def render_prog_name():
+    def render_prog_name() -> str:
         # reference: [./cli.py : def _detect_program_name()]
         
         color = palette.title.prog_name
@@ -64,54 +65,61 @@ def draw_title(prog_name: str,
                     fg2=color.py,
                 )
     
-    def render_command():
-        tmpl = f'[{palette.title.command}]{{}}[/]'
-        return tmpl.format(command)
+    def render_func_name() -> str:
+        if not func_name: return ''
+        tmpl = f'[{palette.title.func_name}]{{}}[/]'
+        return tmpl.format(func_name)
     
-    def render_options():
-        if options:
-            tmpl = f'[{palette.title.option}]{{}}[/]'
-            if '[' in options:
-                return tmpl.format(options.replace('[', '\\['))
-            else:
-                return tmpl.format(options)
-        else:
-            return ''
-    
-    def render_arguments() -> str:
-        # experimental: if the length of arguments is longer than 3, use
-        # stagger color (light-blue and dark-blue) to improve readability.
-        if arguments:
-            if len(arguments) >= 3:
-                return ' '.join(
-                    '[{fg}]{text}[/]'.format(
-                        fg=palette.title.argument1 if i % 2 == 0
-                        else palette.title.argument2,
-                        text=x
-                    ) for i, x in enumerate(arguments)
-                )
-            return '[{}]{}[/]'.format(
-                palette.title.argument1, ' '.join(arguments)
+    def _render_params(params: t.Union[T.Title.Args, T.Title.KwArgs],
+                       color_1: str, color_2: str, cutoff=10) -> str:
+        """
+        experimental:
+            if the length of `params` is longer than 3, use stagger color to
+            improve readability.
+            
+        notice: `cutoff` should be at least 3.
+        """
+        if not params: return ''
+        if len(params) > cutoff:
+            params = (*params[:cutoff], '...')
+        if len(params) >= 3:
+            return ' '.join(
+                '[{fg}]{text}[/]'.format(
+                    fg=color_1 if i % 2 == 0 else color_2,
+                    text=x
+                ) for i, x in enumerate(params)
             )
         else:
-            return ''
+            return '[{}]{}[/]'.format(
+                color_1, ' '.join(params)
+            )
+    
+    def render_args() -> str:
+        return _render_params(
+            args, palette.title.arg1, palette.title.arg2, cutoff=len(args) + 1
+        )
+    
+    def render_kwargs() -> str:
+        return _render_params(
+            kwargs, palette.title.kwarg1, palette.title.kwarg2, cutoff=5
+        )
     
     return '\n'.join((
         '',  # empty line
         '[b]{}[/]'.format(  # title
             ' '.join(filter(None, (
                 render_prog_name(),
-                render_command(),
-                render_options(),
-                render_arguments(),
+                render_func_name(),
+                render_args(),
+                render_kwargs(),
             )))
         ),
-        '' if not serif_line else (
+        '' if not add_serif_line else (
             '[dim]{}[/]'.format(  # splitter
                 # note: '─' for solid line, or '-' for dotted line.
                 '─' * len(' '.join(filter(None, (
-                    prog_name, command, options,
-                    arguments and ' '.join(arguments),
+                    prog_name, func_name,
+                    ' '.join(args), ' '.join(kwargs),
                 ))))
             )
         )
