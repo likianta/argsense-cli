@@ -1,5 +1,6 @@
 import typing as t
 
+from . import config
 from .argparse import ParamType
 
 __all__ = ['name_2_cname', 'type_2_ctype']
@@ -13,14 +14,26 @@ class T:
 
 
 def name_2_cname(name: str, style: T.Style = None) -> str:
-    # convert name from snake_case to kebab-case.
-    name = name.lower().lstrip('_').replace('_', '-')
+    """ convert param name from python style to cli style. """
+    name = name.lower().lstrip('_')
     if style == 'arg':
-        # # name = name.upper()
-        name = name.replace('-', '_').upper()
+        style = config.ARG_NAME_STYLE
+        if style == 'AAA_BBB':
+            return name.upper()
+        elif style == 'AAA-BBB':
+            return name.upper().replace('_', '-')
+        elif style == 'aaa_bbb':
+            return name
+        elif style == 'aaa-bbb':
+            return name.replace('_', '-')
+        elif style == 'AaaBbb':
+            return name.replace('_', ' ').title().replace(' ', '')
+        else:
+            raise ValueError(f'unknown style: {style}')
     elif style == 'opt':
-        name = '--' + name
-    return name
+        return '--' + name.replace('_', '-')
+    else:
+        return name.replace('_', '-')
 
 
 def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
