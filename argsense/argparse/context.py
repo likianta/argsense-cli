@@ -1,7 +1,7 @@
 from enum import Enum
 from enum import auto
 
-from .param_type import ParamType
+from .params import ParamType
 
 
 # noinspection PyArgumentList

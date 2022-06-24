@@ -52,7 +52,7 @@ class ArgvVendor:
                     ' '.join(self.argv[:self.pointer]),
                     self.argv[self.pointer],
                     ' '.join(self.argv[self.pointer + 1:]),
-                )
+                ).rstrip()
             # scheme B (abandoned)
             # # out = ' '.join(self.argv)
             # # if self.pointer == 0:
@@ -76,8 +76,8 @@ class ArgvVendor:
                 Failed parsing command line arguments -- there was an error -
                 happened in the following position:
                 
-                [bold cyan]>[/] {argv}
-                  {indicator}
+                [default on #1d1d1d] [bold cyan]>[/] {argv} [/]
+                   {indicator}
                 {reason}
             ''').strip().replace(' -\n', ' ').format(
                 argv=make_argv_string(),

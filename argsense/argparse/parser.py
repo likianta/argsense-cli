@@ -6,7 +6,7 @@ import typing as t
 
 from . import exceptions as e
 from .argv import ArgvVendor
-from .param_type import ParamType
+from .params import ParamType
 
 __all__ = ['extract_command_name', 'parse_argv']
 
@@ -58,8 +58,15 @@ def _walking_through_argv(
         python main.py "'true'"
     """
     from .context import Context, Token
-    ctx = Context()
+    from .params import ParamsHolder
     
+    # print(':vl', front_matter)
+    
+    params = ParamsHolder(
+        front_matter['args'], front_matter['kwargs'],
+        cnames=tuple(front_matter['index'].keys())
+    )
+    ctx = Context()
     out = {
         'command': '',
         'args'   : {},  # dict[str name, any value]
@@ -91,13 +98,6 @@ def _walking_through_argv(
                         not in (':help', ':helpx')
                 ):
                     raise e.ParamAheadOfCommand()
-                # else:  # debug
-                #     print(':vl', (
-                #         ctx.token == Token.START,
-                #         mode == 'group',
-                #         out['command'] == '',
-                #         front_matter['index'].get(arg)
-                #     ))
                 
                 if arg.startswith('--'):
                     try:
@@ -108,7 +108,7 @@ def _walking_through_argv(
                     if arg.startswith('--not-'):
                         option_name = arg.replace('--not-', '--', 1)
                         param_name = _get_option_name(option_name)
-                        param_type = front_matter['kwargs'][param_name]
+                        param_type = params.get_param(param_name)[1]
                         try:
                             assert param_type in (ParamType.FLAG, ParamType.ANY)
                         except AssertionError:
@@ -119,7 +119,7 @@ def _walking_through_argv(
                     else:
                         option_name = arg
                         param_name = _get_option_name(option_name)
-                        param_type = front_matter['kwargs'][param_name]
+                        param_type = params.get_param(param_name)[1]
                         if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
                             ctx.update(Token.READY)
@@ -137,7 +137,7 @@ def _walking_through_argv(
                     if arg[1:].isupper():
                         option_name = arg.lower()
                         param_name = _get_option_name(option_name)
-                        param_type = front_matter['kwargs'][param_name]
+                        param_type = params.get_param(param_name)[1]
                         try:
                             assert param_type in (ParamType.FLAG, ParamType.ANY)
                         except AssertionError:
@@ -148,7 +148,7 @@ def _walking_through_argv(
                     else:
                         option_name = arg
                         param_name = _get_option_name(option_name)
-                        param_type = front_matter['kwargs'][param_name]
+                        param_type = params.get_param(param_name)[1]
                         if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
                             ctx.update(ctx.token)
@@ -168,14 +168,8 @@ def _walking_through_argv(
         assert not arg.startswith('-')
         
         if ctx.token == Token.READY:
-            try:
-                param_name = tuple(front_matter['args'])[len(out['args'])]
-            except IndexError:
-                raise e.TooManyArguments()
-            else:
-                param_type = front_matter['args'][param_name]
-                param_value = _eval_arg_value(arg, param_type)
-            
+            param_name, param_type = params.get_param()
+            param_value = _eval_arg_value(arg, param_type)
             out['args'][param_name] = param_value
             ctx.update(Token.READY)
             continue
@@ -198,8 +192,8 @@ def _walking_through_argv(
             raise e.InsufficientArguments(
                 tuple(front_matter['args'].keys())[len(out['args']):]
             )
-    # elif len(out['args']) > len(front_matter['args']):
-    #     raise e.TooManyArguments()
+    # # elif len(out['args']) > len(front_matter['args']):
+    # #     raise e.TooManyArguments()
     
     return out
 

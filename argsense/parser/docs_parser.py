@@ -91,7 +91,7 @@ def parse_docstring(docstring: str) -> T.DocsInfo:
     
     # walk through lines
     scope = Scope.ROOT
-    args_pending_line_pattern = re.compile(r'^([\w]+): ?(.*)')
+    args_pending_line_pattern = re.compile(r'^(\w+): ?(.*)')
     #   example: 'apple: the description text.'
     #             ~~~~1  ~~~~~~~~~~~~~~~~~~~~2
     kwargs_pending_line_pattern = re.compile(
