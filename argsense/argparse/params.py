@@ -25,8 +25,9 @@ class ParamsHolder:
     
     def __init__(self, args: T.Args, kwargs: T.Kwargs, **references):
         self._args = [(k, v) for k, v in args.items()]
-        self._kwargs = [(k, v) for k, v in kwargs.items()
-                        if not k.startswith(':')]
+        self._kwargs = [(k, v) for k, v in kwargs.items()]
+        # self._kwargs_subset = [(k, v) for k, v in kwargs.items()
+        #                        if not k.startswith(':')]
         self._cnames = references.get('cnames', ('[i]...[/]',))
     
     def get_param(self, name: str = None) -> T.Param:
@@ -45,7 +46,9 @@ class ParamsHolder:
             if self._args:
                 return self._args.pop(0)
             if self._kwargs:
-                return self._kwargs.pop(0)
+                for i, (k, _) in enumerate(self._kwargs):
+                    if not k.startswith(':'):
+                        return self._kwargs.pop(i)
             from .exceptions import TooManyArguments
             raise TooManyArguments()
     
