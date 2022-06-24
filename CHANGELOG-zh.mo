@@ -1,5 +1,29 @@
 # 更新日志
 
+### 0.4.0
+
+允许 "匿名" 的方式传入 option 参数.
+
+``` :codeblock(sh, title=before)
+python3 login.py username --password 123456
+```
+
+``` :codeblock(sh, title=after)
+python3 login.py username 123456
+```
+
+---
+
+### 0.3.1
+
+*修复了一些细节.
+
+### 0.3.0
+
+优化了文字颜色, 使文字在不同终端主题下尽量保持一致的感觉, 提升美观性.
+
+---
+
 ### 0.2.2
 
 加强参数类型转换.
@@ -19,6 +43,8 @@
 [!<.assets/20220616131105.jpg>]
 
 [!<.assets/20220616131304.jpg>]
+
+---
 
 ### 0.1.2
 
