@@ -73,11 +73,18 @@ class CommandLineInterface:
             cmd_name = name or name_2_cname(func.__name__)
             if cmd_name in self._cname_2_func and \
                     (new := func) is not (old := self._cname_2_func[cmd_name]):
-                raise Exception(
+                print(
+                    ':v3p',
                     f'duplicate command name: {cmd_name}',
                     f'the recorded function is: {old}',
                     f'the incoming function is: {new}',
                 )
+                return func
+                # raise Exception(
+                #     f'duplicate command name: {cmd_name}',
+                #     f'the recorded function is: {old}',
+                #     f'the incoming function is: {new}',
+                # )
             else:
                 self._cname_2_func[cmd_name] = func
             
