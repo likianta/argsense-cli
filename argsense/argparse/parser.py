@@ -230,6 +230,7 @@ def _eval_arg_value(arg: str, possible_type: ParamType) -> t.Any:
         arg = SPECIAL_ARGS[arg]
     
     try:
+        # print(':v', arg, type(arg), possible_type, type(possible_type))
         if isinstance(arg, str):
             assert possible_type in (
                 ParamType.TEXT, ParamType.NUMBER, ParamType.ANY
@@ -244,13 +245,17 @@ def _eval_arg_value(arg: str, possible_type: ParamType) -> t.Any:
                     return eval(arg)
                 else:
                     return arg
+        elif isinstance(arg, bool):
+            # warning: bool type is also an "int" type. so
+            # `isinstance(True, int)` returns True.
+            # to avoid this weird behavior, we must check
+            # `isinstance(arg, bool)` before `isinstance(arg, int)`.
+            assert possible_type in (
+                ParamType.FLAG, ParamType.BOOL, ParamType.ANY
+            )
         elif isinstance(arg, (int, float)):
             assert possible_type in (
                 ParamType.NUMBER, ParamType.ANY
-            )
-        elif isinstance(arg, bool):
-            assert possible_type in (
-                ParamType.FLAG, ParamType.BOOL, ParamType.ANY
             )
         elif arg is None:
             assert possible_type in (
