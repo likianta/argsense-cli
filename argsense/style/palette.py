@@ -9,25 +9,25 @@ exposed colors:
 """
 from __future__ import annotations
 
+import typing as t
+
 __all__ = ['palette']
 
 
 class T:
-    from typing import Tuple, TypedDict
-    
     _Color = str
-    _ColorPair = Tuple[str, str]
+    _ColorPair = t.Tuple[str, str]
     
     # noinspection PyTypedDict
-    Palette = TypedDict('Palette', {
-        'title': TypedDict('Title', {
+    Palette = t.TypedDict('Palette', {
+        'title': t.TypedDict('Title', {
             'python': _Color,
             '-m'    : _Color,
             '.py'   : _Color,
             '.exe'  : _Color,
         }),
-        'panel': TypedDict('Panel', {
-            'border': TypedDict('Border', {
+        'panel': t.TypedDict('Panel', {
+            'border': t.TypedDict('Border', {
                 'group'    : _Color,
                 'command'  : _Color,
                 'argument' : _Color,
@@ -36,7 +36,7 @@ class T:
                 'error'    : _Color,
             }),
         }),
-        'logo' : TypedDict('Logo', {
+        'logo' : t.TypedDict('Logo', {
             'group'   : _ColorPair,
             'command' : _ColorPair,
             'argument': _ColorPair,
@@ -75,10 +75,10 @@ class T:
         
         # noinspection PyPep8Naming
         class logo:
-            group: tuple[str, str]
-            command: tuple[str, str]
-            argument: tuple[str, str]
-            option: tuple[str, str]
+            group: t.Tuple[str, str]
+            command: t.Tuple[str, str]
+            argument: t.Tuple[str, str]
+            option: t.Tuple[str, str]
 
 
 class BaseColor:

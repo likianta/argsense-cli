@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import typing as t
 from enum import Enum
 from enum import auto
 
@@ -16,9 +17,9 @@ class ParamType(Enum):
 
 
 class T:
-    Args = dict[str, ParamType]
-    Kwargs = dict[str, ParamType]
-    Param = tuple[str, ParamType]
+    Args = t.Dict[str, ParamType]
+    Kwargs = t.Dict[str, ParamType]
+    Param = t.Tuple[str, ParamType]
 
 
 class ParamsHolder:
