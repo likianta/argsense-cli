@@ -30,47 +30,7 @@ class T:
 
 def parse_docstring(docstring: str) -> T.DocsInfo:
     """
-    example:
-        def foo(aaa: str, is_bbb: bool, ccc: int = 1, is_ddd: bool = False):
-            '''
-            do something.
-            
-            args:
-                aaa: the description text.
-                is_bbb: the description text.
-                    the second line.
-                    the third -
-                    line.
-            
-            kwargs:
-                ccc: the description text.
-                is_ddd (-d): the description text.
-            '''
-        it will return:
-            {
-                'desc': 'do something.',
-                'args': {
-                    'aaa': {
-                        'cname': 'AAA',
-                        'desc': 'the description text.',
-                    },
-                    'is_bbb': {
-                        'cname': 'IS-BBB',
-                        'desc': 'the description text.\nthe second line.\n'
-                                'the third line.',
-                    },
-                },
-                'kwargs': {
-                    'ccc': {
-                        'cname': '--ccc',
-                        'desc': 'the description text.',
-                    },
-                    'is_ddd': {
-                        'cname': '--is-ddd,-d',
-                        'desc': 'the description text.',
-                    }
-                }
-            }
+    ref: ~/docs/how-to-parse-docstring.md
     """
     result: T.DocsInfo = {
         'desc'  : '',
