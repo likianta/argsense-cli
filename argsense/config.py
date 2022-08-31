@@ -18,7 +18,7 @@ class T:
 
 # appearance style
 ALIGN_ARGS_AND_OPTS_FIELD_WIDTH = False
-ARG_NAME_STYLE: T.ArgNameStyle = 'AAA_BBB'
+ARG_NAME_STYLE: T.ArgNameStyle = 'aaa-bbb'
 PRETTY_ERROR = True
 TITLE_HEAD_STYLE: T.TitleHeadStyle = 'system_dependent'
 ''' the difference:
