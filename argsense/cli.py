@@ -544,7 +544,7 @@ class CommandLineInterface:
         try:
             func(*args, **kwargs)
         except Exception:
-            console.print_exception(show_locals=True)
+            console.print_exception()
 
 
 def _detect_program_name() -> str:
