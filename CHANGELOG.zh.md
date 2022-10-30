@@ -1,18 +1,24 @@
 # 更新日志
 
+### 0.5.0 (wip)
+
+1. 新增 group 特性 (详见说明文档).
+2. 更好地解析 docstring.
+3. 样式优化.
+
 ### 0.4.1
 
-*修复类型检查错误.
+修复类型检查错误.
 
 ### 0.4.0
 
 允许 "匿名" 的方式传入 option 参数.
 
-``` :codeblock(sh, title=before)
+```sh
+# befoer
 python3 login.py username --password 123456
-```
 
-``` :codeblock(sh, title=after)
+# after
 python3 login.py username 123456
 ```
 
@@ -20,7 +26,7 @@ python3 login.py username 123456
 
 ### 0.3.1
 
-*修复了一些细节.
+修复了一些细节.
 
 ### 0.3.0
 
@@ -36,7 +42,7 @@ python3 login.py username 123456
 
 "did-you-mean" 功能:
 
-[!<.assets/20220617104151.jpg>]
+![](.assets/20220617104151.jpg)
 
 ### 0.2.0
 
@@ -44,9 +50,9 @@ python3 login.py username 123456
 
 现在, 当发生报错时, 将提供参数位置, 报错原因等信息, 如下图所示:
 
-[!<.assets/20220616131105.jpg>]
+![](.assets/20220616131105.jpg)
 
-[!<.assets/20220616131304.jpg>]
+![](.assets/20220616131304.jpg)
 
 ---
 
