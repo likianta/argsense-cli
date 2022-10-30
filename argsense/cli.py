@@ -12,7 +12,7 @@ from .parser import parse_docstring
 from .parser import parse_function
 from .style import palette
 
-__all__ = ['cli', 'CommandLineInterface']
+__all__ = ['CommandLineInterface', 'cli']
 
 
 class T:
@@ -54,7 +54,64 @@ class CommandLineInterface:
         self.name = name
         self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
+
+    # -------------------------------------------------------------------------
     
+    def add_cmd(self, func: t.Callable, name: str = None) -> None:
+        from .converter import name_2_cname, type_2_ctype
+        
+        cmd_name = name or name_2_cname(func.__name__)
+        if cmd_name in self._cname_2_func and \
+                (new := func) is not (old := self._cname_2_func[cmd_name]):
+            print(
+                ':v3p',
+                f'duplicate command name: {cmd_name}',
+                f'the recorded function is: {old}',
+                f'the incoming function is: {new}',
+            )
+            return
+            # raise Exception(
+            #     f'duplicate command name: {cmd_name}',
+            #     f'the recorded function is: {old}',
+            #     f'the incoming function is: {new}',
+            # )
+        else:
+            self._cname_2_func[cmd_name] = func
+
+        func_info = parse_function(func)
+        docs_info = parse_docstring(func.__doc__ or '')
+
+        self.commands[id(func)] = {
+            'func'  : func,
+            'cname' : name_2_cname(cmd_name),
+            'desc'  : docs_info['desc'],
+            'args'  : {
+                name: {
+                    'cname': name_2_cname(name, style='arg'),
+                    'ctype': type_2_ctype(type_),
+                    'desc' : (
+                        '' if name not in docs_info['args']
+                        else docs_info['args'][name]['desc']
+                    ),
+                } for name, type_ in func_info['args']
+            },
+            'kwargs': {
+                name: {
+                    'cname'  : (
+                        name_2_cname(name, style='opt')
+                        if name not in docs_info['kwargs']
+                        else docs_info['kwargs'][name]['cname']
+                    ),
+                    'ctype'  : type_2_ctype(type_),
+                    'desc'   : (
+                        '' if name not in docs_info['kwargs']
+                        else docs_info['kwargs'][name]['desc']
+                    ),
+                    'default': value,
+                } for name, type_, value in func_info['kwargs']
+            },
+        }
+
     # -------------------------------------------------------------------------
     # decorators
     
@@ -66,62 +123,8 @@ class CommandLineInterface:
             def foo(...):
                 ...
         """
-        from .converter import name_2_cname, type_2_ctype
-        
         def decorator(func: t.Callable) -> t.Callable:
-            nonlocal name
-            cmd_name = name or name_2_cname(func.__name__)
-            if cmd_name in self._cname_2_func and \
-                    (new := func) is not (old := self._cname_2_func[cmd_name]):
-                print(
-                    ':v3p',
-                    f'duplicate command name: {cmd_name}',
-                    f'the recorded function is: {old}',
-                    f'the incoming function is: {new}',
-                )
-                return func
-                # raise Exception(
-                #     f'duplicate command name: {cmd_name}',
-                #     f'the recorded function is: {old}',
-                #     f'the incoming function is: {new}',
-                # )
-            else:
-                self._cname_2_func[cmd_name] = func
-            
-            func_info = parse_function(func)
-            docs_info = parse_docstring(func.__doc__ or '')
-            
-            self.commands[id(func)] = {
-                'func'  : func,
-                'cname' : name_2_cname(cmd_name),
-                'desc'  : docs_info['desc'],
-                'args'  : {
-                    name: {
-                        'cname': name_2_cname(name, style='arg'),
-                        'ctype': type_2_ctype(type_),
-                        'desc' : (
-                            '' if name not in docs_info['args']
-                            else docs_info['args'][name]['desc']
-                        ),
-                    } for name, type_ in func_info['args']
-                },
-                'kwargs': {
-                    name: {
-                        'cname'  : (
-                            name_2_cname(name, style='opt')
-                            if name not in docs_info['kwargs']
-                            else docs_info['kwargs'][name]['cname']
-                        ),
-                        'ctype'  : type_2_ctype(type_),
-                        'desc'   : (
-                            '' if name not in docs_info['kwargs']
-                            else docs_info['kwargs'][name]['desc']
-                        ),
-                        'default': value,
-                    } for name, type_, value in func_info['kwargs']
-                },
-            }
-            
+            self.add_cmd(func, name)
             return func
         
         return decorator
