@@ -16,4 +16,4 @@ from .cli import CommandLineInterface
 from .cli import cli
 from .console import rprint
 
-__version__ = '0.5.0'
+__version__ = '0.4.3'
