@@ -2,20 +2,20 @@ import typing as t
 
 from . import config
 from .argparse import ParamType
+from .parser.func_parser import T as T0
 
 __all__ = ['name_2_cname', 'type_2_ctype']
 
 
 class T:
-    from .parser.func_parser import TParamType as _ParamType
-    ParamType1 = _ParamType
+    ParamType1 = T0.ParamType
     ParamType2 = ParamType
     Style = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
 
 
 def name_2_cname(name: str, style: T.Style = None) -> str:
     """ convert param name from python style to cli style. """
-    name = name.lower().lstrip('_')
+    name = name.lower().strip('_')
     if style == 'arg':
         style = config.ARG_NAME_STYLE
         if style == 'AAA_BBB':
@@ -43,15 +43,15 @@ def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
         to: [./argparse/parser.py : def parse_argv()]
     """
     return {
+        'any'  : ParamType.ANY,
         'str'  : ParamType.TEXT,
-        'int'  : ParamType.NUMBER,
         'float': ParamType.NUMBER,
         'flag' : ParamType.FLAG,
         'bool' : ParamType.BOOL,
-        # 'list' : ParamType.LIST,
-        # 'tuple': ParamType.LIST,
-        # 'set'  : ParamType.LIST,
-        # 'dict' : ParamType.DICT,
-        'any'  : ParamType.ANY,
-        # 'none' : ParamType.NONE,
+        'int'  : ParamType.NUMBER,
+        'list' : ParamType.LIST,
+        'tuple': ParamType.LIST,
+        'set'  : ParamType.LIST,
+        'dict' : ParamType.DICT,
+        'none' : ParamType.NONE,
     }.get(t, ParamType.ANY)

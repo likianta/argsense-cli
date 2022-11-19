@@ -9,11 +9,14 @@ __all__ = ['ParamType', 'ParamsHolder']
 
 # noinspection PyArgumentList
 class ParamType(Enum):
-    TEXT = auto()
-    NUMBER = auto()
-    FLAG = auto()
-    BOOL = auto()
     ANY = auto()
+    BOOL = auto()
+    DICT = auto()
+    FLAG = auto()
+    LIST = auto()
+    NONE = auto()
+    NUMBER = auto()
+    TEXT = auto()
 
 
 class T:
