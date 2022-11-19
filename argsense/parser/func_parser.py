@@ -1,18 +1,21 @@
 import typing as t
+from inspect import getfullargspec
 
-__all__ = ['parse_function', 'TParamType']
+__all__ = ['T', 'parse_function']
 
 
 class T:
+    _DefaultValue = t.Any
     _ParamName = str
-    # FIXME: shall i use [../argparse/parser.py : class ParamType] (the Enum
+    
+    FallbackType = t.Literal['any', 'str']
+    Func = t.Callable
+    # TODO: should i use [../argparse/parser.py : class ParamType] (the Enum
     #   type) instead of the plain literals?
     ParamType = t.Literal[
         'any', 'bool', 'dict', 'flag', 'float', 'int',
         'list', 'none', 'set', 'str', 'tuple',
     ]
-    FallbackType = t.Literal['any', 'str']
-    _DefaultValue = t.Any
     
     FuncInfo = t.TypedDict('FuncInfo', {
         'name'  : str,
@@ -22,79 +25,117 @@ class T:
     })
 
 
-TParamType = T.ParamType
-
-
-# TODO: fallback_type is not used in current version.
-# noinspection PyUnusedLocal
-def parse_function(func, fallback_type: T.FallbackType = 'any') -> T.FuncInfo:
-    param_count = func.__code__.co_argcount + func.__code__.co_kwonlyargcount
-    param_names = func.__code__.co_varnames[:param_count]
-    annotations = func.__annotations__
-    kw_defaults = func.__defaults__ or ()
-    # print(func.__name__, param_count, param_names, annotations, kw_defaults)
-    
-    func_name = func.__name__
-    args: list
-    kwargs: list
-    return_: str
-    
-    type_2_str = {
-        None : 'none',
-        bool : 'bool',
-        dict : 'dict',
-        float: 'float',
-        int  : 'int',
-        list : 'list',
-        set  : 'set',
-        str  : 'str',
-        tuple: 'tuple',
-    }
+def parse_function(
+        func: T.Func,
+        fallback_type: T.FallbackType = 'any'
+) -> T.FuncInfo:
+    spec = getfullargspec(func)
+    annotations = Annotations(spec.annotations, fallback_type)
+    ''' example:
+        def foo(a: str, b: int, c=123, *args, d: bool = False, **kwargs):
+            pass
+        spec = getfullargspec(foo)
+        # -> FullArgSpec(
+        #   args=['a', 'b', 'c'],
+        #   varargs='args',
+        #   varkw='kwargs',
+        #   defaults=(123,),
+        #   kwonlyargs=['d'],
+        #   kwonlydefaults={'d': False},
+        #   annotations={
+        #       'a': <class 'str'>,
+        #       'b': <class 'int'>,
+        #       'd': <class 'bool'>,
+        #   }
+        # )
+    '''
     
     args = []
-    if kw_defaults:
-        arg_names = param_names[:-len(kw_defaults)]
-    else:
-        arg_names = param_names
-    for name in arg_names:
-        args.append(
-            (name, type_2_str.get(annotations.get(name, str), 'any'))
-        )
+    for i in range(0, len(spec.args) - len(spec.defaults)):
+        name = spec.args[i]
+        type_ = annotations.get_arg_type(name)
+        args.append((name, type_))
+    if spec.varargs:
+        assert len(spec.varargs) == 1
+        args.append(('*', 'list', []))
     
     kwargs = []
-    if kw_defaults:
-        if isinstance(kw_defaults, tuple):
-            kw_defaults = dict(
-                zip(param_names[-len(kw_defaults):], kw_defaults)
-            )
-        for name, value in kw_defaults.items():
-            if name in annotations:
-                type_ = type_2_str.get(annotations[name], fallback_type)
-            else:
-                type_ = _deduce_param_type_by_default_value(value)
-            if type_ == 'bool':
-                type_ = 'flag'
-            kwargs.append((name, type_, value))
+    for i, j in enumerate(range(len(spec.args) - len(spec.defaults),
+                                len(spec.args))):
+        name = spec.args[j]
+        default = spec.defaults[i]
+        type_ = annotations.get_kwarg_type(name, default)
+        kwargs.append((name, type_, default))
+    for name, default in spec.kwonlydefaults.items():
+        type_ = annotations.get_kwarg_type(name, default)
+        kwargs.append((name, type_, default))
+    if spec.varkw:
+        assert len(spec.varkw) == 1
+        kwargs.append(('**', 'dict', {}))
     
-    result = type_2_str.get(annotations.get('return', None), 'any')
+    return_ = annotations.get_return_type()
     
     return {
-        'name'  : func_name,
+        'name'  : func.__name__,
         'args'  : args,
         'kwargs': kwargs,
-        'return': result,
+        'return': return_,
     }
 
 
-def _deduce_param_type_by_default_value(default: t.Any) -> T.ParamType:
-    dict_ = {
-        bool : 'bool',
-        dict : 'dict',
-        float: 'float',
-        int  : 'int',
-        list : 'list',
-        set  : 'set',
-        str  : 'str',
-        tuple: 'tuple',
-    }
-    return dict_.get(type(default), 'any')
+class Annotations:
+    
+    def __init__(
+            self,
+            annotations: t.Dict[str, t.Any],
+            fallback_type: T.FallbackType = 'any'
+    ):
+        self.annotations = annotations
+        self._fallback_type = fallback_type
+        #   TODO: the fallback_type is not used in current version.
+        self._type_2_str = {
+            None : 'none',
+            bool : 'bool',
+            dict : 'dict',
+            float: 'float',
+            int  : 'int',
+            list : 'list',
+            set  : 'set',
+            str  : 'str',
+            tuple: 'tuple',
+        }
+    
+    def get_arg_type(self, name: str) -> T.ParamType:
+        if name in self.annotations:
+            return self._type_2_str.get(self.annotations[name], 'str')
+        else:
+            return 'str'
+    
+    def get_kwarg_type(self, name: str, value: t.Any) -> T.ParamType:
+        if name in self.annotations:
+            t = self._type_2_str.get(self.annotations[name], 'str')
+        else:
+            t = self.deduce_type_by_value(value)
+        if t == 'bool':
+            t = 'flag'
+        return t
+    
+    def get_return_type(self) -> T.ParamType:
+        if 'return' in self.annotations:
+            return self._type_2_str.get(self.annotations['return'], 'any')
+        else:
+            return 'none'
+    
+    @staticmethod
+    def deduce_type_by_value(default: t.Any) -> T.ParamType:
+        dict_ = {
+            bool : 'bool',
+            dict : 'dict',
+            float: 'float',
+            int  : 'int',
+            list : 'list',
+            set  : 'set',
+            str  : 'str',
+            tuple: 'tuple',
+        }
+        return dict_.get(type(default), 'any')

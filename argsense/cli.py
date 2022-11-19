@@ -78,7 +78,7 @@ class CommandLineInterface:
         else:
             self._cname_2_func[cmd_name] = func
         
-        func_info = parse_function(func)
+        func_info = parse_function(func, fallback_type=config.FALLBACK_TYPE)
         docs_info = parse_docstring(func.__doc__ or '')
         
         self.commands[id(func)] = {
