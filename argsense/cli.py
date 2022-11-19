@@ -54,6 +54,7 @@ class CommandLineInterface:
         self.name = name
         self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
+        self._global_options = GlobalOptions()
     
     # -------------------------------------------------------------------------
     
@@ -133,27 +134,8 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     # run
     
-    class GlobalOptions:
-        name_2_type = {
-            ':help' : ParamType.FLAG,
-            ':helpx': ParamType.FLAG,
-        }
-        
-        cname_2_name = {
-            '--:help' : ':help',
-            '-:h'     : ':help',
-            '--help'  : ':help',
-            '-h'      : ':help',
-            '--:helpx': ':helpx',
-            '-:hh'    : ':helpx',
-            '--helpx' : ':helpx',
-            '-hh'     : ':helpx',
-        }
-    
     def run(self, func=None):
         from .argparse import extract_command_name, parse_argv
-        
-        # print(':lv', self.commands, self._cname_2_func)
         
         config.apply_changes()
         mode: T.Mode = 'group' if not func else 'command'  # noqa
@@ -181,18 +163,18 @@ class CommandLineInterface:
                     for k, v in self.commands[id(func)]['args'].items()
                 },
                 'kwargs': (
-                    self.GlobalOptions.name_2_type if func is None
+                    self._global_options.name_2_type if func is None
                     else {
-                        **self.GlobalOptions.name_2_type,
+                        **self._global_options.name_2_type,
                         **{k: v['ctype']
                            for k, v in self.commands[
                                id(func)]['kwargs'].items()}
                     }
                 ),
                 'index' : (
-                    self.GlobalOptions.cname_2_name if func is None
+                    self._global_options.cname_2_name if func is None
                     else {
-                        **self.GlobalOptions.cname_2_name,
+                        **self._global_options.cname_2_name,
                         **{n: k
                            for k, v in self.commands[
                                id(func)]['kwargs'].items()
@@ -594,6 +576,24 @@ def _detect_program_name() -> str:
         py_module = f'{py_module}.{name}'.lstrip('.')
     
     return f'{head} -m {py_module}'
+
+
+class GlobalOptions:
+    cname_2_name = {
+        '--:help' : ':help',
+        '-:h'     : ':help',
+        '--help'  : ':help',
+        '-h'      : ':help',
+        '--:helpx': ':helpx',
+        '-:hh'    : ':helpx',
+        '--helpx' : ':helpx',
+        '-hh'     : ':helpx',
+    }
+    
+    name_2_type = {
+        ':help' : ParamType.FLAG,
+        ':helpx': ParamType.FLAG,
+    }
 
 
 cli = CommandLineInterface(name='argsense-cli')
