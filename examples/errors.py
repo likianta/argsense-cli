@@ -1,3 +1,9 @@
+"""
+screenshots:
+    .assets/examples/errors/20221120012143.png
+    .assets/examples/errors/20221120012257.png
+    .assets/examples/errors/20221120012346.png
+"""
 import lk_logger
 
 from argsense import cli

@@ -1,14 +1,14 @@
 """
 example commands:
-    py examples/eg01_showcase.py -h
-    py examples/eg01_showcase.py -hh
-    py examples/eg01_showcase.py hello-world -h
-    py examples/eg01_showcase.py hello-to-someone -h
+    py examples/classic.py -h
+    py examples/classic.py -hh
+    py examples/classic.py hello-world -h
+    py examples/classic.py hello-to-someone -h
 screenshots:
-    .assets/eg01/20220615143658.jpg
-    .assets/eg01/20220615143730.jpg
-    .assets/eg01/20220615143751.jpg
-    .assets/eg01/20220615143817.jpg
+    .assets/examples/classic/20220615143658.jpg
+    .assets/examples/classic/20220615143730.jpg
+    .assets/examples/classic/20220615143751.jpg
+    .assets/examples/classic/20220615143817.jpg
 """
 import lk_logger
 
