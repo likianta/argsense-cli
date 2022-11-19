@@ -74,10 +74,12 @@ def _walking_through_argv(
     }
     
     # shortcuts
-    def _get_option_name(cname: str) -> str:
-        try:
+    def get_option_name(cname: str) -> str:
+        if cname in front_matter['index']:
             return front_matter['index'][cname]
-        except KeyError:
+        elif '**' in front_matter['index']:
+            return cname
+        else:
             raise e.ParamNotFound(cname, front_matter['index'].keys())
     
     # -------------------------------------------------------------------------
@@ -107,7 +109,7 @@ def _walking_through_argv(
                     
                     if arg.startswith('--not-'):
                         option_name = arg.replace('--not-', '--', 1)
-                        param_name = _get_option_name(option_name)
+                        param_name = get_option_name(option_name)
                         param_type = params.get_param(param_name)[1]
                         try:
                             assert param_type in (ParamType.FLAG, ParamType.ANY)
@@ -118,7 +120,7 @@ def _walking_through_argv(
                         continue
                     else:
                         option_name = arg
-                        param_name = _get_option_name(option_name)
+                        param_name = get_option_name(option_name)
                         param_type = params.get_param(param_name)[1]
                         if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
@@ -136,7 +138,7 @@ def _walking_through_argv(
                     
                     if arg[1:].isupper():
                         option_name = arg.lower()
-                        param_name = _get_option_name(option_name)
+                        param_name = get_option_name(option_name)
                         param_type = params.get_param(param_name)[1]
                         try:
                             assert param_type in (ParamType.FLAG, ParamType.ANY)
@@ -147,7 +149,7 @@ def _walking_through_argv(
                         continue
                     else:
                         option_name = arg
-                        param_name = _get_option_name(option_name)
+                        param_name = get_option_name(option_name)
                         param_type = params.get_param(param_name)[1]
                         if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True

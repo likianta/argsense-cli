@@ -15,6 +15,8 @@ class T:
 
 def name_2_cname(name: str, style: T.Style = None) -> str:
     """ convert param name from python style to cli style. """
+    if name in ('*', '**'):
+        return name
     name = name.lower().strip('_')
     if style == 'arg':
         style = config.ARG_NAME_STYLE

@@ -7,7 +7,6 @@ from enum import auto
 __all__ = ['ParamType', 'ParamsHolder']
 
 
-# noinspection PyArgumentList
 class ParamType(Enum):
     ANY = auto()
     BOOL = auto()
@@ -28,11 +27,15 @@ class T:
 class ParamsHolder:
     
     def __init__(self, args: T.Args, kwargs: T.Kwargs, **references):
-        self._args = [(k, v) for k, v in args.items()]
-        self._kwargs = [(k, v) for k, v in kwargs.items()]
+        self._cnames = references.get('cnames', ('[i]...[/]',))
+        
+        self._args = [(k, v) for k, v in args.items() if k != '*']
+        self._kwargs = [(k, v) for k, v in kwargs.items() if k != '**']
         # self._kwargs_subset = [(k, v) for k, v in kwargs.items()
         #                        if not k.startswith(':')]
-        self._cnames = references.get('cnames', ('[i]...[/]',))
+        
+        self._has_args = '*' in args
+        self._has_kwargs = '**' in kwargs
     
     def get_param(self, name: str = None) -> T.Param:
         if name:
@@ -43,12 +46,16 @@ class ParamsHolder:
             for i, (k, _) in enumerate(self._args):
                 if k == name:
                     return self._args.pop(i)
+            if self._has_kwargs:
+                return name, ParamType.ANY
             from .exceptions import ParamNotFound
             raise ParamNotFound(name, self._cnames)
         else:
             # check args first.
             if self._args:
                 return self._args.pop(0)
+            if self._has_args:
+                return self._generate_anonymous_arg_name(), ParamType.ANY
             if self._kwargs:
                 for i, (k, _) in enumerate(self._kwargs):
                     if not k.startswith(':'):
@@ -56,8 +63,14 @@ class ParamsHolder:
             from .exceptions import TooManyArguments
             raise TooManyArguments()
     
-    def resolve(self, kwname: str) -> None:
+    def resolve(self, kwname: str) -> None:  # note: no usage yet.
         for i, (k, v) in enumerate(self._kwargs):
             if k == kwname:
                 self._kwargs.pop(i)
                 break
+    
+    _simple_counter = 0
+    
+    def _generate_anonymous_arg_name(self) -> str:
+        self._simple_counter += 1
+        return f'*{self._simple_counter}'

@@ -51,7 +51,11 @@ def parse_function(
     '''
     
     args = []
-    for i in range(0, len(spec.args) - len(spec.defaults)):
+    if spec.defaults:
+        args_count = len(spec.args) - len(spec.defaults)
+    else:
+        args_count = len(spec.args)
+    for i in range(0, args_count):
         name = spec.args[i]
         type_ = annotations.get_arg_type(name)
         args.append((name, type_))
@@ -60,15 +64,19 @@ def parse_function(
         args.append(('*', 'list', []))
     
     kwargs = []
-    for i, j in enumerate(range(len(spec.args) - len(spec.defaults),
-                                len(spec.args))):
-        name = spec.args[j]
-        default = spec.defaults[i]
-        type_ = annotations.get_kwarg_type(name, default)
-        kwargs.append((name, type_, default))
-    for name, default in spec.kwonlydefaults.items():
-        type_ = annotations.get_kwarg_type(name, default)
-        kwargs.append((name, type_, default))
+    if spec.defaults:
+        enumerator: t.Iterator[t.Tuple[int, int]] = \
+            enumerate(range(len(spec.args) - len(spec.defaults),
+                            len(spec.args)))
+        for i, j in enumerator:
+            name = spec.args[j]
+            default = spec.defaults[i]
+            type_ = annotations.get_kwarg_type(name, default)
+            kwargs.append((name, type_, default))
+    if spec.kwonlyargs:
+        for name, default in spec.kwonlydefaults.items():
+            type_ = annotations.get_kwarg_type(name, default)
+            kwargs.append((name, type_, default))
     if spec.varkw:
         assert len(spec.varkw) == 1
         kwargs.append(('**', 'dict', {}))

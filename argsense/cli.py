@@ -59,6 +59,8 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     
     def add_cmd(self, func: t.Callable, name: str = None) -> None:
+        if name:
+            assert not name.startswith('-')
         from .converter import name_2_cname, type_2_ctype
         
         cmd_name = name or name_2_cname(func.__name__)
@@ -75,15 +77,14 @@ class CommandLineInterface:
                 return
             else:
                 print(':v3pr', '[yellow dim]the incoming one is used.[/]')
-        else:
-            self._cname_2_func[cmd_name] = func
+        self._cname_2_func[cmd_name] = func
         
         func_info = parse_function(func, fallback_type=config.FALLBACK_TYPE)
         docs_info = parse_docstring(func.__doc__ or '')
         
         self.commands[id(func)] = {
             'func'  : func,
-            'cname' : name_2_cname(cmd_name),
+            'cname' : cmd_name,
             'desc'  : docs_info['desc'],
             'args'  : {
                 name: {
@@ -197,7 +198,7 @@ class CommandLineInterface:
             if self.commands[id(func)]['args'] and (
                     not result['args'] and not result['kwargs']
             ):
-                # it means user does not provide sufficient arguments.
+                # it means user does not provide any argument to the command.
                 # instead of rasing an exception, we guide user to see the help
                 # message.
                 self.show(func, show_func_name_in_title=bool(mode == 'group'))
@@ -530,13 +531,6 @@ class CommandLineInterface:
             # return Group(*group)  # B
         
         console.print(render())
-    
-    @staticmethod
-    def exec(func: t.Callable, args: t.Iterable, kwargs: dict):
-        try:
-            func(*args, **kwargs)
-        except Exception:
-            console.print_exception()
 
 
 def _detect_program_name() -> str:

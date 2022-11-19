@@ -15,5 +15,7 @@ from . import config
 from .cli import CommandLineInterface
 from .cli import cli
 from .console import rprint
+from .converter import name_2_cname
+from .converter import type_2_ctype
 
-__version__ = '0.4.3'
+__version__ = '0.5.0'
