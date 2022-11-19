@@ -73,12 +73,13 @@ def _walking_through_argv(
         'kwargs' : {},  # dict[str name, any value]
     }
     
-    # shortcuts
     def get_option_name(cname: str) -> str:
+        """ convert cname to name. """
         if cname in front_matter['index']:
             return front_matter['index'][cname]
         elif '**' in front_matter['index']:
-            return cname
+            # note: this is an experimental feature.
+            return cname.lstrip('-').replace('-', '_')
         else:
             raise e.ParamNotFound(cname, front_matter['index'].keys())
     
@@ -225,7 +226,6 @@ SPECIAL_ARGS = {
 
 def _eval_arg_value(arg: str, possible_type: ParamType) -> t.Any:
     # print(':pv', arg, possible_type)
-    
     global PYTHON_ACCEPTABLE_NUMBER_PATTERN, SPECIAL_ARGS
     
     if arg in SPECIAL_ARGS:
@@ -268,3 +268,5 @@ def _eval_arg_value(arg: str, possible_type: ParamType) -> t.Any:
             expected_type=possible_type.name,
             given_type=str(arg)
         )
+    
+    return arg
