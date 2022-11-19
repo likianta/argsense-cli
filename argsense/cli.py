@@ -54,7 +54,7 @@ class CommandLineInterface:
         self.name = name
         self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
-
+    
     # -------------------------------------------------------------------------
     
     def add_cmd(self, func: t.Callable, name: str = None) -> None:
@@ -77,10 +77,10 @@ class CommandLineInterface:
             # )
         else:
             self._cname_2_func[cmd_name] = func
-
+        
         func_info = parse_function(func)
         docs_info = parse_docstring(func.__doc__ or '')
-
+        
         self.commands[id(func)] = {
             'func'  : func,
             'cname' : name_2_cname(cmd_name),
@@ -111,7 +111,7 @@ class CommandLineInterface:
                 } for name, type_, value in func_info['kwargs']
             },
         }
-
+    
     # -------------------------------------------------------------------------
     # decorators
     
@@ -123,6 +123,7 @@ class CommandLineInterface:
             def foo(...):
                 ...
         """
+        
         def decorator(func: t.Callable) -> t.Callable:
             self.add_cmd(func, name)
             return func
@@ -203,26 +204,33 @@ class CommandLineInterface:
         # print(':lv', result)
         if result['command']:
             func = self._cname_2_func[result['command']]
-        # FIXME: we take '--help' as the most important option to check. the
-        #   '--help' is the only global option for now.
-        if not result['args'] and not result['kwargs']:
-            if func is None or self.commands[id(func)]['args']:
-                # it means user is not providing sufficient arguments.
+        if func is None:
+            # FIXME: we take `--help` as the most important option to check.
+            #   currently `--help` and `--helpx` are the only two global
+            #   options.
+            if result['kwargs'].get(':helpx'):
+                self.show2()
+            else:
+                self.show(func, show_func_name_in_title=bool(mode == 'group'))
+        else:
+            if self.commands[id(func)]['args'] and (
+                    not result['args'] and not result['kwargs']
+            ):
+                # it means user does not provide sufficient arguments.
                 # instead of rasing an exception, we guide user to see the help
                 # message.
-                result['kwargs'][':help'] = True
-        if result['kwargs'].get(':help'):
-            self.show(func, show_func_name_in_title=bool(mode == 'group'))
-        elif result['kwargs'].get(':helpx'):
-            if func:
                 self.show(func, show_func_name_in_title=bool(mode == 'group'))
             else:
-                self.show2()
-                # # self.show(None)
-                # # for func_info in self.commands.values():
-                # #     self.show(func_info['func'])
-        else:
-            self.exec(func, result['args'].values(), result['kwargs'])
+                try:
+                    func(*result['args'].values(), **result['kwargs'])
+                except Exception:
+                    if (
+                            result['kwargs'].get(':help') or
+                            result['kwargs'].get(':helpx')
+                    ):
+                        self.show(func, show_func_name_in_title=True)
+                    else:
+                        console.print_exception()
     
     def show(self, func, **kwargs):
         """
