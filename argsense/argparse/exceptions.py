@@ -66,9 +66,9 @@ class ParamNotFound(ArgvParsingFailed):
             ''').format(self.param, x)
         else:
             return _dedent('''
-                Parameter "{}" not found, it may be a typo or redundant problem.
+                Parameter "{}" not found, it may be a typo or redundant name.
                 Please check your command `--help` for more information.
-            ''')
+            ''').format(self.param)
 
 
 class ShortOptionFormat(ArgvParsingFailed):
