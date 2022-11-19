@@ -13,6 +13,7 @@ class T:
     from typing import Literal
     ArgNameStyle = Literal['AAA_BBB', 'AAA-BBB', 'aaa_bbb', 'aaa-bbb', 'AaaBbb']
     FallbackType = Literal['any', 'str']
+    OverwrittenScheme = Literal['first', 'last']
     TitleHeadStyle = Literal['system_dependent', 'fixed']
 
 
@@ -44,6 +45,7 @@ FALLBACK_DESC = '[dim]no description[/]'
 '''
 FALLBACK_TO_HELP_IF_ARGPARSE_FAILED = False
 #   see [./argparse/argv.py : class ArgvVendor : def report()]
+OVERWRITTEN_SCHEME: T.OverwrittenScheme = 'last'
 
 # console related
 WARNING_IF_RUNNING_ON_PYCHARM_CONSOLE = False
@@ -53,7 +55,7 @@ CONSOLE_WIDTH = None
 # dynamic settings
 class Dynamic:
     PREFERRED_FIELD_WIDTH_OF_NAME = 0
-    PREFERRED_FIELD_WIDTH_OF_TYPE = len('NUMBER')
+    PREFERRED_FIELD_WIDTH_OF_TYPE = 6  # the length of 'NUMBER'
 
 
 def apply_changes():

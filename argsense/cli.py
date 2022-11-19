@@ -70,12 +70,11 @@ class CommandLineInterface:
                 f'the recorded function is: {old}',
                 f'the incoming function is: {new}',
             )
-            return
-            # raise Exception(
-            #     f'duplicate command name: {cmd_name}',
-            #     f'the recorded function is: {old}',
-            #     f'the incoming function is: {new}',
-            # )
+            if config.OVERWRITTEN_SCHEME == 'first':
+                print(':v3pr', '[yellow dim]the recorded one is keeped.[/]')
+                return
+            else:
+                print(':v3pr', '[yellow dim]the incoming one is used.[/]')
         else:
             self._cname_2_func[cmd_name] = func
         
