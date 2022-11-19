@@ -60,8 +60,7 @@ def parse_function(
         type_ = annotations.get_arg_type(name)
         args.append((name, type_))
     if spec.varargs:
-        assert len(spec.varargs) == 1
-        args.append(('*', 'list', []))
+        args.append(('*', 'list'))
     
     kwargs = []
     if spec.defaults:
@@ -78,7 +77,6 @@ def parse_function(
             type_ = annotations.get_kwarg_type(name, default)
             kwargs.append((name, type_, default))
     if spec.varkw:
-        assert len(spec.varkw) == 1
         kwargs.append(('**', 'dict', {}))
     
     return_ = annotations.get_return_type()

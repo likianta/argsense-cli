@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "argsense"
-version = "0.5.0a3"
+version = "0.5.0a4"
 homepage = "https://github.com/likianta/argsense-cli"
 description = "New command line interface based on Python Rich library."
 readme = "README.md"
