@@ -16,33 +16,36 @@ __all__ = ['CommandLineInterface', 'cli']
 
 
 class T:
-    Mode = t.Literal['group', 'command']
-    
     _FunctionId = int
     _ParamName = str
     _ParamType = ParamType
-    CommandsCollect = t.Dict[
-        _FunctionId, t.TypedDict('FuncInfo', {
-            'func'  : t.Callable,
-            'cname' : str,
-            'desc'  : str,
-            'args'  : t.Dict[
-                _ParamName, t.TypedDict('ArgInfo', {
-                    'cname': str,
-                    'ctype': _ParamType,  # noqa
-                    'desc' : str,
-                })
-            ],
-            'kwargs': t.Dict[
-                _ParamName, t.TypedDict('ArgInfo', {
-                    'cname'  : str,
-                    'ctype'  : _ParamType,  # noqa
-                    'desc'   : str,
-                    'default': t.Any,
-                })
-            ],
-        })
-    ]
+    Func = t.Callable
+    
+    # noinspection PyTypedDict
+    FuncInfo = t.TypedDict('FuncInfo', {
+        'func'          : Func,
+        'cname'         : str,
+        'desc'          : str,
+        'args'          : t.Dict[
+            _ParamName, t.TypedDict('ArgInfo', {
+                'cname': str,
+                'ctype': _ParamType,  # noqa
+                'desc' : str,
+            })
+        ],
+        'kwargs'        : t.Dict[
+            _ParamName, t.TypedDict('ArgInfo', {
+                'cname'  : str,
+                'ctype'  : _ParamType,  # noqa
+                'desc'   : str,
+                'default': t.Any,
+            })
+        ],
+        'transport_help': bool
+    })
+    Mode = t.Literal['group', 'command']
+    
+    CommandsCollect = t.Dict[_FunctionId, FuncInfo]
 
 
 class CommandLineInterface:
@@ -58,7 +61,12 @@ class CommandLineInterface:
     
     # -------------------------------------------------------------------------
     
-    def add_cmd(self, func: t.Callable, name: str = None) -> None:
+    def add_cmd(
+            self,
+            func: T.Func,
+            name: str = None,
+            transport_help: bool = False
+    ) -> None:
         if name:
             assert not name.startswith('-')
         from .converter import name_2_cname, type_2_ctype
@@ -83,10 +91,10 @@ class CommandLineInterface:
         docs_info = parse_docstring(func.__doc__ or '')
         
         self.commands[id(func)] = {
-            'func'  : func,
-            'cname' : cmd_name,
-            'desc'  : docs_info['desc'],
-            'args'  : {
+            'func'          : func,
+            'cname'         : cmd_name,
+            'desc'          : docs_info['desc'],
+            'args'          : {
                 name: {
                     'cname': name_2_cname(name, style='arg'),
                     'ctype': type_2_ctype(type_),
@@ -96,7 +104,7 @@ class CommandLineInterface:
                     ),
                 } for name, type_ in func_info['args']
             },
-            'kwargs': {
+            'kwargs'        : {
                 name: {
                     'cname'  : (
                         name_2_cname(name, style='opt')
@@ -111,12 +119,13 @@ class CommandLineInterface:
                     'default': value,
                 } for name, type_, value in func_info['kwargs']
             },
+            'transport_help': transport_help,
         }
     
     # -------------------------------------------------------------------------
     # decorators
     
-    def cmd(self, name=None) -> t.Callable:
+    def cmd(self, name: str = None, transport_help=False) -> T.Func:
         """
         usage:
             from argsense import cli
@@ -125,8 +134,8 @@ class CommandLineInterface:
                 ...
         """
         
-        def decorator(func: t.Callable) -> t.Callable:
-            self.add_cmd(func, name)
+        def decorator(func: T.Func) -> T.Func:
+            self.add_cmd(func, name, transport_help)
             return func
         
         return decorator
@@ -134,7 +143,7 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     # run
     
-    def run(self, func=None):
+    def run(self, func=None) -> None:
         from .argparse import extract_command_name, parse_argv
         
         config.apply_changes()
@@ -154,21 +163,23 @@ class CommandLineInterface:
                         console.print(f'[red]Unknown command: {cmd_name}[/]')
                     sys.exit(1)
         
+        func_info: t.Optional[T.FuncInfo]
+        func_info = self.commands[id(func)] if func else None
+        
         result = parse_argv(
             argv=sys.argv,
             mode=mode,
             front_matter={
                 'args'  : {} if func is None else {
                     k: v['ctype']
-                    for k, v in self.commands[id(func)]['args'].items()
+                    for k, v in func_info['args'].items()
                 },
                 'kwargs': (
                     self._global_options.name_2_type if func is None
                     else {
                         **self._global_options.name_2_type,
                         **{k: v['ctype']
-                           for k, v in self.commands[
-                               id(func)]['kwargs'].items()}
+                           for k, v in func_info['kwargs'].items()}
                     }
                 ),
                 'index' : (
@@ -176,16 +187,19 @@ class CommandLineInterface:
                     else {
                         **self._global_options.cname_2_name,
                         **{n: k
-                           for k, v in self.commands[
-                               id(func)]['kwargs'].items()
+                           for k, v in func_info['kwargs'].items()
                            for n in v['cname'].split(',')}
                     }
                 ),
             }
         )
         # print(':lv', result)
+        
         if result['command']:
             func = self._cname_2_func[result['command']]
+            if func:
+                func_info = self.commands[id(func)]
+        
         if func is None:
             # TODO: we take `--help` as the most important option to check.
             #   currently `--help` and `--helpx` are the only two global
@@ -195,17 +209,27 @@ class CommandLineInterface:
             else:
                 self.show(func, show_func_name_in_title=bool(mode == 'group'))
         else:
+            if result['kwargs'].get(':help') or \
+                    result['kwargs'].get(':helpx'):
+                if '**' in func_info['kwargs']:
+                    if not func_info['transport_help']:
+                        self.show(func, show_func_name_in_title=True)
+                        return
+                else:
+                    self.show(func, show_func_name_in_title=True)
+                    return
+            
             try:
                 func(*result['args'].values(), **result['kwargs'])
             except Exception:
-                # console.print_exception()
-                if (
-                        result['kwargs'].get(':help') or
-                        result['kwargs'].get(':helpx')
-                ):
-                    self.show(func, show_func_name_in_title=True)
-                else:
-                    console.print_exception()
+                console.print_exception()
+                # if (
+                #         result['kwargs'].get(':help') or
+                #         result['kwargs'].get(':helpx')
+                # ):
+                #     self.show(func, show_func_name_in_title=True)
+                # else:
+                #     console.print_exception()
     
     def show(self, func, **kwargs):
         """
@@ -338,7 +362,7 @@ class CommandLineInterface:
         from rich.align import Align
         from rich.padding import Padding
         
-        def show(func: t.Optional[t.Callable], show_logo: bool) -> dict:
+        def show(func: t.Optional[T.Func], show_logo: bool) -> dict:
             """
             warning:
                 this function is not the same with [self.show()]. some minor
