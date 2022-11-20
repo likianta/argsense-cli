@@ -187,7 +187,7 @@ class CommandLineInterface:
         if result['command']:
             func = self._cname_2_func[result['command']]
         if func is None:
-            # FIXME: we take `--help` as the most important option to check.
+            # TODO: we take `--help` as the most important option to check.
             #   currently `--help` and `--helpx` are the only two global
             #   options.
             if result['kwargs'].get(':helpx'):
@@ -195,24 +195,17 @@ class CommandLineInterface:
             else:
                 self.show(func, show_func_name_in_title=bool(mode == 'group'))
         else:
-            if self.commands[id(func)]['args'] and (
-                    not result['args'] and not result['kwargs']
-            ):
-                # it means user does not provide any argument to the command.
-                # instead of rasing an exception, we guide user to see the help
-                # message.
-                self.show(func, show_func_name_in_title=bool(mode == 'group'))
-            else:
-                try:
-                    func(*result['args'].values(), **result['kwargs'])
-                except Exception:
-                    if (
-                            result['kwargs'].get(':help') or
-                            result['kwargs'].get(':helpx')
-                    ):
-                        self.show(func, show_func_name_in_title=True)
-                    else:
-                        console.print_exception()
+            try:
+                func(*result['args'].values(), **result['kwargs'])
+            except Exception:
+                # console.print_exception()
+                if (
+                        result['kwargs'].get(':help') or
+                        result['kwargs'].get(':helpx')
+                ):
+                    self.show(func, show_func_name_in_title=True)
+                else:
+                    console.print_exception()
     
     def show(self, func, **kwargs):
         """

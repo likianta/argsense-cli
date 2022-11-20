@@ -36,6 +36,9 @@ class ParamsHolder:
         
         self._has_args = '*' in args
         self._has_kwargs = '**' in kwargs
+        
+    def __bool__(self):
+        return bool(self._args)
     
     def get_param(self, name: str = None) -> T.Param:
         if name:

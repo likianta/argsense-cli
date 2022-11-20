@@ -186,17 +186,17 @@ def _walking_through_argv(
             continue
     
     # post check
-    if len(out['args']) < len(front_matter['args']):
+    if bool(params):
+        # if true, there are still arguments not resolved yet.
         if not out['args'] and not out['kwargs']:
-            # cancel check. return [out] as is. (it will be guided to [--help]
-            # or [--helpx] by external caller.)
-            return out
-        if ':help' not in out['kwargs'] and ':helpx' not in out['kwargs']:
+            # it means user does not provide any argument to the command.
+            # instead of rasing an exception, we guide user to see the help
+            # message.
+            out['kwargs'][':help'] = True
+        elif ':help' not in out['kwargs'] and ':helpx' not in out['kwargs']:
             raise e.InsufficientArguments(
                 tuple(front_matter['args'].keys())[len(out['args']):]
             )
-    # # elif len(out['args']) > len(front_matter['args']):
-    # #     raise e.TooManyArguments()
     
     return out
 
