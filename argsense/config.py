@@ -34,7 +34,7 @@ TITLE_HEAD_STYLE: T.TitleHeadStyle = 'system_dependent'
 USE_RICH_MARKUP = True
 
 # fallback
-FALLBACK_TYPE: T.FallbackType = 'any'
+FALLBACK_TYPE: T.FallbackType = 'str'
 #   see [./parser/func_parser.py : def parse_function()]
 FALLBACK_DESC = '[dim]no description[/]'
 ''' suggested:

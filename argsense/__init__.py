@@ -19,4 +19,4 @@ from .converter import args_2_cargs
 from .converter import name_2_cname
 from .converter import type_2_ctype
 
-__version__ = '0.5.0'
+__version__ = '0.5.1'

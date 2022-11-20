@@ -31,6 +31,7 @@ def parse_function(
 ) -> T.FuncInfo:
     spec = getfullargspec(func)
     annotations = Annotations(spec.annotations, fallback_type)
+    # print(':v', func.__name__, spec.annotations)
     ''' example:
         def foo(a: str, b: int, c=123, *args, d: bool = False, **kwargs):
             pass
@@ -98,28 +99,58 @@ class Annotations:
     ):
         self.annotations = annotations
         self._fallback_type = fallback_type
-        #   TODO: the fallback_type is not used in current version.
         self._type_2_str = {
-            None : 'none',
-            bool : 'bool',
-            dict : 'dict',
-            float: 'float',
-            int  : 'int',
-            list : 'list',
-            set  : 'set',
-            str  : 'str',
-            tuple: 'tuple',
+            'any'    : 'any',
+            'anystr' : 'str',
+            'bool'   : 'bool',
+            'dict'   : 'dict',
+            'float'  : 'float',
+            'int'    : 'int',
+            'list'   : 'list',
+            'literal': 'str',
+            'none'   : 'none',
+            'set'    : 'set',
+            'str'    : 'str',
+            'tuple'  : 'tuple',
+            'union'  : 'any',
         }
+    
+    # noinspection PyUnresolvedReferences,PyProtectedMember
+    def _normalize_type(self, type_: t.Any) -> T.ParamType:
+        # special type - typing.TypedDict
+        if isinstance(type_, t._TypedDictMeta):
+            return 'dict'
+        
+        if isinstance(type_, t._GenericAlias):
+            out = type_._name
+            if out == 'Optional':
+                return self._normalize_type(type_.__args__[0])
+        elif isinstance(type_, str):
+            out = type_
+        else:
+            out = str(type_)
+        
+        assert isinstance(out, str)
+        out = out.lower()
+        if out.startswith('<class '):
+            out = out[8:-2]  # "<class 'list'>" -> "list"
+        if '[' in out:
+            out = out.split('[', 1)[0]
+        
+        # print(':v', type_, out)
+        if out in self._type_2_str:
+            return self._type_2_str[out]
+        return 'any'
     
     def get_arg_type(self, name: str) -> T.ParamType:
         if name in self.annotations:
-            return self._type_2_str.get(self.annotations[name], 'str')
+            return self._normalize_type(self.annotations[name])
         else:
-            return 'str'
+            return self._fallback_type
     
     def get_kwarg_type(self, name: str, value: t.Any) -> T.ParamType:
         if name in self.annotations:
-            t = self._type_2_str.get(self.annotations[name], 'str')
+            t = self._normalize_type(self.annotations[name])
         else:
             t = self.deduce_type_by_value(value)
         if t == 'bool':
@@ -128,7 +159,7 @@ class Annotations:
     
     def get_return_type(self) -> T.ParamType:
         if 'return' in self.annotations:
-            return self._type_2_str.get(self.annotations['return'], 'any')
+            return self._normalize_type(self.annotations['return'])
         else:
             return 'none'
     
