@@ -15,6 +15,8 @@ def test():
     yield 'test-args-kwargs-2 alpha 123 456 789 beta gama --not-d holo :true ' \
           ':false :none -e erase -f fuze'
     yield 'test-annotations :true :false'
+    yield 'complex-annotations -h'
+    yield 'complex-annotations 123 :true :none'
 
 
 @cli.cmd()
