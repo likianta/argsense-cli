@@ -1,9 +1,4 @@
 """
-example commands:
-    py examples/classic.py -h
-    py examples/classic.py -hh
-    py examples/classic.py hello-world -h
-    py examples/classic.py hello-to-someone -h
 screenshots:
     .assets/examples/classic/20220615143658.jpg
     .assets/examples/classic/20220615143730.jpg
@@ -15,6 +10,18 @@ import lk_logger
 from argsense import cli
 
 lk_logger.setup(show_varnames=True, quiet=True)
+
+
+def test():
+    """ see `examples/fixture.py : test : docstring` """
+    yield '-h'
+    yield '-hh'
+    yield 'hello-world -h'
+    yield 'hello-world'
+    yield 'hello-to-someone -h'
+    yield 'hello-to-someone Alice'
+    yield 'variant-types 123 :true cipher'
+    yield 'variant-types 123 :true cipher --d 1.23'
 
 
 @cli.cmd()
@@ -39,4 +46,14 @@ def hello_to_someone(name: str, title_case=True):
     print(f'Hello {name}!')
 
 
-cli.run()
+@cli.cmd()
+def variant_types(a: int, b: bool, c: str, d: float = None):
+    """
+    argsense supports some basic types more than str.
+    (the type-conversion is based on annotations).
+    """
+    print([(x, type(x)) for x in (a, b, c, d)])
+
+
+if __name__ == '__main__':
+    cli.run()
