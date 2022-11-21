@@ -1,6 +1,8 @@
 import typing as t
 from inspect import getfullargspec
 
+from .. import config
+
 __all__ = ['T', 'parse_function']
 
 
@@ -114,6 +116,8 @@ class Annotations:
             'tuple'  : 'tuple',
             'union'  : 'any',
         }
+        if config.BARE_NONE_MEANS_ANY:
+            self._type_2_str['none'] = 'any'
     
     # noinspection PyUnresolvedReferences,PyProtectedMember
     def _normalize_type(self, type_: t.Any) -> T.ParamType:
