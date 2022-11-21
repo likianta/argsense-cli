@@ -51,6 +51,11 @@ def hello_to_someone(name: str, title_case=True):
 
 
 @cli.cmd()
+def path_includes_whitespace(path: str, *args) -> None:
+    print(path, args)
+
+
+@cli.cmd()
 def variant_types_1(a: int, b: bool, c: str, d: float = None):
     """
     argsense supports some basic types more than str.
