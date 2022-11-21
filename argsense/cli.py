@@ -222,14 +222,14 @@ class CommandLineInterface:
             try:
                 func(*result['args'].values(), **result['kwargs'])
             except Exception:
-                console.print_exception()
-                # if (
-                #         result['kwargs'].get(':help') or
-                #         result['kwargs'].get(':helpx')
-                # ):
-                #     self.show(func, show_func_name_in_title=True)
-                # else:
-                #     console.print_exception()
+                # console.print_exception()
+                if (
+                        result['kwargs'].get(':help') or
+                        result['kwargs'].get(':helpx')
+                ):
+                    self.show(func, show_func_name_in_title=True)
+                else:
+                    console.print_exception()
     
     def show(self, func, **kwargs):
         """
