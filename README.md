@@ -2,13 +2,13 @@
 
 **argsense** is a command line interface made with Python.
 
-![group help](.assets/eg01/20220615143658.jpg)
+![group help](.assets/examples/classic/20220615143658.jpg)
 
-![minimal help](.assets/eg01/20220615143730.jpg)
+![minimal help](.assets/examples/classic/20220615143730.jpg)
 
-![command help](.assets/eg01/20220615143751.jpg)
+![command help](.assets/examples/classic/20220615143751.jpg)
 
-![group help (ex)](.assets/eg01/20220615143817.jpg)
+![group help (ex)](.assets/examples/classic/20220615143817.jpg)
 
 ## Usage
 
