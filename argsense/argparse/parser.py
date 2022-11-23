@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
 import typing as t
 
 from . import exceptions as e
 from .argv import ArgvVendor
 from .params import ParamType
-
-__all__ = ['extract_command_name', 'parse_argv']
 
 
 class T:  # Typehint
@@ -27,6 +26,10 @@ class T:  # Typehint
         'args'   : t.Dict[_ParamName, t.Any],
         'kwargs' : t.Dict[_ParamName, t.Any],
     })
+
+
+def parse_argstring(argstring: str) -> t.List[str]:
+    return shlex.split(argstring)
 
 
 def parse_argv(
