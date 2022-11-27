@@ -121,16 +121,19 @@ class Annotations:
     
     # noinspection PyUnresolvedReferences,PyProtectedMember
     def _normalize_type(self, type_: t.Any) -> T.ParamType:
-        # special type - typing.TypedDict
         if isinstance(type_, t._TypedDictMeta):
             return 'dict'
-        
-        if isinstance(type_, t._GenericAlias):
+        elif isinstance(type_, t._LiteralGenericAlias):
+            return 'str'
+        elif isinstance(type_, t._UnionGenericAlias):
+            return self._normalize_type(type_.__args__[0])
+        elif isinstance(type_, t._GenericAlias):
             out = type_._name
-            if out == 'Optional':
-                return self._normalize_type(type_.__args__[0])
         elif isinstance(type_, str):
             out = type_
+        elif (x := getattr(type_, '__base__', None)) \
+                and str(x) == "<class 'tuple'>":
+            return 'tuple'  # typing.NamedTuple
         else:
             out = str(type_)
         
