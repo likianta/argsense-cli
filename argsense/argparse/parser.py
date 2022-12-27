@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
 import typing as t
 
 from . import exceptions as e
 from .argv import ArgvVendor
 from .params import ParamType
-
-__all__ = ['extract_command_name', 'parse_argv']
 
 
 class T:  # Typehint
@@ -27,6 +26,10 @@ class T:  # Typehint
         'args'   : t.Dict[_ParamName, t.Any],
         'kwargs' : t.Dict[_ParamName, t.Any],
     })
+
+
+def parse_argstring(argstring: str) -> t.List[str]:
+    return shlex.split(argstring)
 
 
 def parse_argv(
@@ -73,11 +76,14 @@ def _walking_through_argv(
         'kwargs' : {},  # dict[str name, any value]
     }
     
-    # shortcuts
-    def _get_option_name(cname: str) -> str:
-        try:
+    def get_option_name(cname: str) -> str:
+        """ convert cname to name. """
+        if cname in front_matter['index']:
             return front_matter['index'][cname]
-        except KeyError:
+        elif '**' in front_matter['index']:
+            # FIXME: this is an experimental feature.
+            return cname.lstrip('-').replace(':', '_').replace('-', '_')
+        else:
             raise e.ParamNotFound(cname, front_matter['index'].keys())
     
     # -------------------------------------------------------------------------
@@ -107,7 +113,7 @@ def _walking_through_argv(
                     
                     if arg.startswith('--not-'):
                         option_name = arg.replace('--not-', '--', 1)
-                        param_name = _get_option_name(option_name)
+                        param_name = get_option_name(option_name)
                         param_type = params.get_param(param_name)[1]
                         try:
                             assert param_type in (ParamType.FLAG, ParamType.ANY)
@@ -118,7 +124,7 @@ def _walking_through_argv(
                         continue
                     else:
                         option_name = arg
-                        param_name = _get_option_name(option_name)
+                        param_name = get_option_name(option_name)
                         param_type = params.get_param(param_name)[1]
                         if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
@@ -136,7 +142,7 @@ def _walking_through_argv(
                     
                     if arg[1:].isupper():
                         option_name = arg.lower()
-                        param_name = _get_option_name(option_name)
+                        param_name = get_option_name(option_name)
                         param_type = params.get_param(param_name)[1]
                         try:
                             assert param_type in (ParamType.FLAG, ParamType.ANY)
@@ -147,7 +153,7 @@ def _walking_through_argv(
                         continue
                     else:
                         option_name = arg
-                        param_name = _get_option_name(option_name)
+                        param_name = get_option_name(option_name)
                         param_type = params.get_param(param_name)[1]
                         if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
@@ -183,17 +189,17 @@ def _walking_through_argv(
             continue
     
     # post check
-    if len(out['args']) < len(front_matter['args']):
+    if bool(params):
+        # if true, there are still arguments not resolved yet.
         if not out['args'] and not out['kwargs']:
-            # cancel check. return [out] as is. (it will be guided to [--help]
-            # or [--helpx] by external caller.)
-            return out
-        if ':help' not in out['kwargs'] and ':helpx' not in out['kwargs']:
+            # it means user does not provide any argument to the command.
+            # instead of rasing an exception, we guide user to see the help
+            # message.
+            out['kwargs'][':help'] = True
+        elif ':help' not in out['kwargs'] and ':helpx' not in out['kwargs']:
             raise e.InsufficientArguments(
                 tuple(front_matter['args'].keys())[len(out['args']):]
             )
-    # # elif len(out['args']) > len(front_matter['args']):
-    # #     raise e.TooManyArguments()
     
     return out
 
@@ -223,7 +229,6 @@ SPECIAL_ARGS = {
 
 def _eval_arg_value(arg: str, possible_type: ParamType) -> t.Any:
     # print(':pv', arg, possible_type)
-    
     global PYTHON_ACCEPTABLE_NUMBER_PATTERN, SPECIAL_ARGS
     
     if arg in SPECIAL_ARGS:
@@ -266,3 +271,5 @@ def _eval_arg_value(arg: str, possible_type: ParamType) -> t.Any:
             expected_type=possible_type.name,
             given_type=str(arg)
         )
+    
+    return arg

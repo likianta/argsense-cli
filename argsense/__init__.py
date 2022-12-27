@@ -12,8 +12,13 @@ d88P     888 888    "Y899888i  "Y8888P"   "Y8888  888  888  88888P'  "Y8888
                     "Y8888P"
 """
 from . import config
+from .argparse import parse_argstring
+from .argparse import parse_argv
 from .cli import CommandLineInterface
 from .cli import cli
 from .console import rprint
+from .converter import args_2_cargs
+from .converter import name_2_cname
+from .converter import type_2_ctype
 
-__version__ = '0.4.3'
+__version__ = '0.6.0'

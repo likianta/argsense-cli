@@ -16,33 +16,36 @@ __all__ = ['CommandLineInterface', 'cli']
 
 
 class T:
-    Mode = t.Literal['group', 'command']
-    
     _FunctionId = int
     _ParamName = str
     _ParamType = ParamType
-    CommandsCollect = t.Dict[
-        _FunctionId, t.TypedDict('FuncInfo', {
-            'func'  : t.Callable,
-            'cname' : str,
-            'desc'  : str,
-            'args'  : t.Dict[
-                _ParamName, t.TypedDict('ArgInfo', {
-                    'cname': str,
-                    'ctype': _ParamType,  # noqa
-                    'desc' : str,
-                })
-            ],
-            'kwargs': t.Dict[
-                _ParamName, t.TypedDict('ArgInfo', {
-                    'cname'  : str,
-                    'ctype'  : _ParamType,  # noqa
-                    'desc'   : str,
-                    'default': t.Any,
-                })
-            ],
-        })
-    ]
+    Func = t.Callable
+    
+    # noinspection PyTypedDict
+    FuncInfo = t.TypedDict('FuncInfo', {
+        'func'          : Func,
+        'cname'         : str,
+        'desc'          : str,
+        'args'          : t.Dict[
+            _ParamName, t.TypedDict('ArgInfo', {
+                'cname': str,
+                'ctype': _ParamType,  # noqa
+                'desc' : str,
+            })
+        ],
+        'kwargs'        : t.Dict[
+            _ParamName, t.TypedDict('ArgInfo', {
+                'cname'  : str,
+                'ctype'  : _ParamType,  # noqa
+                'desc'   : str,
+                'default': t.Any,
+            })
+        ],
+        'transport_help': bool
+    })
+    Mode = t.Literal['group', 'command']
+    
+    CommandsCollect = t.Dict[_FunctionId, FuncInfo]
 
 
 class CommandLineInterface:
@@ -54,10 +57,18 @@ class CommandLineInterface:
         self.name = name
         self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
-
+        self._global_options = GlobalOptions()
+    
     # -------------------------------------------------------------------------
     
-    def add_cmd(self, func: t.Callable, name: str = None) -> None:
+    def add_cmd(
+            self,
+            func: T.Func,
+            name: str = None,
+            transport_help: bool = False
+    ) -> None:
+        if name:
+            assert not name.startswith('-')
         from .converter import name_2_cname, type_2_ctype
         
         cmd_name = name or name_2_cname(func.__name__)
@@ -69,23 +80,21 @@ class CommandLineInterface:
                 f'the recorded function is: {old}',
                 f'the incoming function is: {new}',
             )
-            return
-            # raise Exception(
-            #     f'duplicate command name: {cmd_name}',
-            #     f'the recorded function is: {old}',
-            #     f'the incoming function is: {new}',
-            # )
-        else:
-            self._cname_2_func[cmd_name] = func
-
-        func_info = parse_function(func)
+            if config.OVERWRITTEN_SCHEME == 'first':
+                print(':v3pr', '[yellow dim]the recorded one is keeped.[/]')
+                return
+            else:
+                print(':v3pr', '[yellow dim]the incoming one is used.[/]')
+        self._cname_2_func[cmd_name] = func
+        
+        func_info = parse_function(func, fallback_type=config.FALLBACK_TYPE)
         docs_info = parse_docstring(func.__doc__ or '')
-
+        
         self.commands[id(func)] = {
-            'func'  : func,
-            'cname' : name_2_cname(cmd_name),
-            'desc'  : docs_info['desc'],
-            'args'  : {
+            'func'          : func,
+            'cname'         : cmd_name,
+            'desc'          : docs_info['desc'],
+            'args'          : {
                 name: {
                     'cname': name_2_cname(name, style='arg'),
                     'ctype': type_2_ctype(type_),
@@ -95,7 +104,7 @@ class CommandLineInterface:
                     ),
                 } for name, type_ in func_info['args']
             },
-            'kwargs': {
+            'kwargs'        : {
                 name: {
                     'cname'  : (
                         name_2_cname(name, style='opt')
@@ -110,12 +119,13 @@ class CommandLineInterface:
                     'default': value,
                 } for name, type_, value in func_info['kwargs']
             },
+            'transport_help': transport_help,
         }
-
+    
     # -------------------------------------------------------------------------
     # decorators
     
-    def cmd(self, name=None) -> t.Callable:
+    def cmd(self, name: str = None, transport_help=False) -> T.Func:
         """
         usage:
             from argsense import cli
@@ -123,8 +133,9 @@ class CommandLineInterface:
             def foo(...):
                 ...
         """
-        def decorator(func: t.Callable) -> t.Callable:
-            self.add_cmd(func, name)
+        
+        def decorator(func: T.Func) -> T.Func:
+            self.add_cmd(func, name, transport_help)
             return func
         
         return decorator
@@ -132,27 +143,8 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     # run
     
-    class GlobalOptions:
-        name_2_type = {
-            ':help' : ParamType.FLAG,
-            ':helpx': ParamType.FLAG,
-        }
-        
-        cname_2_name = {
-            '--:help' : ':help',
-            '-:h'     : ':help',
-            '--help'  : ':help',
-            '-h'      : ':help',
-            '--:helpx': ':helpx',
-            '-:hh'    : ':helpx',
-            '--helpx' : ':helpx',
-            '-hh'     : ':helpx',
-        }
-    
-    def run(self, func=None):
+    def run(self, func=None) -> None:
         from .argparse import extract_command_name, parse_argv
-        
-        # print(':lv', self.commands, self._cname_2_func)
         
         config.apply_changes()
         mode: T.Mode = 'group' if not func else 'command'  # noqa
@@ -171,58 +163,73 @@ class CommandLineInterface:
                         console.print(f'[red]Unknown command: {cmd_name}[/]')
                     sys.exit(1)
         
+        func_info: t.Optional[T.FuncInfo]
+        func_info = self.commands[id(func)] if func else None
+        
         result = parse_argv(
             argv=sys.argv,
             mode=mode,
             front_matter={
                 'args'  : {} if func is None else {
                     k: v['ctype']
-                    for k, v in self.commands[id(func)]['args'].items()
+                    for k, v in func_info['args'].items()
                 },
                 'kwargs': (
-                    self.GlobalOptions.name_2_type if func is None
+                    self._global_options.name_2_type if func is None
                     else {
-                        **self.GlobalOptions.name_2_type,
+                        **self._global_options.name_2_type,
                         **{k: v['ctype']
-                           for k, v in self.commands[
-                               id(func)]['kwargs'].items()}
+                           for k, v in func_info['kwargs'].items()}
                     }
                 ),
                 'index' : (
-                    self.GlobalOptions.cname_2_name if func is None
+                    self._global_options.cname_2_name if func is None
                     else {
-                        **self.GlobalOptions.cname_2_name,
+                        **self._global_options.cname_2_name,
                         **{n: k
-                           for k, v in self.commands[
-                               id(func)]['kwargs'].items()
+                           for k, v in func_info['kwargs'].items()
                            for n in v['cname'].split(',')}
                     }
                 ),
             }
         )
         # print(':lv', result)
+        
         if result['command']:
             func = self._cname_2_func[result['command']]
-        # FIXME: we take '--help' as the most important option to check. the
-        #   '--help' is the only global option for now.
-        if not result['args'] and not result['kwargs']:
-            if func is None or self.commands[id(func)]['args']:
-                # it means user is not providing sufficient arguments.
-                # instead of rasing an exception, we guide user to see the help
-                # message.
-                result['kwargs'][':help'] = True
-        if result['kwargs'].get(':help'):
-            self.show(func, show_func_name_in_title=bool(mode == 'group'))
-        elif result['kwargs'].get(':helpx'):
             if func:
-                self.show(func, show_func_name_in_title=bool(mode == 'group'))
-            else:
+                func_info = self.commands[id(func)]
+        
+        if func is None:
+            # TODO: we take `--help` as the most important option to check.
+            #   currently `--help` and `--helpx` are the only two global
+            #   options.
+            if result['kwargs'].get(':helpx'):
                 self.show2()
-                # # self.show(None)
-                # # for func_info in self.commands.values():
-                # #     self.show(func_info['func'])
+            else:
+                self.show(func, show_func_name_in_title=bool(mode == 'group'))
         else:
-            self.exec(func, result['args'].values(), result['kwargs'])
+            if result['kwargs'].get(':help') or \
+                    result['kwargs'].get(':helpx'):
+                if '**' in func_info['kwargs']:
+                    if not func_info['transport_help']:
+                        self.show(func, show_func_name_in_title=True)
+                        return
+                else:
+                    self.show(func, show_func_name_in_title=True)
+                    return
+            
+            try:
+                func(*result['args'].values(), **result['kwargs'])
+            except Exception:
+                # console.print_exception()
+                if (
+                        result['kwargs'].get(':help') or
+                        result['kwargs'].get(':helpx')
+                ):
+                    self.show(func, show_func_name_in_title=True)
+                else:
+                    console.print_exception()
     
     def show(self, func, **kwargs):
         """
@@ -355,7 +362,7 @@ class CommandLineInterface:
         from rich.align import Align
         from rich.padding import Padding
         
-        def show(func: t.Optional[t.Callable], show_logo: bool) -> dict:
+        def show(func: t.Optional[T.Func], show_logo: bool) -> dict:
             """
             warning:
                 this function is not the same with [self.show()]. some minor
@@ -541,13 +548,6 @@ class CommandLineInterface:
             # return Group(*group)  # B
         
         console.print(render())
-    
-    @staticmethod
-    def exec(func: t.Callable, args: t.Iterable, kwargs: dict):
-        try:
-            func(*args, **kwargs)
-        except Exception:
-            console.print_exception()
 
 
 def _detect_program_name() -> str:
@@ -586,6 +586,24 @@ def _detect_program_name() -> str:
         py_module = f'{py_module}.{name}'.lstrip('.')
     
     return f'{head} -m {py_module}'
+
+
+class GlobalOptions:
+    cname_2_name = {
+        '--:help' : ':help',
+        '-:h'     : ':help',
+        '--help'  : ':help',
+        '-h'      : ':help',
+        '--:helpx': ':helpx',
+        '-:hh'    : ':helpx',
+        '--helpx' : ':helpx',
+        '-hh'     : ':helpx',
+    }
+    
+    name_2_type = {
+        ':help' : ParamType.FLAG,
+        ':helpx': ParamType.FLAG,
+    }
 
 
 cli = CommandLineInterface(name='argsense-cli')

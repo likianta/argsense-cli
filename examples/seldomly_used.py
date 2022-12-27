@@ -1,6 +1,10 @@
 from argsense import cli
 
 
+def test():
+    yield 'stagger-color-if-too-many-params -h'
+
+
 @cli.cmd()
 def stagger_color_if_too_many_params(
         apple, banana, orange,
@@ -12,4 +16,5 @@ def stagger_color_if_too_many_params(
     print(monday, tuesday, wednesday, thursday, friday, saturday, sunday)
 
 
-cli.run()
+if __name__ == '__main__':
+    cli.run()
