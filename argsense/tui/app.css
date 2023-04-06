@@ -1,0 +1,41 @@
+
+#log-panel {
+    align: center bottom;
+    background: #755c7f;
+    dock: bottom;
+    /* width: 80%; */
+    height: 50%;
+    layer: 2;
+}
+
+#main-form {
+    layout: grid;
+    grid-size: 3;  /* 3 columns: label, input, tooltip */
+    grid-columns: 3fr 6fr 1fr;
+    grid-rows: 4;
+}
+
+#sidebar {
+    background: #284E7F;
+    dock: left;
+    /* height: 100%; */
+    padding: 1 2;
+    width: 30;
+}
+
+.main-zone {
+    align: center middle;
+    background: #5ac2dc;
+    color: black;
+    height: 100%;
+    /* margin: 1 2; */
+    padding: 0 0 0 2;
+    width: 100%;
+}
+
+/* .main-zone .description-zone {
+    align: center left;
+    background: #cccccc;
+    padding: 1 2;
+    height: 10;
+} */
