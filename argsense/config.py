@@ -50,7 +50,7 @@ OVERWRITTEN_SCHEME: T.OverwrittenScheme = 'last'
 
 # console related
 WARNING_IF_RUNNING_ON_PYCHARM_CONSOLE = False
-CONSOLE_WIDTH = None
+CONSOLE_WIDTH: int = 0
 
 
 # dynamic settings
@@ -60,7 +60,10 @@ class Dynamic:
 
 
 def apply_changes():
-    if CONSOLE_WIDTH is not None:
+    if CONSOLE_WIDTH == 0:
         from .console import console
-        if console.width > CONSOLE_WIDTH:
-            console.width = CONSOLE_WIDTH
+        rulers = (80, 100, 120, 200)
+        for x in reversed(rulers):
+            if console.width > x:
+                console.width = x
+                break
