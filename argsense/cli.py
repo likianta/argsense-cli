@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-import os
 import sys
 import typing as t
 
 from . import config
 from . import render
 from .argparse import ParamType
+from .argparse import extract_command_name
+from .argparse import parse_argv
 from .console import console
+from .converter import name_2_cname
+from .converter import type_2_ctype
 from .parser import parse_docstring
 from .parser import parse_function
 
@@ -68,7 +71,6 @@ class CommandLineInterface:
     ) -> None:
         if name:
             assert not name.startswith('-')
-        from .converter import name_2_cname, type_2_ctype
         
         cmd_name = name or name_2_cname(func.__name__)
         if cmd_name in self._cname_2_func and \
@@ -144,8 +146,6 @@ class CommandLineInterface:
     # run
     
     def run(self, func=None) -> None:
-        from .argparse import extract_command_name, parse_argv
-        
         config.apply_changes()
         mode: T.Mode = 'group' if not func else 'command'  # noqa
         
