@@ -17,7 +17,8 @@ python = "^3.8"
 rich = "*"
 textual = "*"
 
-[tool.poetry.extras]
+[tool.poetry.scripts]
+argsense = 'argsense.__main__:run'
 
 [build-system]
 requires = ["poetry"]
