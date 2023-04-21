@@ -232,44 +232,6 @@ class CommandLineInterface:
                     console.print_exception()
 
 
-def _detect_program_name() -> str:
-    """
-    determine the program name to be `python ...` or `python -m ...`.
-    
-    source: [lib:click/utrils.py : def _detect_program_name()]
-    
-    return:
-        examples:
-            - 'python -m example'
-            - 'python example.py'
-            - 'example.exe'
-    """
-    main = sys.modules['__main__']
-    path = sys.argv[0]
-    name = os.path.splitext(os.path.basename(path))[0]
-    
-    from .config import TITLE_HEAD_STYLE
-    head = 'python' if TITLE_HEAD_STYLE == 'fixed' else (
-        'py' if os.name == 'nt' else 'python3'
-    )
-    
-    if getattr(main, '__package__', None) is None:
-        return f'{head} {name}.py'
-    elif (
-            os.name == 'nt'
-            and main.__package__ == ''
-            and not os.path.exists(path)
-            and os.path.exists(f'{path}.exe')
-    ):
-        return f'{name}.exe'
-    
-    py_module = t.cast(str, main.__package__)
-    if name != '__main__':  # a submodule like 'example.cli'
-        py_module = f'{py_module}.{name}'.lstrip('.')
-    
-    return f'{head} -m {py_module}'
-
-
 class GlobalOptions:
     cname_2_name = {
         '--:help' : ':help',
