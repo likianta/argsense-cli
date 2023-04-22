@@ -1,15 +1,19 @@
+from textual import widgets as w
 from textual.app import App
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container
-from textual.widgets import Static
+from textual.containers import Container, Vertical
 
 from .bottom_bar import BottomBar
-from .main_form import MainRow
+from .main_form import MainFormContainer
+from .sidebar import Sidebar
+from .textual_sugar import FlatButton
+from .textual_sugar import bind_signal
+from .typehint import T
 
 
-def run() -> None:
-    app = MyApp()
+def run(funcs_info: T.FuncsInfo) -> None:
+    app = MyApp(funcs_info)
     app.run()
 
 
@@ -19,37 +23,38 @@ class MyApp(App):
         Binding('ctrl+c,ctrl+q', 'app.quit', 'Quit', show=True),
     ]
     
-    # for textual dev test
-    # window 1: textual console -x EVENT
-    # window 2: textual run --dev argsense/tui/app.py
-    def __init__(self, **__) -> None:
-        super().__init__()
-        self._target = lambda *args, **kwargs: print(args, kwargs)
-        self._params = {
-            'name'  : str,
-            'age'   : int,
-            'gender': str,
-        }
-    
-    # def __init__(self, target: t.Callable, params_info: dict) -> None:
+    # # for textual dev test
+    # # window 1: textual console -x EVENT
+    # # window 2: textual run --dev argsense/tui/app.py
+    # def __init__(self, **__) -> None:
     #     super().__init__()
-    #     self._target = target
-    #     self._params = params_info
+    #     self._target = lambda *args, **kwargs: print(args, kwargs)
+    #     self._params = {
+    #         'name'  : str,
+    #         'age'   : int,
+    #         'gender': str,
+    #     }
+    
+    def __init__(self, funcs_info: T.FuncsInfo) -> None:
+        super().__init__()
+        self._funcs_info = funcs_info
     
     def compose(self) -> ComposeResult:
-        names = ('Alpha', 'Beta', 'Gamma')
-        params = self._params
-        
-        with Container():
-            
-            with Container() as sidebar:
+        with Container() as root:
+            with Sidebar(
+                    ('alpha', 'beta', 'gamma')
+            ) as sidebar:
                 sidebar.styles.width = 20
-                sidebar.styles.padding = (1, 2)
-                sidebar.styles.background = '#141a20'
                 sidebar.styles.dock = 'left'
                 
-                for n in names:
-                    yield LocationLink(n, f'.location-{n}')
+                @bind_signal(sidebar.clicked)
+                def _(idx: int, item: FlatButton):
+                    print(f'sidebar item ({idx}) clicked', item.label)
+                    log.write(f'sidebar item ({idx}) clicked: {item.label}')
+                    main_form.control.current = f'form-{idx}'
+                
+                # for n in names:
+                #     yield LocationLink(n, f'.location-{n}')
             
             with Container() as main_zone:
                 main_zone.styles.width = '100%'
@@ -59,40 +64,41 @@ class MyApp(App):
                 # main_zone.styles.background = '#5ac2dc'
                 # main_zone.styles.color = 'black'
                 
-                with Static('Description zone for AAA') as desc_zone:
+                with w.Static('Description zone for AAA') as desc_zone:
                     desc_zone.styles.width = '100%'
                     desc_zone.styles.height = 3
                     desc_zone.styles.align = ('center', 'middle')
                 
-                with Container() as main_form:
+                with MainFormContainer(self._funcs_info) as main_form:
                     main_form.styles.width = '100%'
                     main_form.styles.height = 'auto'
-                    # main_form.styles.align = ('center', 'middle')
-                    main_form.styles.layout = 'vertical'
-                    
-                    rows = []
-                    for k, v in params.items():
-                        with MainRow(
-                                k.title(), f'type: {v.__name__}', '[?]'
-                        ) as row:
-                            rows.append(row)
                 
-                with BottomBar() as bbar:
-                    bbar.styles.dock = 'bottom'
-                    bbar.run_triggered.connect(lambda: self._target({
-                        k: v.get_value() for k, v in zip(
-                            params.keys(), rows
-                        )
-                    }))
+                with Vertical() as vbox:
+                    vbox.styles.height = 'auto'
+                    vbox.styles.dock = 'bottom'
+                
+                    with BottomBar() as bbar:
+                        bbar.styles.height = 3
+                        # bbar.styles.dock = 'bottom'
+                        
+                        @bind_signal(bbar.run_triggered)
+                        def _() -> None:
+                            main_form.run()
+                    
+                    with w.TextLog() as log:
+                        log.styles.width = '100%'
+                        log.styles.height = 10
+                        # log.styles.dock = 'bottom'
+                        log.styles.background = '#282C34'
+                        log.styles.border = ('round', '#FEA62B')
+        
+        yield root
     
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark  # noqa
-    
-    # def action_toggle_quit(self) -> None:
-    #     self.exit()
 
 
-class LocationLink(Static):
+class LocationLink(w.Static):
     
     def __init__(self, label: str, reveal: str) -> None:
         super().__init__(label)
@@ -103,13 +109,23 @@ class LocationLink(Static):
 
 
 if __name__ == "__main__":
-    # py argsense/tui/app.py
+    # py argsense/render/textual/app.py
+    
+    def _just_print(*args, **kwargs) -> None:
+        print(args, kwargs)
+    
+    
     app = MyApp(
-        target=lambda *args, **kwargs: print(args, kwargs),
-        params_info={
-            'name'  : str,
-            'age'   : int,
-            'gender': str,
-        }
+        (
+            {
+                'name'  : 'just-print',
+                'func'  : _just_print,
+                'params': {
+                    'name'  : str,
+                    'age'   : int,
+                    'gender': str,
+                }
+            },
+        )
     )
     app.run()

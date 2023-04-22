@@ -59,7 +59,7 @@ class Dynamic:
     PREFERRED_FIELD_WIDTH_OF_TYPE = 6  # the length of 'NUMBER'
 
 
-def apply_changes():
+def apply_changes():  # TODO: rename to 'finalize'?
     if CONSOLE_WIDTH == 0:
         from .console import console
         rulers = (80, 100, 120, 200)

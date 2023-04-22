@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import typing as t
 
@@ -9,8 +10,6 @@ from .argparse import ParamType
 from .argparse import extract_command_name
 from .argparse import parse_argv
 from .console import console
-from .converter import name_2_cname
-from .converter import type_2_ctype
 from .parser import parse_docstring
 from .parser import parse_function
 
@@ -71,6 +70,9 @@ class CommandLineInterface:
     ) -> None:
         if name:
             assert not name.startswith('-')
+        
+        from .converter import name_2_cname
+        from .converter import type_2_ctype
         
         cmd_name = name or name_2_cname(func.__name__)
         if cmd_name in self._cname_2_func and \
@@ -147,13 +149,15 @@ class CommandLineInterface:
     
     def run(self, func=None) -> None:
         config.apply_changes()
-        mode: T.Mode = 'group' if not func else 'command'  # noqa
+        cmd_mode: T.Mode = 'group' if not func else 'command'  # noqa
+        tui_mode = os.getenv('ARGSENSE_TUI')  # bool-like type
         
-        if func is None:
+        def auto_detect_func_from_argv() -> t.Optional[T.Func]:
+            # try to find the command name from argv
             if cmd_name := extract_command_name(sys.argv):
                 # print(':v', cmd_name)
                 try:
-                    func = self._cname_2_func[cmd_name]
+                    return self._cname_2_func[cmd_name]
                 except KeyError:
                     from .general import did_you_mean
                     if x := did_you_mean(cmd_name, self._cname_2_func):
@@ -162,13 +166,18 @@ class CommandLineInterface:
                     else:
                         console.print(f'[red]Unknown command: {cmd_name}[/]')
                     sys.exit(1)
+            return None
+        
+        func = auto_detect_func_from_argv()
+        
+        # ---------------------------------------------------------------------
         
         func_info: t.Optional[T.FuncInfo]
-        func_info = self.commands[id(func)] if func else None
+        func_info = func and self.commands[id(func)]
         
         result = parse_argv(
             argv=sys.argv,
-            mode=mode,
+            mode=cmd_mode,
             front_matter={
                 'args'  : {} if func is None else {
                     k: v['ctype']
@@ -190,7 +199,7 @@ class CommandLineInterface:
                            for k, v in func_info['kwargs'].items()
                            for n in v['cname'].split(',')}
                     }
-                ),
+                )
             }
         )
         # print(':lv', result)
@@ -201,22 +210,39 @@ class CommandLineInterface:
                 func_info = self.commands[id(func)]
         
         if func is None:
-            # TODO: we take `--help` as the most important option to check.
+            # NOTE: we take `--help` as the most important option to check.
             #   currently `--help` and `--helpx` are the only two global
             #   options.
-            if result['kwargs'].get(':helpx'):
-                render.render_cli_2(self)
+            if tui_mode:
+                render.launch_tui(self.commands.values())
             else:
-                render.render_cli(self, func, show_func_name_in_title=bool(mode == 'group'))
+                if result['kwargs'].get(':helpx'):
+                    render.render_cli_2(self)
+                else:
+                    render.render_cli(
+                        self, func, show_func_name_in_title=bool(
+                            cmd_mode == 'group'
+                        )
+                    )
         else:
             if result['kwargs'].get(':help') or \
                     result['kwargs'].get(':helpx'):
                 if '**' in func_info['kwargs']:
                     if not func_info['transport_help']:
-                        render.render_cli(self, func, show_func_name_in_title=True)
+                        if tui_mode:
+                            render.launch_tui((func_info,))
+                        else:
+                            render.render_cli(
+                                self, func, show_func_name_in_title=True
+                            )
                         return
                 else:
-                    render.render_cli(self, func, show_func_name_in_title=True)
+                    if tui_mode:
+                        render.launch_tui((func_info,))
+                    else:
+                        render.render_cli(
+                            self, func, show_func_name_in_title=True
+                        )
                     return
             
             try:
