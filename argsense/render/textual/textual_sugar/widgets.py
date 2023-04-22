@@ -4,19 +4,19 @@ from rich.text import Text
 from rich.text import TextType
 from textual import events
 from textual import widgets as w
-from textual.containers import Container as BaseContainer
 from textual.reactive import reactive
+from textual.widget import Widget as BaseWidget
 
 from .signal import Signal
 from .signal import SignalInit
 
 
-class Container(BaseContainer, SignalInit):
+class Widget(BaseWidget, SignalInit):
     pass
 
 
 class FlatButton(w.Static, SignalInit):
-    clicked: Signal
+    clicked = Signal()
     label = cast(str, reactive(''))
     
     # class Pressed(Message, bubble=True):
@@ -48,7 +48,7 @@ class FlatButton(w.Static, SignalInit):
 
 
 class Button(w.Button, SignalInit):
-    clicked: Signal
+    clicked = Signal()
     
     def on_button_pressed(self):
         self.clicked.emit()

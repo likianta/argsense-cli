@@ -50,9 +50,9 @@ class SignalInit:
     
     def __new__(cls, *_, **__):
         new_attrs = {}
-        for k, v in cls.__annotations__.items():
-            if v is Signal:
-                print('auto create signal', k, ':v')
+        for k, v in cls.__dict__.items():
+            if isinstance(v, Signal):
+                print('auto create owned signal', k, ':v')
                 new_attrs[k] = Signal()
         
         obj = super().__new__(cls)
