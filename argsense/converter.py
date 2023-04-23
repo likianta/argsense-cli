@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import typing as t
 
 from . import config
@@ -59,23 +58,24 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
     arg     aaa_bbb_    aaa-bbb
     arg     aaa_bbb__   aaa-bbb
     opt     aaa_bbb     --aaa-bbb
-    opt     _aaa_bbb    --:aaa-bbb
-    opt     __aaa_bbb   --:aaa-bbb
-    opt     ___aaa_bbb  --:aaa-bbb
+    opt     _aaa_bbb    --aaa-bbb
+    opt     __aaa_bbb   --aaa-bbb  # FIXME: maybe we should not show it in CLI?
+    opt     ___aaa_bbb  --aaa-bbb
     opt     aaa_bbb_    --aaa-bbb
-    opt     _aaa_bbb_   --:aaa-bbb
+    opt     _aaa_bbb_   --aaa-bbb
     
     other styles follow the same rule with `arg`.
     
-    warning:
-        do not use `xxx_`, `xxx__`, `_xxx`, `__xxx` in the same function. it
-        produces duplicate cnames and causes unexpected results!
+    note:
+        the output is forced lower case, no matter what the case of `name` is.
+    
+    TODO:
+        be careful using `xxx_`, `_xxx`, etc. in the same function. it produces
+        duplicate cnames and causes unexpected behavior!
+        we will add a checker in future version.
     """
     if name in ('*', '**'):
         return name
-    if name.startswith('_'):
-        if style == 'opt':
-            name = re.sub(r'^_+', ':', name)
     name = name.lower().strip('_')
     if style == 'arg':
         style = config.ARG_NAME_STYLE
@@ -85,7 +85,7 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
             return name.upper().replace('_', '-')
         elif style == 'aaa_bbb':
             return name
-        elif style == 'aaa-bbb':
+        elif style == 'aaa-bbb':  # the default
             return name.replace('_', '-')
         elif style == 'AaaBbb':
             return name.replace('_', ' ').title().replace(' ', '')
