@@ -122,10 +122,11 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     # run
     
-    def run(self, func=None) -> None:
+    def run(self, func: T.Func = None, tui_mode: bool = None) -> None:
         config.apply_changes()
         cmd_mode: T.Mode = 'group' if not func else 'command'  # noqa
-        tui_mode = os.getenv('ARGSENSE_TUI')  # bool-like type
+        if tui_mode is None:
+            tui_mode = os.getenv('ARGSENSE_TUI')  # bool-like type
         
         def auto_detect_func_from_argv() -> t.Optional[T.Func]:
             # try to find the command name from argv
@@ -228,6 +229,9 @@ class CommandLineInterface:
                     renderer.render_cli(self, func, show_func_name_in_title=True)
                 else:
                     console.print_exception()
+
+    def run_ui(self, func: T.Func = None) -> None:
+        self.run(func, tui_mode=True)
 
 
 cli = CommandLineInterface(name='argsense-cli')
