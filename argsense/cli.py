@@ -26,29 +26,6 @@ class T:
     FuncInfo = FuncInfo
     Mode = t.Literal['group', 'command']
     
-    # noinspection PyTypedDict
-    # FuncInfo = t.TypedDict('FuncInfo', {
-    #     'func'          : Func,
-    #     'cname'         : str,
-    #     'desc'          : str,
-    #     'args'          : t.Dict[
-    #         _ParamName, t.TypedDict('ArgInfo', {
-    #             'cname': str,
-    #             'ctype': _ParamType,  # noqa
-    #             'desc' : str,
-    #         })
-    #     ],
-    #     'kwargs'        : t.Dict[
-    #         _ParamName, t.TypedDict('ArgInfo', {
-    #             'cname'  : str,
-    #             'ctype'  : _ParamType,  # noqa
-    #             'desc'   : str,
-    #             'default': t.Any,
-    #         })
-    #     ],
-    #     'transport_help': bool
-    # })
-    
     CommandsCollect = t.Dict[_FunctionId, FuncInfo]
 
 

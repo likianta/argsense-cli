@@ -25,6 +25,8 @@ def run(funcs_info: T.FuncsInfo) -> t.Any:
 
 
 class MyApp(App):
+    _log: t.Callable[[str], None]
+    # _main_form: MainFormContainer
     
     def __init__(self, funcs_info: T.FuncsInfo) -> None:
         super().__init__()
@@ -38,33 +40,33 @@ class MyApp(App):
             root.styles.layer = 'main'
             
             with Sidebar(
-                    (x.name for x in self._funcs_info)
+                    tuple(x.name for x in self._funcs_info)
             ) as sidebar:
-                sidebar.styles.width = 20
                 sidebar.styles.dock = 'left'
                 
                 @bind_signal(sidebar.clicked)
                 def _(idx: int, item: FlatButton):
                     print(f'sidebar item ({idx}) clicked', item.label)
-                    log.write(f'sidebar item ({idx}) clicked: {item.label}')
-                    main_form.control.current = f'form-{idx}'
+                    self._load_form(idx, main_desc, main_form)
             
             with Container() as main_zone:
                 main_zone.styles.width = '100%'
                 main_zone.styles.height = '100%'
-                main_zone.styles.align = ('center', 'middle')
                 main_zone.styles.padding = (1, 1, 0, 1)
                 # main_zone.styles.background = '#5ac2dc'
                 # main_zone.styles.color = 'black'
                 
-                with w.Static('Description zone for AAA') as desc_zone:
-                    desc_zone.styles.width = '100%'
-                    desc_zone.styles.height = 3
-                    desc_zone.styles.align = ('center', 'middle')
+                with w.Label(self._funcs_info[0].desc) as main_desc:
+                    main_desc.styles.width = '100%'
+                    main_desc.styles.height = 'auto'
+                    main_desc.styles.max_height = 5
+                    main_desc.styles.padding = (0, 1, 1, 2)
                 
                 with MainFormContainer(self._funcs_info) as main_form:
                     main_form.styles.width = '100%'
-                    main_form.styles.height = 'auto'
+                    main_form.styles.height = '80%'
+                    # main_form.styles.padding = 0
+                    # self._main_form = main_form
                 
                 with Vertical() as vbox:
                     vbox.styles.height = 'auto'
@@ -91,6 +93,7 @@ class MyApp(App):
                         # log.styles.dock = 'bottom'
                         log.styles.background = '#282C34'
                         log.styles.border = ('round', '#FEA62B')
+                        self._log = log.write  # noqa
         
         with w.TextLog() as full_log:
             full_log.styles.layer = 'full_log'
@@ -98,9 +101,20 @@ class MyApp(App):
             full_log.styles.height = 0
             full_log.styles.dock = 'bottom'
             
+            # noinspection PyUnusedLocal
             def activate_full_log() -> w.TextLog:  # TODO
                 full_log.styles.height = '100%'
                 # full_log.animate('height', 20)
                 return full_log
         
         yield root
+        
+    def _load_form(
+            self,
+            idx: int,
+            main_desc: w.Label,
+            main_form: MainFormContainer,
+    ) -> None:
+        self._log(f'load form {idx}')
+        main_desc.update(self._funcs_info[idx].desc)
+        main_form.control.current = f'form-{idx}'
