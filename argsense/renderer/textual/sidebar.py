@@ -17,14 +17,22 @@ class Sidebar(Widget):
         self._names = cmd_names
     
     def compose(self) -> ComposeResult:
+        self.styles.width = 'auto'
+        self.styles.min_width = 20
+        self.styles.max_width = 40
+        
         with Container() as sidebar:
+            sidebar.styles.width = self._get_proper_width()
             sidebar.styles.background = '#141a20'
-            sidebar.styles.padding = (1, 2)
+            sidebar.styles.padding = (1, 1)
             
             for i, name in enumerate(self._names):
                 with Button(name) as item:
-                    # connect(item, 'clicked', partial(self.clicked, item))
+                    item.styles.width = '100%'
                     item.clicked.connect(
                         partial(self.clicked, i, item)
                     )
         yield sidebar
+        
+    def _get_proper_width(self) -> int:
+        return max(len(x) for x in self._names) + 4

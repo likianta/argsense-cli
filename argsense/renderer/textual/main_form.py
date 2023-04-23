@@ -31,7 +31,7 @@ class MainFormContainer(Widget):
             for i, info in enumerate(self._funcs_info):
                 with MainForm(f'form-{i}', info) as form:
                     form.styles.width = '100%'
-                    form.styles.height = 'auto'
+                    form.styles.height = '100%'
         self.control = switcher
         yield switcher
     
@@ -126,6 +126,8 @@ class MainRow(Widget):
         self._input = None
         self._placeholder = value_type.name
         self._type = value_type
+        if param_type == 'opt':
+            self._placeholder += f'. default {self._default}'
     
     @property
     def kv(self) -> t.Tuple[str, t.Any]:
