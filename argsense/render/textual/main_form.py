@@ -26,22 +26,6 @@ class MainFormContainer(Widget):
                 with MainForm(f'form-{i}', info) as form:
                     form.styles.width = '100%'
                     form.styles.height = 'auto'
-                
-                # with Container(id=f'form-{i}') as form:
-                #     form.styles.width = '100%'
-                #     form.styles.height = '100%'
-                #
-                #     for dict_ in info['args'].values():
-                #         yield MainRow(
-                #             label=dict_['cname'],
-                #             placeholder=dict_['ctype'],
-                #         )
-                #
-                #     for dict_ in info['kwargs'].values():
-                #         yield MainRow(
-                #             label=dict_['cname'],
-                #             placeholder=str(dict_['default']),
-                #         )
         
         self.control = switcher
         yield switcher
@@ -64,14 +48,14 @@ class MainForm(Widget):
                 with MainRow(
                         key=key,
                         label=dict_['cname'],
-                        placeholder=dict_['ctype'],
+                        placeholder=dict_['ctype'].name,
                 ) as row:
                     row.styles.height = 3
             for key, dict_ in self._func_info['kwargs'].items():
                 with MainRow(
                         key=key,
                         label=dict_['cname'],
-                        placeholder=dict_['ctype'],
+                        placeholder=dict_['ctype'].name,
                         value=str(dict_['default']),
                 ) as row:
                     row.styles.height = 3

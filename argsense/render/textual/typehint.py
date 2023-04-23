@@ -2,6 +2,7 @@
 here are stored shared type hints across multiple modules.
 """
 import typing as t
+from enum import EnumType
 
 
 class T:
@@ -13,14 +14,14 @@ class T:
         'args'          : t.Dict[
             str, t.TypedDict('ArgInfo', {
                 'cname': str,
-                'ctype': str,  # noqa
+                'ctype': EnumType,
                 'desc' : str,
             })
         ],
         'kwargs'        : t.Dict[
             str, t.TypedDict('ArgInfo', {
                 'cname'  : str,
-                'ctype'  : str,  # noqa
+                'ctype'  : EnumType,
                 'desc'   : str,
                 'default': t.Any,
             })
