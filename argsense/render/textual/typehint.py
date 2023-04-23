@@ -29,4 +29,6 @@ class T:
         'transport_help': bool
     })
     
-    FuncsInfo = t.Iterable[FuncInfo]
+    # be noticed this should not be an iterator type, because we may use it
+    # many times.
+    FuncsInfo = t.Union[t.Tuple[FuncInfo, ...], t.List[FuncInfo]]

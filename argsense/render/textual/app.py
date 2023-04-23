@@ -23,18 +23,6 @@ class MyApp(App):
         Binding('ctrl+c,ctrl+q', 'app.quit', 'Quit', show=True),
     ]
     
-    # # for textual dev test
-    # # window 1: textual console -x EVENT
-    # # window 2: textual run --dev argsense/tui/app.py
-    # def __init__(self, **__) -> None:
-    #     super().__init__()
-    #     self._target = lambda *args, **kwargs: print(args, kwargs)
-    #     self._params = {
-    #         'name'  : str,
-    #         'age'   : int,
-    #         'gender': str,
-    #     }
-    
     def __init__(self, funcs_info: T.FuncsInfo) -> None:
         super().__init__()
         self._funcs_info = funcs_info
@@ -42,7 +30,7 @@ class MyApp(App):
     def compose(self) -> ComposeResult:
         with Container() as root:
             with Sidebar(
-                    ('alpha', 'beta', 'gamma')
+                    (x['cname'] for x in self._funcs_info)
             ) as sidebar:
                 sidebar.styles.width = 20
                 sidebar.styles.dock = 'left'
@@ -96,36 +84,3 @@ class MyApp(App):
     
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark  # noqa
-
-
-class LocationLink(w.Static):
-    
-    def __init__(self, label: str, reveal: str) -> None:
-        super().__init__(label)
-        self.reveal = reveal
-    
-    def on_click(self) -> None:
-        self.app.query_one(self.reveal).scroll_visible(top=True, duration=0.5)
-
-
-if __name__ == "__main__":
-    # py argsense/render/textual/app.py
-    
-    def _just_print(*args, **kwargs) -> None:
-        print(args, kwargs)
-    
-    
-    app = MyApp(
-        (
-            {
-                'name'  : 'just-print',
-                'func'  : _just_print,
-                'params': {
-                    'name'  : str,
-                    'age'   : int,
-                    'gender': str,
-                }
-            },
-        )
-    )
-    app.run()

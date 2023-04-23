@@ -214,7 +214,7 @@ class CommandLineInterface:
             #   currently `--help` and `--helpx` are the only two global
             #   options.
             if tui_mode:
-                render.launch_tui(self.commands.values())
+                render.launch_tui(tuple(self.commands.values()))
             else:
                 if result['kwargs'].get(':helpx'):
                     render.render_cli_2(self)
