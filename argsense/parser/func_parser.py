@@ -30,7 +30,6 @@ class T:
             'ctype'   : ParamType,
             'desc'    : str,
             'default' : t.Any,
-            '_visible': bool,
         })
     ]
     RawInfo = t.TypedDict('RawInfo', {
@@ -57,15 +56,16 @@ class FuncInfo:
                 'cname'   : '--help',
                 'ctype'   : ParamType.FLAG,
                 'desc'    : 'show help message and exit',
-                'default' : True,
-                '_visible': False,
+                'default' : False,  # False means `not explicitly set by user`.
+                #   for example, when user inputs in command line:
+                #       `argsense xxx.py -h`  # -> True
+                #       `argsense xxx.py`     # -> False
             },
             ':helpx': {
                 'cname'   : '--helpx',
                 'ctype'   : ParamType.FLAG,
                 'desc'    : 'expand all command helps',
-                'default' : True,
-                '_visible': False,
+                'default' : False,
             },
         }
     
@@ -113,7 +113,6 @@ class FuncInfo:
                 'ctype'   : type_2_ctype(type),
                 'desc'    : '',
                 'default' : default,
-                '_visible': True,
             }
     
     def _append_cname(self, name: str, cname: str) -> None:

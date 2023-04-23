@@ -182,14 +182,33 @@ class CommandLineInterface:
             if func:
                 func_info = self.commands[id(func)]
         
+        # PERF: the spaghetti code is ugly.
         if func is None:
-            # NOTE: we take `--help` as the most important option to check.
-            #   currently `--help` and `--helpx` are the only two global
-            #   options.
             if tui_mode:
-                renderer.launch_tui(tuple(self.commands.values()))
+                """
+                # if user explicitly passes `--help` or `-h`
+                argsense xxx.py -h  # turn off TUI mode and show CLI panel
+                # if doesn't
+                argsense xxx.py     # regularly launch TUI
+                """
+                for h in (':helpx', ':help'):
+                    if h in result['kwargs']:
+                        if result['kwargs'][h]:  # explicit
+                            if h == ':help':
+                                renderer.render_cli(
+                                    self, func, show_func_name_in_title=bool(
+                                        cmd_mode == 'group'
+                                    )
+                                )
+                            else:
+                                renderer.render_cli_2(self)
+                        else:  # implicit
+                            renderer.launch_tui(tuple(self.commands.values()))
+                        return
+                else:  # same as implicit
+                    renderer.launch_tui(tuple(self.commands.values()))
             else:
-                if result['kwargs'].get(':helpx'):
+                if ':helpx' in result['kwargs']:
                     renderer.render_cli_2(self)
                 else:
                     renderer.render_cli(
@@ -198,8 +217,9 @@ class CommandLineInterface:
                         )
                     )
         else:
-            if result['kwargs'].get(':help') or \
-                    result['kwargs'].get(':helpx'):
+            # here, `:helpx` is downgraded to what `:help` does.
+            # i.e. they are same, and possibly `:helpx` is an user typo.
+            if ':helpx' in result['kwargs'] or ':help' in result['kwargs']:
                 if '**' in func_info.kwargs:
                     if not func_info.transport_help:
                         if tui_mode:
@@ -222,11 +242,10 @@ class CommandLineInterface:
                 func(*result['args'].values(), **result['kwargs'])
             except Exception:
                 # console.print_exception()
-                if (
-                        result['kwargs'].get(':help') or
-                        result['kwargs'].get(':helpx')
-                ):
-                    renderer.render_cli(self, func, show_func_name_in_title=True)
+                if ':helpx' in result['kwargs'] or ':help' in result['kwargs']:
+                    renderer.render_cli(
+                        self, func, show_func_name_in_title=True
+                    )
                 else:
                     console.print_exception()
 
