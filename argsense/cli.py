@@ -5,7 +5,7 @@ import sys
 import typing as t
 
 from . import config
-from . import render
+from . import renderer
 from .argparse import ParamType
 from .argparse import extract_command_name
 from .argparse import parse_argv
@@ -214,12 +214,12 @@ class CommandLineInterface:
             #   currently `--help` and `--helpx` are the only two global
             #   options.
             if tui_mode:
-                render.launch_tui(tuple(self.commands.values()))
+                renderer.launch_tui(tuple(self.commands.values()))
             else:
                 if result['kwargs'].get(':helpx'):
-                    render.render_cli_2(self)
+                    renderer.render_cli_2(self)
                 else:
-                    render.render_cli(
+                    renderer.render_cli(
                         self, func, show_func_name_in_title=bool(
                             cmd_mode == 'group'
                         )
@@ -230,17 +230,17 @@ class CommandLineInterface:
                 if '**' in func_info['kwargs']:
                     if not func_info['transport_help']:
                         if tui_mode:
-                            render.launch_tui((func_info,))
+                            renderer.launch_tui((func_info,))
                         else:
-                            render.render_cli(
+                            renderer.render_cli(
                                 self, func, show_func_name_in_title=True
                             )
                         return
                 else:
                     if tui_mode:
-                        render.launch_tui((func_info,))
+                        renderer.launch_tui((func_info,))
                     else:
-                        render.render_cli(
+                        renderer.render_cli(
                             self, func, show_func_name_in_title=True
                         )
                     return
@@ -253,7 +253,7 @@ class CommandLineInterface:
                         result['kwargs'].get(':help') or
                         result['kwargs'].get(':helpx')
                 ):
-                    render.render_cli(self, func, show_func_name_in_title=True)
+                    renderer.render_cli(self, func, show_func_name_in_title=True)
                 else:
                     console.print_exception()
 
