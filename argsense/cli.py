@@ -10,6 +10,7 @@ from .argparse import ParamType
 from .argparse import extract_command_name
 from .argparse import parse_argv
 from .console import console
+from .parser import FuncInfo
 from .parser import parse_docstring
 from .parser import parse_function
 
@@ -20,31 +21,33 @@ class T:
     _FunctionId = int
     _ParamName = str
     _ParamType = ParamType
+    
     Func = t.Callable
+    FuncInfo = FuncInfo
+    Mode = t.Literal['group', 'command']
     
     # noinspection PyTypedDict
-    FuncInfo = t.TypedDict('FuncInfo', {
-        'func'          : Func,
-        'cname'         : str,
-        'desc'          : str,
-        'args'          : t.Dict[
-            _ParamName, t.TypedDict('ArgInfo', {
-                'cname': str,
-                'ctype': _ParamType,  # noqa
-                'desc' : str,
-            })
-        ],
-        'kwargs'        : t.Dict[
-            _ParamName, t.TypedDict('ArgInfo', {
-                'cname'  : str,
-                'ctype'  : _ParamType,  # noqa
-                'desc'   : str,
-                'default': t.Any,
-            })
-        ],
-        'transport_help': bool
-    })
-    Mode = t.Literal['group', 'command']
+    # FuncInfo = t.TypedDict('FuncInfo', {
+    #     'func'          : Func,
+    #     'cname'         : str,
+    #     'desc'          : str,
+    #     'args'          : t.Dict[
+    #         _ParamName, t.TypedDict('ArgInfo', {
+    #             'cname': str,
+    #             'ctype': _ParamType,  # noqa
+    #             'desc' : str,
+    #         })
+    #     ],
+    #     'kwargs'        : t.Dict[
+    #         _ParamName, t.TypedDict('ArgInfo', {
+    #             'cname'  : str,
+    #             'ctype'  : _ParamType,  # noqa
+    #             'desc'   : str,
+    #             'default': t.Any,
+    #         })
+    #     ],
+    #     'transport_help': bool
+    # })
     
     CommandsCollect = t.Dict[_FunctionId, FuncInfo]
 
@@ -72,7 +75,6 @@ class CommandLineInterface:
             assert not name.startswith('-')
         
         from .converter import name_2_cname
-        from .converter import type_2_ctype
         
         cmd_name = name or name_2_cname(func.__name__)
         if cmd_name in self._cname_2_func and \
@@ -93,38 +95,12 @@ class CommandLineInterface:
         func_info = parse_function(func, fallback_type=config.FALLBACK_TYPE)
         docs_info = parse_docstring(func.__doc__ or '')
         
-        # noinspection PyTypeChecker
-        self.commands[id(func)] = {
-            'func'          : func,
-            'cname'         : cmd_name,
-            'desc'          : docs_info['desc'],
-            'args'          : {
-                name: {
-                    'cname': name_2_cname(name, style='arg'),
-                    'ctype': type_2_ctype(type_),
-                    'desc' : (
-                        '' if name not in docs_info['args']
-                        else docs_info['args'][name]['desc']
-                    ),
-                } for name, type_ in func_info['args']
-            },
-            'kwargs'        : {
-                name: {
-                    'cname'  : (
-                        name_2_cname(name, style='opt')
-                        if name not in docs_info['kwargs']
-                        else docs_info['kwargs'][name]['cname']
-                    ),
-                    'ctype'  : type_2_ctype(type_),
-                    'desc'   : (
-                        '' if name not in docs_info['kwargs']
-                        else docs_info['kwargs'][name]['desc']
-                    ),
-                    'default': value,
-                } for name, type_, value in func_info['kwargs']
-            },
-            'transport_help': transport_help,
-        }
+        func_info.target = func
+        func_info.name = cmd_name
+        func_info.transport_help = transport_help  # FIXME: temp solution
+        func_info.fill_docs_info(docs_info)
+        
+        self.commands[id(func)] = func_info
     
     # -------------------------------------------------------------------------
     # decorators
@@ -181,14 +157,14 @@ class CommandLineInterface:
             front_matter={
                 'args'  : {} if func is None else {
                     k: v['ctype']
-                    for k, v in func_info['args'].items()
+                    for k, v in func_info.args.items()
                 },
                 'kwargs': (
                     self._global_options.name_2_type if func is None
                     else {
                         **self._global_options.name_2_type,
                         **{k: v['ctype']
-                           for k, v in func_info['kwargs'].items()}
+                           for k, v in func_info.kwargs.items()}
                     }
                 ),
                 'index' : (
@@ -196,7 +172,7 @@ class CommandLineInterface:
                     else {
                         **self._global_options.cname_2_name,
                         **{n: k
-                           for k, v in func_info['kwargs'].items()
+                           for k, v in func_info.kwargs.items()
                            for n in v['cname'].split(',')}
                     }
                 )
@@ -227,8 +203,8 @@ class CommandLineInterface:
         else:
             if result['kwargs'].get(':help') or \
                     result['kwargs'].get(':helpx'):
-                if '**' in func_info['kwargs']:
-                    if not func_info['transport_help']:
+                if '**' in func_info.kwargs:
+                    if not func_info.transport_help:
                         if tui_mode:
                             renderer.launch_tui((func_info,))
                         else:

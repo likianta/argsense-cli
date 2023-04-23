@@ -5,8 +5,6 @@ from textwrap import dedent
 
 from ..converter import name_2_cname
 
-__all__ = ['parse_docstring']
-
 
 class T:
     _ParamName = str

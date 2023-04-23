@@ -1,36 +1,89 @@
 import typing as t
 from inspect import getfullargspec
 
+from .docs_parser import T as T0
 from .. import config
-
-__all__ = ['T', 'parse_function']
 
 
 class T:
     _DefaultValue = t.Any
-    _ParamName = str
     
+    DocsInfo = T0.DocsInfo
     FallbackType = t.Literal['any', 'str']
     Func = t.Callable
-    # TODO: should i use [../argparse/parser.py : class ParamType] (the Enum
-    #   type) instead of the plain literals?
+    ParamName = str
+    # TODO: shall we use `.args_parser.ParamType` instead?
     ParamType = t.Literal[
         'any', 'bool', 'dict', 'flag', 'float', 'int',
         'list', 'none', 'set', 'str', 'tuple',
     ]
     
-    FuncInfo = t.TypedDict('FuncInfo', {
+    RawInfo = t.TypedDict('RawInfo', {
         'name'  : str,
-        'args'  : t.List[t.Tuple[_ParamName, ParamType]],
-        'kwargs': t.List[t.Tuple[_ParamName, ParamType, _DefaultValue]],
+        'args'  : t.List[t.Tuple[ParamName, ParamType]],
+        'kwargs': t.List[t.Tuple[ParamName, ParamType, _DefaultValue]],
         'return': ParamType,  # noqa
     })
 
 
+class FuncInfo:
+    
+    def __init__(self, info: T.RawInfo):
+        from ..converter import name_2_cname
+        from ..converter import type_2_ctype
+        
+        self.target = None
+        self.name = info['name']
+        # self.cname = name_2_cname(self.name, style='cmd')
+        self.desc = ''
+        self.args = {}
+        self.kwargs = {}
+        # self.return_type = info['return']
+        self.transport_help = False  # FIXME: temp solution
+        self._cname_2_name = {}
+        
+        for name, type in info['args']:
+            cname = name_2_cname(name, style='arg')
+            self._append_cname(name, cname)
+            self.args[name] = {
+                'cname': cname,
+                'ctype': type_2_ctype(type),
+                'desc' : '',
+            }
+        
+        for name, type, default in info['kwargs']:
+            cname = name_2_cname(name, style='opt')
+            self._append_cname(name, cname)
+            self.kwargs[name] = {
+                'cname'  : cname,
+                'ctype'  : type_2_ctype(type),
+                'desc'   : '',
+                'default': default,
+            }
+    
+    def _append_cname(self, name: str, cname: str) -> None:
+        assert cname not in self._cname_2_name, (
+            f'duplicate cname: `{cname}` (for `{name}`). '
+            f'make sure you have not defined `xxx`, `_xxx` and `xxx_` '
+            f'(or something like this) in the same function.'
+        )
+        self._cname_2_name[cname] = name
+    
+    def fill_docs_info(self, info: T.DocsInfo) -> None:
+        self.desc = info['desc']
+        for name, value in info['args'].items():
+            self.args[name]['desc'] = value['desc']
+        for name, value in info['kwargs'].items():
+            self.kwargs[name]['desc'] = value['desc']
+            if value['cname'] != self.kwargs[name]['cname']:
+                self._append_cname(name, value['cname'])
+                self.kwargs[name]['cname'] = value['cname']
+    
+
 def parse_function(
         func: T.Func,
         fallback_type: T.FallbackType = 'any'
-) -> T.FuncInfo:
+) -> FuncInfo:
     spec = getfullargspec(func)
     annotations = Annotations(spec.annotations, fallback_type)
     # print(':v', func.__name__, spec.annotations)
@@ -84,12 +137,12 @@ def parse_function(
     
     return_ = annotations.get_return_type()
     
-    return {
+    return FuncInfo({
         'name'  : func.__name__,
         'args'  : args,
         'kwargs': kwargs,
         'return': return_,
-    }
+    })
 
 
 class Annotations:
