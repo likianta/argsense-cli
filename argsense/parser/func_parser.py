@@ -133,7 +133,9 @@ class FuncInfo:
             if value['cname'] != self.kwargs[name]['cname']:
                 # be noted value['cname'] may contain ',', we need to split it.
                 for cname in value['cname'].split(','):
-                    self._append_cname(name, cname)
+                    if cname in self.cname_2_name:
+                        continue
+                    self.cname_2_name[cname] = name
                     # the `cname` stored in `self.kwargs` is preferred `--xxx`
                     # than `-x`.
                     if cname.startswith('--'):
