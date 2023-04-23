@@ -53,9 +53,12 @@ class MainForm(Widget):
     
     def compose(self) -> ComposeResult:
         with Container() as container:
+            has_child = False
+            
             for key, dict_ in self._func_info.args.items():
                 if key.startswith('*'):
                     continue
+                has_child = True
                 with MainRow(
                         label=dict_['cname'],
                         param_name=key,
@@ -64,10 +67,11 @@ class MainForm(Widget):
                         value_type=dict_['ctype'],
                 ) as row:
                     row.styles.height = 3
-            # print(self._func_info.kwargs, ':vl')
+            
             for key, dict_ in self._func_info.kwargs.items():
                 if key.startswith((':', '*')):
                     continue
+                has_child = True
                 with MainRow(
                         label=dict_['cname'].lstrip('-'),
                         param_name=key,
@@ -76,6 +80,17 @@ class MainForm(Widget):
                         value_type=dict_['ctype'],
                 ) as row:
                     row.styles.height = 3
+            
+            if not has_child:
+                # container.styles.content_align = 'center'
+                with w.Static() as placeholder:
+                    placeholder.styles.padding = (0, 1, 1, 2)
+                    #   the same with `./app.py : var main_desc : padding`
+                    placeholder.update(
+                        '[dim]no parameter for this command. \n'
+                        'you can click "run" button directly.[/]'
+                    )
+        
         self.control = container
         yield container
     

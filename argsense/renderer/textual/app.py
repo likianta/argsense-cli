@@ -8,6 +8,7 @@ from textual.containers import Vertical
 from textual.screen import Screen
 
 from .bottom_bar import BottomBar
+from .main_desc import MainDesc
 from .main_form import E
 from .main_form import MainFormContainer
 from .sidebar import Sidebar
@@ -56,10 +57,7 @@ class MyApp(App):
                 # main_zone.styles.background = '#5ac2dc'
                 # main_zone.styles.color = 'black'
                 
-                with w.Label(self._funcs_info[0].desc) as main_desc:
-                    main_desc.styles.width = '100%'
-                    main_desc.styles.height = 'auto'
-                    main_desc.styles.max_height = 5
+                with MainDesc(self._funcs_info[0].desc) as main_desc:
                     main_desc.styles.padding = (0, 1, 1, 2)
                 
                 with MainFormContainer(self._funcs_info) as main_form:
@@ -112,7 +110,7 @@ class MyApp(App):
     def _load_form(
             self,
             idx: int,
-            main_desc: w.Label,
+            main_desc: MainDesc,
             main_form: MainFormContainer,
     ) -> None:
         self._log(f'load form {idx}')
