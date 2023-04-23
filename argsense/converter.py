@@ -3,13 +3,13 @@ from __future__ import annotations
 import typing as t
 
 from . import config
-from .argparse import ParamType
+from .parser.args_parser import ParamType
 from .parser.func_parser import T as T0
 
 
 class T:
-    ParamType1 = T0.ParamType
-    ParamType2 = ParamType
+    ParamType1 = T0.ParamType  # literal
+    ParamType2 = ParamType  # enum
     Style = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
 
 
@@ -116,3 +116,13 @@ def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
         'dict' : ParamType.DICT,
         'none' : ParamType.NONE,
     }.get(t, ParamType.ANY)
+
+
+# -----------------------------------------------------------------------------
+
+def cname_to_name(name: str) -> str:
+    return name.replace('-', '_')
+
+
+def cval_to_val(value: str, type: ParamType) -> t.Any:
+    pass

@@ -81,7 +81,7 @@ def _walking_through_argv(
         if cname in front_matter['index']:
             return front_matter['index'][cname]
         elif '**' in front_matter['index']:
-            # FIXME: this is an experimental feature.
+            # FIXME: how to handle `_xxx`?
             return cname.lstrip('-').replace(':', '_').replace('-', '_')
         else:
             raise e.ParamNotFound(cname, front_matter['index'].keys())

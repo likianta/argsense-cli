@@ -6,13 +6,13 @@ import typing as t
 
 from . import config
 from . import renderer
-from .argparse import ParamType
-from .argparse import extract_command_name
-from .argparse import parse_argv
 from .console import console
 from .parser import FuncInfo
+from .parser import parse_argv
 from .parser import parse_docstring
 from .parser import parse_function
+from .parser.args_parser import ParamType
+from .parser.args_parser import extract_command_name
 
 __all__ = ['CommandLineInterface', 'cli']
 
