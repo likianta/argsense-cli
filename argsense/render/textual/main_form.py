@@ -36,7 +36,7 @@ class MainFormContainer(Widget):
 
 
 class MainForm(Widget):
-    _control: Container
+    control: Container
     
     def __init__(self, id: str, func_info: T.FuncInfo):
         super().__init__(id=id)
@@ -46,6 +46,7 @@ class MainForm(Widget):
         with Container() as container:
             for key, dict_ in self._func_info['args'].items():
                 with MainRow(
+                        type='arg',
                         key=key,
                         label=dict_['cname'],
                         placeholder=dict_['ctype'].name,
@@ -53,17 +54,18 @@ class MainForm(Widget):
                     row.styles.height = 3
             for key, dict_ in self._func_info['kwargs'].items():
                 with MainRow(
+                        type='opt',
                         key=key,
-                        label=dict_['cname'],
+                        label=dict_['cname'].lstrip('-'),
                         placeholder=dict_['ctype'].name,
                         value=str(dict_['default']),
                 ) as row:
                     row.styles.height = 3
-        self._control = container
+        self.control = container
         yield container
     
     def grab_data(self) -> dict:
-        return dict((x.kv for x in self._control.children))
+        return dict((x.kv for x in self.control.children))
         # return dict((x.kv for x in self.children[0].children))
     
     def exec(self) -> t.Any:
@@ -74,19 +76,21 @@ class MainRow(Widget):
     
     def __init__(
             self,
+            type: str,  # 'arg' or 'opt'
             key: str,
             label: str,
             placeholder: str,
             value: str = '',
-            help: str = '[?]'
+            help: str = '[?]',
     ) -> None:
         super().__init__()
         self.key = key
         self.label = label
-        self._placeholder = placeholder
         self._default = value
         self._help = help
         self._input = None
+        self._placeholder = placeholder
+        self._type = type
     
     @property
     def kv(self) -> t.Tuple[str, str]:
@@ -105,6 +109,9 @@ class MainRow(Widget):
                 label.styles.content_align_vertical = 'middle'
                 # label.styles.dock = 'left'
                 label.styles.text_align = 'right'
+                if self._type == 'opt':
+                    label.styles.color = 'gray'
+                    # label.styles.text_style = 'dim'
             
             with Input() as input_:
                 input_.styles.width = '50%'
