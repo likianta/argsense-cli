@@ -1,5 +1,5 @@
-from __future__ import annotations
-
+import os
+import re
 import typing as t
 
 from . import config
@@ -8,12 +8,12 @@ from .parser.func_parser import T as T0
 
 
 class T:
-    ParamType1 = T0.ParamType  # literal
+    ParamType1 = T0.PlainParamType  # literal
     ParamType2 = ParamType  # enum
     Style = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
 
 
-def args_2_cargs(*args, **kwargs) -> list[str]:
+def args_2_cargs(*args, **kwargs) -> t.List[str]:
     """
     example:
         args_2_cargs(
@@ -124,5 +124,59 @@ def cname_to_name(name: str) -> str:
     return name.replace('-', '_')
 
 
+PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(
+    r'^ *-?'
+    r'(?:[0-9]+'
+    r'|[0-9]*\.[0-9]+'
+    r'|0b[01]+'
+    r'|0x[0-9a-fA-F]+'
+    r') *$'
+)
+
+SPECIAL_ARGS = {
+    ':true' : True,
+    ':false': False,
+    # ':t': True,
+    # ':f': False,
+    ':none' : None,
+    ':cwd'  : os.getcwd(),
+}
+
+
 def cval_to_val(value: str, type: ParamType) -> t.Any:
-    pass
+    if value in SPECIAL_ARGS:
+        value = SPECIAL_ARGS[value]
+    
+    # print(':v', arg, type(arg), type, type(type))
+    if isinstance(value, str):
+        assert type in (
+            ParamType.TEXT, ParamType.NUMBER, ParamType.ANY
+        )
+        if type == ParamType.TEXT:
+            return value
+        elif type == ParamType.NUMBER:
+            assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value)
+            return eval(value)
+        else:
+            if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value):
+                return eval(value)
+            else:
+                return value
+    elif isinstance(value, bool):
+        # warning: bool type is also an "int" type. so
+        # `isinstance(True, int)` returns True.
+        # to avoid this weird behavior, we must check
+        # `isinstance(arg, bool)` before `isinstance(arg, int)`.
+        assert type in (
+            ParamType.FLAG, ParamType.BOOL, ParamType.ANY
+        )
+    elif isinstance(value, (int, float)):
+        assert type in (
+            ParamType.NUMBER, ParamType.ANY
+        )
+    elif value is None:
+        assert type in (
+            ParamType.ANY,
+        )
+    
+    return value

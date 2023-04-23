@@ -61,7 +61,6 @@ class CommandLineInterface:
         self.name = name
         self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
-        self._global_options = GlobalOptions()
     
     # -------------------------------------------------------------------------
     
@@ -155,26 +154,23 @@ class CommandLineInterface:
             argv=sys.argv,
             mode=cmd_mode,
             front_matter={
-                'args'  : {} if func is None else {
+                'args': {
                     k: v['ctype']
-                    for k, v in func_info.args.items()
+                    for k, v in (
+                        {} if func_info is None
+                        else func_info.args
+                    ).items()
                 },
-                'kwargs': (
-                    self._global_options.name_2_type if func is None
-                    else {
-                        **self._global_options.name_2_type,
-                        **{k: v['ctype']
-                           for k, v in func_info.kwargs.items()}
-                    }
-                ),
+                'kwargs': {
+                    k: v['ctype']
+                    for k, v in (
+                        FuncInfo.global_kwargs() if func_info is None
+                        else func_info.kwargs
+                    ).items()
+                },
                 'index' : (
-                    self._global_options.cname_2_name if func is None
-                    else {
-                        **self._global_options.cname_2_name,
-                        **{n: k
-                           for k, v in func_info.kwargs.items()
-                           for n in v['cname'].split(',')}
-                    }
+                    FuncInfo.global_cname_2_name() if func_info is None
+                    else func_info.cname_2_name
                 )
             }
         )
@@ -232,24 +228,6 @@ class CommandLineInterface:
                     renderer.render_cli(self, func, show_func_name_in_title=True)
                 else:
                     console.print_exception()
-
-
-class GlobalOptions:
-    cname_2_name = {
-        '--:help' : ':help',
-        '-:h'     : ':help',
-        '--help'  : ':help',
-        '-h'      : ':help',
-        '--:helpx': ':helpx',
-        '-:hh'    : ':helpx',
-        '--helpx' : ':helpx',
-        '-hh'     : ':helpx',
-    }
-    
-    name_2_type = {
-        ':help' : ParamType.FLAG,
-        ':helpx': ParamType.FLAG,
-    }
 
 
 cli = CommandLineInterface(name='argsense-cli')

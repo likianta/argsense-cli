@@ -1,6 +1,7 @@
 from . import args_parser
 from . import docs_parser
 from . import func_parser
+from .args_parser import ParamType
 from .args_parser import extract_command_name
 from .args_parser import parse_argstring
 from .args_parser import parse_argv

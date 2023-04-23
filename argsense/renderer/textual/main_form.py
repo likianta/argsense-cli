@@ -2,11 +2,17 @@ from textual import widgets as w
 from textual.app import ComposeResult
 from textual.containers import Container
 from textual.widget import Widget
-from textual.widgets import Input
-from textual.widgets import Static
 
 from .typehint import T
 from .typehint import t
+from ...converter import cval_to_val
+from ...parser import ParamType
+
+
+class E:
+    class Undefined: ...  # TODO: not used yet
+    
+    class UnfilledArgument(Exception): ...
 
 
 class MainFormContainer(Widget):
@@ -26,9 +32,12 @@ class MainFormContainer(Widget):
                 with MainForm(f'form-{i}', info) as form:
                     form.styles.width = '100%'
                     form.styles.height = 'auto'
-        
         self.control = switcher
         yield switcher
+    
+    def get_exec(self) -> t.Callable:
+        form: MainForm = self.query_one('#' + self.control.current)
+        return form.get_exec()
     
     def run(self) -> t.Any:
         form: MainForm = self.query_one('#' + self.control.current)
@@ -44,57 +53,90 @@ class MainForm(Widget):
     
     def compose(self) -> ComposeResult:
         with Container() as container:
-            for key, dict_ in self._func_info['args'].items():
+            for key, dict_ in self._func_info.args.items():
+                if key.startswith('*'):
+                    continue
                 with MainRow(
-                        type='arg',
-                        key=key,
                         label=dict_['cname'],
-                        placeholder=dict_['ctype'].name,
+                        param_name=key,
+                        param_type='arg',
+                        value_default='',
+                        value_type=dict_['ctype'],
                 ) as row:
                     row.styles.height = 3
-            for key, dict_ in self._func_info['kwargs'].items():
+            # print(self._func_info.kwargs, ':vl')
+            for key, dict_ in self._func_info.kwargs.items():
+                if key.startswith((':', '*')):
+                    continue
                 with MainRow(
-                        type='opt',
-                        key=key,
                         label=dict_['cname'].lstrip('-'),
-                        placeholder=dict_['ctype'].name,
-                        value=str(dict_['default']),
+                        param_name=key,
+                        param_type='opt',
+                        value_default=str(dict_['default']),
+                        value_type=dict_['ctype'],
                 ) as row:
                     row.styles.height = 3
         self.control = container
         yield container
     
     def grab_data(self) -> dict:
-        return dict((x.kv for x in self.control.children))
-        # return dict((x.kv for x in self.children[0].children))
+        row: MainRow
+        out = {}
+        for row in self.control.children:
+            if (value := row.value) is MainRow.Undefined:
+                if row.row_type == 'arg':
+                    raise E.UnfilledArgument('unfilled argument', row.key)
+                else:
+                    continue
+            out[row.key] = value
+        print(out, ':l')
+        return out
+    
+    def get_exec(self) -> t.Callable:
+        from functools import partial
+        return partial(self._func_info.target, **self.grab_data())
     
     def exec(self) -> t.Any:
-        return self._func_info['func'](**self.grab_data())
+        from textual.app import active_app
+        target = self._func_info.target
+        params = self.grab_data()
+        active_app.get().exit(0)
+        return target(**params)
 
 
 class MainRow(Widget):
+    class Undefined:
+        pass
     
     def __init__(
             self,
-            type: str,  # 'arg' or 'opt'
-            key: str,
             label: str,
-            placeholder: str,
-            value: str = '',
+            param_name: str,
+            param_type: t.Literal['arg', 'opt'],
+            value_default: str,
+            value_type: ParamType,
             help: str = '[?]',
     ) -> None:
         super().__init__()
-        self.key = key
+        self.key = param_name
         self.label = label
-        self._default = value
+        self.row_type = param_type
+        self._default = value_default
         self._help = help
         self._input = None
-        self._placeholder = placeholder
-        self._type = type
+        self._placeholder = value_type.name
+        self._type = value_type
     
     @property
-    def kv(self) -> t.Tuple[str, str]:
-        return self.key, self._input.value
+    def kv(self) -> t.Tuple[str, t.Any]:
+        return self.key, self.value
+    
+    @property
+    def value(self) -> t.Union[t.Any, 'MainRow.Undefined']:
+        if self._input.value:
+            return cval_to_val(self._input.value, self._type)
+        else:
+            return MainRow.Undefined
     
     def compose(self) -> ComposeResult:
         with Container() as row:
@@ -102,25 +144,25 @@ class MainRow(Widget):
             row.styles.height = 3
             row.styles.layout = 'horizontal'
             
-            with Static(self.label + ': ') as label:
+            with w.Static(self.label + ': ') as label:
                 label.styles.width = 10
                 label.styles.height = 3
                 label.styles.align = ('right', 'middle')
                 label.styles.content_align_vertical = 'middle'
                 # label.styles.dock = 'left'
                 label.styles.text_align = 'right'
-                if self._type == 'opt':
+                if self.row_type == 'opt':
                     label.styles.color = 'gray'
                     # label.styles.text_style = 'dim'
             
-            with Input() as input_:
+            with w.Input() as input_:
                 input_.styles.width = '50%'
                 input_.styles.height = '100%'
                 input_.placeholder = self._placeholder
                 input_.value = self._default
                 self._input = input_
             
-            with Static(self._help) as help:
+            with w.Static(self._help) as help:
                 help.styles.width = 5
                 help.styles.height = 3
                 # help.styles.background = '#e15827'
