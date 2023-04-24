@@ -13,7 +13,8 @@ _cli = CommandLineInterface('argsense-launcher')
 @_cli.cmd()
 def help() -> None:
     """
-    py -m argsense help
+    the detailed help message for using argsense cli.
+    :point_right: [magenta]`py -m argsense help`[/]
     """
     rprint(Markdown(dedent('''
         # Argsense Help
@@ -86,18 +87,21 @@ def help() -> None:
 
 
 @_cli.cmd()
-def cli() -> None:
+def cli(*_) -> None:
     """
-    py -m argsense cli <target> <params>
+    run argsense in CLI mode.
+    :point_right: [magenta]`py -m argsense cli [yellow i]target[/] -
+    [default dim i]params[/]`[/]
     """
     os.environ['ARGSENSE_UI_MODE'] = 'CLI'
     _run()
 
 
 @_cli.cmd()
-def tui() -> None:
+def tui(*_) -> None:
     """
-    py -m argsense tui <target> <params>
+    run argsense in TUI mode.
+    :point_right: [magenta]`py -m argsense tui [yellow dim i]target[/]`[/]
     """
     os.environ['ARGSENSE_UI_MODE'] = 'TUI'
     _run()
@@ -105,6 +109,8 @@ def tui() -> None:
 
 def _run() -> None:
     # print(sys.argv, ':vf2')
+    #   e.g. ['<argsense>/__main__.py', 'tui', ...]
+    sys.argv.pop(0)
     sys.argv.pop(0)
     # print(':f2sl', loads(sys.argv[0], 'plain'))
     with open(sys.argv[0], 'r') as f:
