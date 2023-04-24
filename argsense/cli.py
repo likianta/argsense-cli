@@ -199,16 +199,21 @@ class CommandLineInterface:
             """
             return: (has_help, help_type, is_explicit)
             """
+            has_implicit = False
             if ':helpx' in result['kwargs'] or ':help' in result['kwargs']:
                 for h in (':helpx', ':help'):
-                    if result['kwargs'][h]:  # explicit
-                        if consider_transport_action:
-                            return False, h, True
-                        return True, h, True
-                    else:  # implicit, continue to check next
-                        continue
-                else:
+                    if h in result['kwargs']:
+                        if result['kwargs'][h]:  # explicit
+                            if consider_transport_action:
+                                return False, h, True
+                            return True, h, True
+                        else:  # implicit, continue to check next
+                            has_implicit = True
+                            continue
+                if has_implicit:
                     return True, ':help', False
+                else:
+                    return False, '', False
             else:
                 return False, '', False
         
