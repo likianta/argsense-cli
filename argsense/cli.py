@@ -22,9 +22,11 @@ class T:
     _ParamName = str
     _ParamType = ParamType
     
+    # TODO: use 'grp', 'cmd' instead?
+    CmdMode = t.Literal['group', 'command']
+    TuiMode = t.Literal['auto', 'close', 'force']
     Func = t.Callable
     FuncInfo = FuncInfo
-    Mode = t.Literal['group', 'command']
     
     CommandsCollect = t.Dict[_FunctionId, FuncInfo]
 
@@ -99,11 +101,42 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     # run
     
-    def run(self, func: T.Func = None, tui_mode: bool = None) -> None:
+    def run_cli(self, func: T.Func = None) -> None:
+        self.run(func, tui_mode='close')
+    
+    def run_tui(self, func: T.Func = None) -> None:
+        self.run(func, tui_mode='force')
+    
+    def run(
+            self,
+            func: T.Func = None,
+            tui_mode: T.TuiMode = 'auto'
+    ) -> None:
         config.apply_changes()
-        cmd_mode: T.Mode = 'group' if not func else 'command'  # noqa
-        if tui_mode is None:
-            tui_mode = os.getenv('ARGSENSE_TUI')  # bool-like type
+        cmd_mode: T.CmdMode = 'group' if not func else 'command'  # noqa
+        
+        def update_ui_mode() -> None:
+            nonlocal tui_mode
+            if force_mode := os.getenv('ARGSENSE_UI_MODE'):
+                assert force_mode in ('CLI', 'TUI')
+                old_mode = {'force': 'TUI', 'close': 'CLI',
+                            'auto' : 'auto'}[tui_mode]
+                new_mode = force_mode
+                if old_mode == new_mode:
+                    return
+                if old_mode != 'auto':
+                    print(
+                        'argsense ui mode is force changed by environment '
+                        'variable: [red]{}[/] -> [green]{}[/]'.format(
+                            old_mode, new_mode
+                        ), ':v3sp2r'
+                    )
+                tui_mode = 'force' if new_mode == 'TUI' else 'close'
+                os.environ['ARGSENSE_UI_MODE'] = ''  # "pop" key
+        
+        update_ui_mode()
+        
+        # ---------------------------------------------------------------------
         
         def auto_detect_func_from_argv() -> t.Optional[T.Func]:
             # try to find the command name from argv
@@ -132,7 +165,7 @@ class CommandLineInterface:
             argv=sys.argv,
             mode=cmd_mode,
             front_matter={
-                'args': {
+                'args'  : {
                     k: v['ctype']
                     for k, v in (
                         {} if func_info is None
@@ -159,62 +192,27 @@ class CommandLineInterface:
             if func:
                 func_info = self.commands[id(func)]
         
-        # PERF: the spaghetti code is ugly.
-        if func is None:
-            if tui_mode:
-                """
-                # if user explicitly passes `--help` or `-h`
-                argsense xxx.py -h  # turn off TUI mode and show CLI panel
-                # if doesn't
-                argsense xxx.py     # regularly launch TUI
-                """
-                for h in (':helpx', ':help'):
-                    if h in result['kwargs']:
-                        if result['kwargs'][h]:  # explicit
-                            if h == ':help':
-                                renderer.render_cli(
-                                    self, func, show_func_name_in_title=bool(
-                                        cmd_mode == 'group'
-                                    )
-                                )
-                            else:
-                                renderer.render_cli_2(self)
-                        else:  # implicit
-                            renderer.launch_tui(tuple(self.commands.values()))
-                        return
-                else:  # same as implicit
-                    renderer.launch_tui(tuple(self.commands.values()))
-            else:
-                if ':helpx' in result['kwargs']:
-                    renderer.render_cli_2(self)
-                else:
-                    renderer.render_cli(
-                        self, func, show_func_name_in_title=bool(
-                            cmd_mode == 'group'
-                        )
-                    )
-        else:
-            # here, `:helpx` is downgraded to what `:help` does.
-            # i.e. they are same, and possibly `:helpx` is an user typo.
+        # ---------------------------------------------------------------------
+        
+        def get_help_option(consider_transport_action=False) \
+                -> t.Tuple[bool, str, bool]:
+            """
+            return: (has_help, help_type, is_explicit)
+            """
             if ':helpx' in result['kwargs'] or ':help' in result['kwargs']:
-                if '**' in func_info.kwargs:
-                    if not func_info.transport_help:
-                        if tui_mode:
-                            renderer.launch_tui((func_info,))
-                        else:
-                            renderer.render_cli(
-                                self, func, show_func_name_in_title=True
-                            )
-                        return
+                for h in (':helpx', ':help'):
+                    if result['kwargs'][h]:  # explicit
+                        if consider_transport_action:
+                            return False, h, True
+                        return True, h, True
+                    else:  # implicit, continue to check next
+                        continue
                 else:
-                    if tui_mode:
-                        renderer.launch_tui((func_info,))
-                    else:
-                        renderer.render_cli(
-                            self, func, show_func_name_in_title=True
-                        )
-                    return
-            
+                    return True, ':help', False
+            else:
+                return False, '', False
+        
+        def call_func() -> None:
             try:
                 func(*result['args'].values(), **result['kwargs'])
             except Exception:
@@ -225,9 +223,69 @@ class CommandLineInterface:
                     )
                 else:
                     console.print_exception()
-
-    def run_ui(self, func: T.Func = None) -> None:
-        self.run(func, tui_mode=True)
+        
+        # PERF: the spaghetti code is ugly.
+        if func is None:
+            if tui_mode == 'force':
+                renderer.launch_tui(tuple(self.commands.values()))
+            elif tui_mode == 'close':
+                if ':helpx' in result['kwargs']:
+                    renderer.render_cli_2(self)
+                else:
+                    renderer.render_cli(
+                        self, func, show_func_name_in_title=bool(
+                            cmd_mode == 'group'
+                        )
+                    )
+            else:
+                """
+                # if user explicitly passes `--help` or `-h`
+                argsense xxx.py -h  # turn off TUI mode and show CLI panel
+                argsense xxx.py     # launch TUI
+                """
+                has_help, help_type, is_explicit = get_help_option()
+                if has_help:
+                    if is_explicit:
+                        if help_type == ':helpx':
+                            renderer.render_cli_2(self)
+                        else:
+                            renderer.render_cli(
+                                self, func, show_func_name_in_title=bool(
+                                    cmd_mode == 'group'
+                                )
+                            )
+                        return
+                renderer.launch_tui(tuple(self.commands.values()))
+        else:
+            # here, `:helpx` is downgraded to what `:help` does.
+            # i.e. they have same effect, and possibly `:helpx` is an user typo.
+            if tui_mode == 'force':
+                renderer.launch_tui((func_info,))
+                return
+            has_help, help_type, is_explicit = get_help_option(
+                consider_transport_action=(
+                        '**' in func_info.kwargs
+                        and func_info.transport_help
+                )
+            )
+            if tui_mode == 'close':
+                if has_help:
+                    renderer.render_cli(
+                        self, func, show_func_name_in_title=True
+                    )
+                else:
+                    call_func()
+            else:
+                if has_help:
+                    if is_explicit:
+                        # ignore `help_type`, because they have same effect.
+                        renderer.render_cli(
+                            self, func, show_func_name_in_title=True
+                        )
+                    else:
+                        renderer.launch_tui((func_info,))
+                else:
+                    call_func()
 
 
 cli = CommandLineInterface(name='argsense-cli')

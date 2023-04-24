@@ -7,14 +7,14 @@ TODO:
         PRETTY_ERROR
         USE_RICH_MARKUP
 """
+import typing as t
 
 
 class T:
-    from typing import Literal
-    ArgNameStyle = Literal['AAA_BBB', 'AAA-BBB', 'aaa_bbb', 'aaa-bbb', 'AaaBbb']
-    FallbackType = Literal['any', 'str']
-    OverwrittenScheme = Literal['first', 'last']
-    TitleHeadStyle = Literal['system_dependent', 'fixed']
+    ArgNameStyle = t.Literal['AAA_BBB', 'AAA-BBB', 'aaa_bbb', 'aaa-bbb', 'AaaBbb']
+    FallbackType = t.Literal['any', 'str']
+    OverwrittenScheme = t.Literal['first', 'last']
+    TitleHeadStyle = t.Literal['system_dependent', 'fixed']
 
 
 # appearance style
