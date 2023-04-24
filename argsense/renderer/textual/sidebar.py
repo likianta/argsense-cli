@@ -22,16 +22,18 @@ class Sidebar(Widget):
     
     def compose(self) -> ComposeResult:
         self.styles.width = 'auto'
+        # self.styles.width = self._get_proper_width()
         self.styles.min_width = 20
         self.styles.max_width = 40
         
         with Container() as sidebar:
-            sidebar.styles.width = self._get_proper_width()
+            proper_width = self._get_proper_width()
+            sidebar.styles.width = proper_width
             sidebar.styles.background = '#141a20'
             sidebar.styles.padding = (1, 1)
             
             for i, name in enumerate(self._names):
-                with MyItem(i, name) as item:
+                with MyItem(i, name, proper_width - 2) as item:
                     item.styles.width = '100%'
                     item.clicked.connect(
                         partial(self.clicked, i, item)
@@ -58,10 +60,11 @@ class MyItem(Container):
     # _bg = t.cast(str, Reactive(''))
     _indicator: Static
     
-    def __init__(self, index: int, label: str) -> None:
+    def __init__(self, index: int, label: str, predefined_width) -> None:
         super().__init__()
         self.index = index
         self.label = label
+        self._predefined_width = predefined_width
     
     def activate(self) -> None:
         # self.label = ':point_right: ' + self._label
@@ -75,6 +78,7 @@ class MyItem(Container):
     
     def compose(self) -> ComposeResult:
         # self.styles.layers = ('base', 'floating')
+        self.styles.width = self._predefined_width
         self.styles.height = 3
         self.styles.layout = 'horizontal'
         self.styles.content_align_vertical = 'middle'
@@ -93,8 +97,11 @@ class MyItem(Container):
         
         with Button(self.label) as btn:
             # btn.styles.layer = 'base'
-            btn.styles.width = '90%'
+            # btn.styles.width = '100%'
+            # btn.styles.width = 'auto'
+            btn.styles.width = self._predefined_width - 3
             btn.styles.height = 3
+            # btn.styles.dock = 'right'
             # btn.styles.padding = (0, 0, 0, 2)
             btn.clicked.connect(self.clicked)
         
