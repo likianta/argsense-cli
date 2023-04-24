@@ -18,7 +18,7 @@ class Help(Label):
         self.styles.width = 5
         self.styles.height = 3
         self.styles.content_align_vertical = 'middle'
-        self.styles.text_align = 'center'
+        self.styles.text_align = 'left'
         self._info = info
     
     # def compose(self) -> ComposeResult:

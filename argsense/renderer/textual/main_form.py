@@ -11,7 +11,7 @@ from ...parser import ParamType
 
 
 class E:
-    class Undefined: ...  # TODO: not used yet
+    class Undefined: ...  # TODO: not used yet. see also `MainRow.Undefined`
     
     class UnfilledArgument(Exception): ...
 
@@ -143,6 +143,7 @@ class MainRow(Widget):
         self._help = help
         self._input = None
         self._placeholder = value_type.name
+        self._reqmark: t.Optional[w.Static] = None
         self._type = value_type
         if param_type == 'opt':
             self._placeholder += f'. default {self._default}'
@@ -178,13 +179,27 @@ class MainRow(Widget):
             with w.Input() as input_:
                 input_.styles.width = '50%'
                 input_.styles.height = '100%'
+                # input_.styles.border = ('round', '#406FCE')
                 input_.placeholder = self._placeholder
                 input_.value = self._default
                 self._input = input_
             
+            with w.Static() as reqmark:
+                reqmark.styles.width = 1
+                reqmark.styles.height = 1
+                if self.row_type == 'arg':
+                    reqmark.update('*')
+                    reqmark.styles.color = 'red'
+                    self._reqmark = reqmark
+                # else: it is a placeholder with nothing to do
+            
             yield Help(self._help)
         
         yield row
+    
+    def on_input_changed(self, e: w.Input.Changed) -> None:
+        if self._reqmark:
+            self._reqmark.styles.color = 'grey' if e.value else 'red'
     
     def get_value(self) -> str:
         return self._input.value
