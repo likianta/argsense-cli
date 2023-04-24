@@ -224,6 +224,9 @@ def str_2_val(value: str, type_: ParamType) -> t.Any:
         
         return value
     
+    if value == ':none':
+        return None
+    
     if type_ in (ParamType.BOOL, ParamType.FLAG):
         if value.strip().lower() in ('false', ':false', 'f', ':f', '0'):
             return False
