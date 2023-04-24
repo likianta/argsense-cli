@@ -202,7 +202,7 @@ class MainRow(Widget):
                 if self.row_type == 'opt':
                     label.styles.color = 'gray'
                     # label.styles.text_style = 'dim'
-                if len(self.label) + 2 > self._label_width:
+                if len(self.label) > self._label_width:
                     label.update('{}{}{}{}'.format(
                         self.label[:self._label_width - 3],
                         '[#7C7777]{}[/]'.format(

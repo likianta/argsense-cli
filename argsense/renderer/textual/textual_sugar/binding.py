@@ -9,16 +9,16 @@ from .signal import Signal
 _grafted = set()
 
 
-def bind_signal(signal: t.Union[t.Callable, Signal],
+def bind_signal(emitter: t.Union[t.Callable, Signal],
                 emit_now=False) -> Callable:
-    assert isinstance(signal, Signal)
+    assert isinstance(emitter, Signal)
     
     def decorator(func):
-        uid = (id(signal), id(func))
+        uid = (id(emitter), id(func))
         if uid in _grafted:
             return func
         _grafted.add(uid)
-        signal.connect(func)  # noqa
+        emitter.connect(func)  # noqa
         if emit_now:
             # signal.emit()
             func()  # FIXME: what about args and kwargs?
