@@ -7,5 +7,6 @@ from .logger import log
 from .logger import logger
 from .signal import Signal
 from .widgets import Button
+from .widgets import Container
 from .widgets import FlatButton
 from .widgets import Widget

@@ -4,11 +4,16 @@ from rich.text import Text
 from rich.text import TextType
 from textual import events
 from textual import widgets as w
+from textual.containers import Container as BaseContainer
 from textual.reactive import reactive
 from textual.widget import Widget as BaseWidget
 
 from .signal import Signal
 from .signal import SignalInit
+
+
+class Container(BaseContainer, SignalInit):
+    pass
 
 
 class Widget(BaseWidget, SignalInit):

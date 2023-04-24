@@ -49,6 +49,7 @@ class SignalInit:
     """
     
     def __new__(cls, *_, **__):
+        # FIXME: the descendants may behave wrong.
         new_attrs = {}
         for k, v in cls.__dict__.items():
             if isinstance(v, Signal):

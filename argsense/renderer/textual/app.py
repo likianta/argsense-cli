@@ -15,6 +15,7 @@ from .sidebar import Sidebar
 from .textual_sugar import FlatButton
 from .textual_sugar import add_post_exec
 from .textual_sugar import bind_signal
+from .textual_sugar import log
 from .textual_sugar import post_exec
 from .typehint import T
 
@@ -26,7 +27,7 @@ def run(funcs_info: T.FuncsInfo) -> t.Any:
 
 
 class MyApp(App):
-    _log: t.Callable[[str], None]
+    # _log: t.Callable[[str], None]
     # _main_form: MainFormContainer
     
     def __init__(self, funcs_info: T.FuncsInfo) -> None:
@@ -94,7 +95,6 @@ class MyApp(App):
                         
                         from .textual_sugar import logger as back_logger
                         back_logger.streamed.connect(log.write)
-                        self._log = log.write  # noqa
         
         with w.TextLog() as full_log:
             full_log.styles.layer = 'full_log'
@@ -116,6 +116,6 @@ class MyApp(App):
             main_desc: MainDesc,
             main_form: MainFormContainer,
     ) -> None:
-        self._log(f'load form {idx}')
+        log(f'selected item {idx + 1}')
         main_desc.update(self._funcs_info[idx].desc)
         main_form.control.current = f'form-{idx}'
