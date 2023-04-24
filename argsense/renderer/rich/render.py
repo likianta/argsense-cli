@@ -5,16 +5,23 @@ import typing as t
 from . import artist
 from .artist import palette
 from ... import config
+from ...cli import CommandLineInterface
 from ...console import console
+from ...parser import FuncInfo
 
 
-def render(self, func, **kwargs):
+def render(
+        self: CommandLineInterface,
+        func: t.Optional[t.Callable],
+        **kwargs
+) -> None:
     """
-            reference: [lib:click/core.py : BaseCommand.main()]
+    reference: [lib:click/core.py : BaseCommand.main()]
 
-            kwargs:
-                show_func_name_in_title: bool[default True]
-            """
+    kwargs:
+        show_func_name_in_title: bool[default True]
+    """
+    func_info: FuncInfo
     is_group: bool
     has_args: bool
     has_kwargs: bool
@@ -35,26 +42,26 @@ def render(self, func, **kwargs):
         
         console.print(
             artist.draw_commands_panel((
-                (v['cname'], v['desc'])  # noqa
+                (v.name, v.desc)
                 for v in self.commands.values()
             ))
         )
     
     else:
         func_info = self.commands[id(func)]
-        desc = func_info['desc']
+        desc = func_info.desc
         is_group = False
-        has_args = bool(func_info['args'])
-        has_kwargs = bool(func_info['kwargs'])
+        has_args = bool(func_info.args)
+        has_kwargs = bool(func_info.local_kwargs)
         
         # experimental
         if config.ALIGN_ARGS_AND_OPTS_FIELD_WIDTH:
             if has_args and has_kwargs:
                 config.Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
                     *map(len, (x['cname']
-                               for x in func_info['args'].values())),
+                               for x in func_info.args.values())),
                     *map(len, (x['cname'].replace(',', ', ')
-                               for x in func_info['kwargs'].values())),
+                               for x in func_info.local_kwargs.values())),
                 ))
                 # print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
         
@@ -63,15 +70,15 @@ def render(self, func, **kwargs):
             console.print(
                 artist.draw_title(
                     prog_name=_detect_program_name(),
-                    func_name=func_info['cname']
+                    func_name=func_info.name
                     if kwargs.get('show_func_name_in_title', True)
                     else '',
                     args=tuple(
-                        v['cname'] for v in func_info['args'].values()
+                        v['cname'] for v in func_info.args.values()
                     ),
                     kwargs=tuple(
                         v['cname'].split(',', 1)[0]
-                        for v in func_info['kwargs'].values()
+                        for v in func_info.local_kwargs.values()
                     )
                 ), justify='center'
             )
@@ -82,15 +89,15 @@ def render(self, func, **kwargs):
                 '',
                 indent(artist.draw_title(
                     prog_name=_detect_program_name(),
-                    func_name=func_info['cname']
+                    func_name=func_info.name
                     if kwargs.get('show_func_name_in_title', True)
                     else '',
                     args=tuple(
-                        v['cname'] for v in func_info['args'].values()
+                        v['cname'] for v in func_info.args.values()
                     ),
                     kwargs=tuple(
                         v['cname'].split(',', 1)[0]
-                        for v in func_info['kwargs'].values()
+                        for v in func_info.local_kwargs.values()
                     ),
                     add_serif_line=True,
                 ), '    '),
@@ -98,7 +105,7 @@ def render(self, func, **kwargs):
                 ''
             )))
         
-        if args := func_info['args']:
+        if args := func_info.args:
             console.print(
                 artist.draw_arguments_panel((
                     (v['cname'], v['ctype'].name, v['desc'])
@@ -106,7 +113,7 @@ def render(self, func, **kwargs):
                 ))
             )
         
-        if kwargs := func_info['kwargs']:
+        if kwargs := func_info.local_kwargs:
             console.print(
                 artist.draw_options_panel((
                     (v['cname'].replace(',', ', '),

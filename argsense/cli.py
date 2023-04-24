@@ -5,7 +5,6 @@ import sys
 import typing as t
 
 from . import config
-from . import renderer
 from .console import console
 from .parser import FuncInfo
 from .parser import parse_argv
@@ -193,6 +192,7 @@ class CommandLineInterface:
                 func_info = self.commands[id(func)]
         
         # ---------------------------------------------------------------------
+        from . import renderer
         
         def get_help_option(consider_transport_action=False) \
                 -> t.Tuple[bool, str, bool]:

@@ -115,6 +115,10 @@ class FuncInfo:
                 'default' : default,
             }
     
+    @property
+    def local_kwargs(self) -> T.KwArgsInfo:
+        return {k: v for k, v in self.kwargs.items() if not k.startswith(':')}
+    
     def _append_cname(self, name: str, cname: str) -> None:
         assert cname not in self.cname_2_name, (
             f'duplicate cname: `{cname}` (for `{name}`). '
