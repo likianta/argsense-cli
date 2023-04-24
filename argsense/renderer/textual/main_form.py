@@ -17,6 +17,13 @@ class E:
     class UnfilledArgument(Exception): ...
 
 
+def _get_proper_width(text_list: t.Sequence[str], limit: int = 0) -> int:
+    max_ = max(map(len, text_list))
+    if limit and max_ > limit:
+        return limit
+    return max_
+
+
 class MainFormContainer(Widget):
     control: w.ContentSwitcher
     
@@ -56,6 +63,11 @@ class MainForm(Widget):
     def compose(self) -> ComposeResult:
         with Container() as container:
             has_child = False
+            label_width = _get_proper_width(
+                (*self._func_info.args.keys(),
+                 *self._func_info.kwargs.keys()),
+                limit=20
+            ) + 1
             
             for key, dict_ in self._func_info.args.items():
                 if key.startswith('*'):
@@ -68,6 +80,7 @@ class MainForm(Widget):
                         value_default='',
                         value_type=dict_['ctype'],
                         help=dict_['desc'],
+                        label_width=label_width,
                 ) as row:
                     row.styles.height = 3
             
@@ -82,6 +95,7 @@ class MainForm(Widget):
                         value_default=dict_['default'],
                         value_type=dict_['ctype'],
                         help=dict_['desc'],
+                        label_width=label_width,
                 ) as row:
                     row.styles.height = 3
             
@@ -135,6 +149,7 @@ class MainRow(Widget):
             value_default: t.Any,
             value_type: ParamType,
             help: str,
+            **kwargs
     ) -> None:
         super().__init__()
         self.key = param_name
@@ -143,6 +158,7 @@ class MainRow(Widget):
         self._default = value_default
         self._help = help
         self._input = None
+        self._label_width = kwargs.get('label_width', 10)
         self._placeholder = value_type.name
         self._reqmark: t.Optional[w.Static] = None
         self._type = value_type
@@ -175,16 +191,30 @@ class MainRow(Widget):
             row.styles.height = 3
             row.styles.layout = 'horizontal'
             
-            with w.Static(self.label + ': ') as label:
-                label.styles.width = 10
-                label.styles.height = 3
+            with w.Static(self.label + ': ', shrink=True) as label:
+                label.styles.width = self._label_width
+                label.styles.height = 1
                 label.styles.align = ('right', 'middle')
                 label.styles.content_align_vertical = 'middle'
+                label.styles.margin = (1, 0)
                 # label.styles.dock = 'left'
                 label.styles.text_align = 'right'
                 if self.row_type == 'opt':
                     label.styles.color = 'gray'
                     # label.styles.text_style = 'dim'
+                if len(self.label) + 2 > self._label_width:
+                    label.update('{}{}{}{}'.format(
+                        self.label[:self._label_width - 3],
+                        '[#7C7777]{}[/]'.format(
+                            self.label[self._label_width - 3]
+                        ),
+                        '[#5E5D5D]{}[/]'.format(
+                            self.label[self._label_width - 2]
+                        ),
+                        '[#3B3939]{}[/]'.format(
+                            self.label[self._label_width - 1]
+                        ),
+                    ))
             
             with w.Input() as input_:
                 input_.styles.width = '50%'
