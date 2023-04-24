@@ -6,7 +6,8 @@ from textual.widget import Widget
 from .tooltip import Help
 from .typehint import T
 from .typehint import t
-from ...converter import cval_to_val
+from ...converter import str_2_val
+from ...converter import val_2_str
 from ...parser import ParamType
 
 
@@ -78,7 +79,7 @@ class MainForm(Widget):
                         label=dict_['cname'].lstrip('-'),
                         param_name=key,
                         param_type='opt',
-                        value_default=str(dict_['default']),
+                        value_default=dict_['default'],
                         value_type=dict_['ctype'],
                         help=dict_['desc'],
                 ) as row:
@@ -131,7 +132,7 @@ class MainRow(Widget):
             label: str,
             param_name: str,
             param_type: t.Literal['arg', 'opt'],
-            value_default: str,
+            value_default: t.Any,
             value_type: ParamType,
             help: str,
     ) -> None:
@@ -146,7 +147,9 @@ class MainRow(Widget):
         self._reqmark: t.Optional[w.Static] = None
         self._type = value_type
         if param_type == 'opt':
-            self._placeholder += f'. default {self._default}'
+            self._placeholder += '. default {}'.format(
+                val_2_str(self._default, self._type)
+            )
     
     @property
     def kv(self) -> t.Tuple[str, t.Any]:
@@ -155,9 +158,16 @@ class MainRow(Widget):
     @property
     def value(self) -> t.Union[t.Any, 'MainRow.Undefined']:
         if self._input.value:
-            return cval_to_val(self._input.value, self._type)
+            return self._eval_input_value(self._input.value, self._type)
+        elif self.row_type == 'opt':
+            return self._default
         else:
             return MainRow.Undefined
+        
+    def _eval_input_value(self, value: str, type_: ParamType) -> t.Any:
+        if type_ != ParamType.TEXT and not value.strip():
+            return self._default
+        return str_2_val(value, type_)
     
     def compose(self) -> ComposeResult:
         with Container() as row:
@@ -181,7 +191,7 @@ class MainRow(Widget):
                 input_.styles.height = '100%'
                 # input_.styles.border = ('round', '#406FCE')
                 input_.placeholder = self._placeholder
-                input_.value = self._default
+                input_.value = val_2_str(self._default, self._type)
                 self._input = input_
             
             with w.Static() as reqmark:

@@ -210,9 +210,9 @@ def extract_command_name(argv: t.List[str]) -> t.Optional[str]:
 
 def _eval_arg(arg: str, possible_type: ParamType) -> t.Any:
     # print(':pv', arg, possible_type)
-    from ...converter import cval_to_val
+    from ...converter import cval_2_val
     try:
-        return cval_to_val(arg, possible_type)
+        return cval_2_val(arg, possible_type)
     except AssertionError:
         raise e.TypeConversionError(
             expected_type=possible_type.name,

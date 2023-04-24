@@ -50,8 +50,8 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
     """
     convert param name from python style to cli style.
     
-    style   input       output (default)
-    -----   ----------  ----------------
+    style   input       output
+    -----   ----------  ---------
     arg     aaa_bbb     aaa-bbb
     arg     _aaa_bbb    aaa-bbb
     arg     __aaa_bbb   aaa-bbb
@@ -69,10 +69,11 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
     note:
         the output is forced lower case, no matter what the case of `name` is.
     
-    TODO:
+    warning:
         be careful using `xxx_`, `_xxx`, etc. in the same function. it produces
         duplicate cnames and causes unexpected behavior!
-        we will add a checker in future version.
+        `./parser/func_parser.py : class FuncInfo : def _append_cname()` will
+        raise an error if this happens.
     """
     if name in ('*', '**'):
         return name
@@ -118,6 +119,21 @@ def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
     }.get(t, ParamType.ANY)
 
 
+def val_2_str(value: t.Any, type_: ParamType) -> str:
+    assert type_ not in (ParamType.DICT, ParamType.LIST), (
+        'the complex type is not implemented', type_
+    )
+    conv = {
+        None : ':none',
+        True : ':true',
+        False: ':false',
+    }
+    if value in conv:
+        return conv[value]
+    else:
+        return str(value)
+
+
 # -----------------------------------------------------------------------------
 
 def cname_to_name(name: str) -> str:
@@ -143,18 +159,18 @@ SPECIAL_ARGS = {
 }
 
 
-def cval_to_val(value: str, type: ParamType) -> t.Any:
+def cval_2_val(value: str, type_: ParamType) -> t.Any:
     if value in SPECIAL_ARGS:
         value = SPECIAL_ARGS[value]
     
     # print(':v', arg, type(arg), type, type(type))
     if isinstance(value, str):
-        assert type in (
+        assert type_ in (
             ParamType.TEXT, ParamType.NUMBER, ParamType.ANY
         )
-        if type == ParamType.TEXT:
+        if type_ == ParamType.TEXT:
             return value
-        elif type == ParamType.NUMBER:
+        elif type_ == ParamType.NUMBER:
             assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value)
             return eval(value)
         else:
@@ -167,16 +183,61 @@ def cval_to_val(value: str, type: ParamType) -> t.Any:
         # `isinstance(True, int)` returns True.
         # to avoid this weird behavior, we must check
         # `isinstance(arg, bool)` before `isinstance(arg, int)`.
-        assert type in (
+        assert type_ in (
             ParamType.FLAG, ParamType.BOOL, ParamType.ANY
         )
     elif isinstance(value, (int, float)):
-        assert type in (
+        assert type_ in (
             ParamType.NUMBER, ParamType.ANY
         )
     elif value is None:
-        assert type in (
+        assert type_ in (
             ParamType.ANY,
         )
     
+    return value
+
+
+def str_2_val(value: str, type_: ParamType) -> t.Any:
+    assert type_ not in (ParamType.DICT, ParamType.LIST), (
+        'the complex type is not implemented', type_
+    )
+    if type_ != ParamType.TEXT:
+        value = value.strip()
+    
+    if type_ in (ParamType.ANY, ParamType.NONE):
+        if not value:
+            return None if type_ == ParamType.NONE else ''
+        
+        if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value):
+            out = eval(value)
+            assert isinstance(out, (int, float))
+            return out
+        
+        value_lower = value.lower()
+        if value_lower in SPECIAL_ARGS:
+            return SPECIAL_ARGS[value_lower]
+        if value_lower in ('true', 'false'):
+            return value_lower == 'true'
+        if value_lower in ('none', 'null'):
+            return None
+        
+        return value
+    
+    if type_ in (ParamType.BOOL, ParamType.FLAG):
+        if value.strip().lower() in ('false', ':false', 'f', ':f', '0'):
+            return False
+        return True
+    
+    if type_ == ParamType.NUMBER:
+        assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value)
+        out = eval(value)
+        assert isinstance(out, (int, float))
+        return out
+    
+    assert type_ == ParamType.TEXT
+    # if ':cwd' in value:  # TODO: use `re` to replace all `:cwd` in `value`
+    #     return SPECIAL_ARGS[':cwd']
+    # else:
+    #     return value
     return value
