@@ -3,6 +3,8 @@ from .binding import bind_signal
 from .binding import connect
 from .chore import add_post_exec
 from .chore import post_exec
+from .logger import log
+from .logger import logger
 from .signal import Signal
 from .widgets import Button
 from .widgets import FlatButton

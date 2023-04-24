@@ -24,7 +24,7 @@ class SignalMeta:  # DELETE: not used. turn to `SignalInit`.
         new_attrs = {}
         for k, v in attrs['__annotations__'].items():
             if v is Signal:
-                print('auto create signal', k, ':v')
+                # print('auto create signal', k, ':v')
                 new_attrs[k] = Signal()
         if new_attrs:
             attrs.update(new_attrs)
@@ -52,7 +52,7 @@ class SignalInit:
         new_attrs = {}
         for k, v in cls.__dict__.items():
             if isinstance(v, Signal):
-                print('auto create owned signal', k, ':v')
+                # print('auto create owned signal', k, ':v')
                 new_attrs[k] = Signal()
         
         obj = super().__new__(cls)

@@ -35,7 +35,7 @@ class MyApp(App):
     
     def compose(self) -> ComposeResult:
         with Screen() as scr:
-            scr.styles.layers = ('main', 'full_log')
+            scr.styles.layers = ('main', 'full_log', 'tooltip')
         
         with Container() as root:
             root.styles.layer = 'main'
@@ -91,6 +91,9 @@ class MyApp(App):
                         # log.styles.dock = 'bottom'
                         log.styles.background = '#282C34'
                         log.styles.border = ('round', '#FEA62B')
+                        
+                        from .textual_sugar import logger as back_logger
+                        back_logger.streamed.connect(log.write)
                         self._log = log.write  # noqa
         
         with w.TextLog() as full_log:

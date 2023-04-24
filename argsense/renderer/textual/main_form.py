@@ -3,6 +3,7 @@ from textual.app import ComposeResult
 from textual.containers import Container
 from textual.widget import Widget
 
+from .tooltip import Help
 from .typehint import T
 from .typehint import t
 from ...converter import cval_to_val
@@ -65,6 +66,7 @@ class MainForm(Widget):
                         param_type='arg',
                         value_default='',
                         value_type=dict_['ctype'],
+                        help=dict_['desc'],
                 ) as row:
                     row.styles.height = 3
             
@@ -78,6 +80,7 @@ class MainForm(Widget):
                         param_type='opt',
                         value_default=str(dict_['default']),
                         value_type=dict_['ctype'],
+                        help=dict_['desc'],
                 ) as row:
                     row.styles.height = 3
             
@@ -130,7 +133,7 @@ class MainRow(Widget):
             param_type: t.Literal['arg', 'opt'],
             value_default: str,
             value_type: ParamType,
-            help: str = '[?]',
+            help: str,
     ) -> None:
         super().__init__()
         self.key = param_name
@@ -179,13 +182,7 @@ class MainRow(Widget):
                 input_.value = self._default
                 self._input = input_
             
-            with w.Static(self._help) as help:
-                help.styles.width = 5
-                help.styles.height = 3
-                # help.styles.background = '#e15827'
-                help.styles.content_align_vertical = 'middle'
-                # help.styles.dock = 'right'
-                help.styles.text_align = 'center'
+            yield Help(self._help)
         
         yield row
     
