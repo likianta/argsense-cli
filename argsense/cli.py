@@ -153,7 +153,8 @@ class CommandLineInterface:
                     sys.exit(1)
             return None
         
-        func = auto_detect_func_from_argv()
+        if func is None:
+            func = auto_detect_func_from_argv()
         
         # ---------------------------------------------------------------------
         
@@ -230,6 +231,7 @@ class CommandLineInterface:
                     console.print_exception()
         
         # PERF: the spaghetti code is ugly.
+        # print(func, ':v')
         if func is None:
             if tui_mode == 'force':
                 renderer.launch_tui(tuple(self.commands.values()))
@@ -242,25 +244,38 @@ class CommandLineInterface:
                             cmd_mode == 'group'
                         )
                     )
+            # else:
+            #     """
+            #     # if user explicitly passes `--help` or `-h`
+            #     argsense xxx.py -h  # turn off TUI mode and show CLI panel
+            #     argsense xxx.py     # launch TUI
+            #     """
+            #     has_help, help_type, is_explicit = get_help_option()
+            #     if has_help:
+            #         if is_explicit:
+            #             if help_type == ':helpx':
+            #                 renderer.render_cli_2(self)
+            #             else:
+            #                 renderer.render_cli(
+            #                     self, func, show_func_name_in_title=bool(
+            #                         cmd_mode == 'group'
+            #                     )
+            #                 )
+            #             return
+            #     renderer.launch_tui(tuple(self.commands.values()))
             else:
-                """
-                # if user explicitly passes `--help` or `-h`
-                argsense xxx.py -h  # turn off TUI mode and show CLI panel
-                argsense xxx.py     # launch TUI
-                """
+                # [2023-04-27] do not use TUI mode
                 has_help, help_type, is_explicit = get_help_option()
                 if has_help:
-                    if is_explicit:
-                        if help_type == ':helpx':
-                            renderer.render_cli_2(self)
-                        else:
-                            renderer.render_cli(
-                                self, func, show_func_name_in_title=bool(
-                                    cmd_mode == 'group'
-                                )
-                            )
+                    if has_help == ':helpx':
+                        renderer.render_cli_2(self)
                         return
-                renderer.launch_tui(tuple(self.commands.values()))
+                # fallback to CLI `:help`
+                renderer.render_cli(
+                    self, func, show_func_name_in_title=bool(
+                        cmd_mode == 'group'
+                    )
+                )
         else:
             # here, `:helpx` is downgraded to what `:help` does.
             # i.e. they have same effect, and possibly `:helpx` is an user typo.
@@ -280,15 +295,23 @@ class CommandLineInterface:
                     )
                 else:
                     call_func()
+            # else:
+            #     if has_help:
+            #         if is_explicit:
+            #             # ignore `help_type`, because they have same effect.
+            #             renderer.render_cli(
+            #                 self, func, show_func_name_in_title=True
+            #             )
+            #         else:
+            #             renderer.launch_tui((func_info,))
+            #     else:
+            #         call_func()
             else:
                 if has_help:
-                    if is_explicit:
-                        # ignore `help_type`, because they have same effect.
-                        renderer.render_cli(
-                            self, func, show_func_name_in_title=True
-                        )
-                    else:
-                        renderer.launch_tui((func_info,))
+                    # ignore `help_type`, because they have same effect.
+                    renderer.render_cli(
+                        self, func, show_func_name_in_title=True
+                    )
                 else:
                     call_func()
 
