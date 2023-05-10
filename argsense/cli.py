@@ -22,9 +22,9 @@ class T:
     _ParamType = ParamType
     
     # TODO: use 'grp', 'cmd' instead?
-    CmdMode = t.Literal['group', 'command']
-    TuiMode = t.Literal['auto', 'close', 'force']
-    Func = t.Callable
+    CommandType = t.Literal['group', 'command']
+    RenderMode = t.Literal['auto', 'cli', 'gui', 'tui']
+    Func = t.TypeVar('Func', bound=t.Callable)
     FuncInfo = FuncInfo
     
     CommandsCollect = t.Dict[_FunctionId, FuncInfo]
@@ -101,36 +101,38 @@ class CommandLineInterface:
     # run
     
     def run_cli(self, func: T.Func = None) -> None:
-        self.run(func, tui_mode='close')
+        self.run(func, mode='cli')
+    
+    def run_gui(self, func: T.Func = None) -> None:
+        self.run(func, mode='gui')
     
     def run_tui(self, func: T.Func = None) -> None:
-        self.run(func, tui_mode='force')
+        self.run(func, mode='tui')
     
     def run(
             self,
             func: T.Func = None,
-            tui_mode: T.TuiMode = 'auto'
+            mode: T.RenderMode = 'auto'
     ) -> None:
         config.apply_changes()
-        cmd_mode: T.CmdMode = 'group' if not func else 'command'  # noqa
+        cmd_type: T.CommandType = 'group' if not func else 'command'  # noqa
         
         def update_ui_mode() -> None:
-            nonlocal tui_mode
+            nonlocal mode
             if force_mode := os.getenv('ARGSENSE_UI_MODE'):
-                assert force_mode in ('CLI', 'TUI')
-                old_mode = {'force': 'TUI', 'close': 'CLI',
-                            'auto' : 'auto'}[tui_mode]
+                assert force_mode in ('CLI', 'GUI', 'TUI')
+                old_mode = mode.upper()
                 new_mode = force_mode
                 if old_mode == new_mode:
                     return
-                if old_mode != 'auto':
+                if old_mode != 'AUTO':
                     print(
                         'argsense ui mode is force changed by environment '
-                        'variable: [red]{}[/] -> [green]{}[/]'.format(
+                        'setting: [red]{}[/] -> [green]{}[/]'.format(
                             old_mode, new_mode
                         ), ':v3sp2r'
                     )
-                tui_mode = 'force' if new_mode == 'TUI' else 'close'
+                mode = new_mode.lower()
                 os.environ['ARGSENSE_UI_MODE'] = ''  # "pop" key
         
         update_ui_mode()
@@ -163,7 +165,7 @@ class CommandLineInterface:
         
         result = parse_argv(
             argv=sys.argv,
-            mode=cmd_mode,
+            mode=cmd_type,
             front_matter={
                 'args'  : {
                     k: v['ctype']
@@ -233,36 +235,19 @@ class CommandLineInterface:
         # PERF: the spaghetti code is ugly.
         # print(func, ':v')
         if func is None:
-            if tui_mode == 'force':
+            if mode == 'gui':
+                renderer.launch_gui(tuple(self.commands.values()))
+            elif mode == 'tui':
                 renderer.launch_tui(tuple(self.commands.values()))
-            elif tui_mode == 'close':
+            elif mode == 'cli':
                 if ':helpx' in result['kwargs']:
                     renderer.render_cli_2(self)
                 else:
                     renderer.render_cli(
                         self, func, show_func_name_in_title=bool(
-                            cmd_mode == 'group'
+                            cmd_type == 'group'
                         )
                     )
-            # else:
-            #     """
-            #     # if user explicitly passes `--help` or `-h`
-            #     argsense xxx.py -h  # turn off TUI mode and show CLI panel
-            #     argsense xxx.py     # launch TUI
-            #     """
-            #     has_help, help_type, is_explicit = get_help_option()
-            #     if has_help:
-            #         if is_explicit:
-            #             if help_type == ':helpx':
-            #                 renderer.render_cli_2(self)
-            #             else:
-            #                 renderer.render_cli(
-            #                     self, func, show_func_name_in_title=bool(
-            #                         cmd_mode == 'group'
-            #                     )
-            #                 )
-            #             return
-            #     renderer.launch_tui(tuple(self.commands.values()))
             else:
                 # [2023-04-27] do not use TUI mode
                 has_help, help_type, is_explicit = get_help_option()
@@ -273,13 +258,16 @@ class CommandLineInterface:
                 # fallback to CLI `:help`
                 renderer.render_cli(
                     self, func, show_func_name_in_title=bool(
-                        cmd_mode == 'group'
+                        cmd_type == 'group'
                     )
                 )
         else:
             # here, `:helpx` is downgraded to what `:help` does.
             # i.e. they have same effect, and possibly `:helpx` is an user typo.
-            if tui_mode == 'force':
+            if mode == 'gui':
+                renderer.launch_gui((func_info,))
+                return
+            elif mode == 'tui':
                 renderer.launch_tui((func_info,))
                 return
             has_help, help_type, is_explicit = get_help_option(
@@ -288,24 +276,13 @@ class CommandLineInterface:
                         and func_info.transport_help
                 )
             )
-            if tui_mode == 'close':
+            if mode == 'cli':
                 if has_help:
                     renderer.render_cli(
                         self, func, show_func_name_in_title=True
                     )
                 else:
                     call_func()
-            # else:
-            #     if has_help:
-            #         if is_explicit:
-            #             # ignore `help_type`, because they have same effect.
-            #             renderer.render_cli(
-            #                 self, func, show_func_name_in_title=True
-            #             )
-            #         else:
-            #             renderer.launch_tui((func_info,))
-            #     else:
-            #         call_func()
             else:
                 if has_help:
                     # ignore `help_type`, because they have same effect.

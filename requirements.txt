@@ -1,3 +1,4 @@
 # lk-logger
+pysimplegui
 rich
 textual
