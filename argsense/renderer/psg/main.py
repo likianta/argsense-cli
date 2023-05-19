@@ -2,17 +2,20 @@ import typing as t
 from os.path import normpath
 from sys import platform
 
-import PySimpleGUI as psg  # noqa
-
 from ...parser.args_parser import ParamType
 from ...parser.func_parser import FuncInfo
 from ...parser.func_parser import T as T0
 
-psg.theme('SandyBeach')
-psg.set_options(
-    icon=open(normpath(f'{__file__}/../launcher.png'), 'rb').read(),
-    font=('Helvetica', 13) if platform == 'darwin' else None,
-)
+try:
+    import PySimpleGUI as psg  # noqa
+except (ImportError, ModuleNotFoundError):
+    psg = None
+else:
+    psg.theme('SandyBeach')
+    psg.set_options(
+        icon=open(normpath(f'{__file__}/../launcher.png'), 'rb').read(),
+        font=('Helvetica', 13) if platform == 'darwin' else None,
+    )
 
 
 class T:
@@ -26,6 +29,9 @@ class T:
 
 
 def run(funcs_info: T.FuncsInfo) -> t.Any:
+    if psg is None:
+        raise RuntimeError('PySimpleGUI is not installed')
+    
     layout = [
         [
             _create_tab_group(funcs_info),

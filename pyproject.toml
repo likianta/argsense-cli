@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "argsense"
-version = "1.0.0a5"
+version = "1.0.0a12"
 homepage = "https://github.com/likianta/argsense-cli"
 description = "New command line interface based on Python Rich library."
 readme = "README.md"
@@ -14,9 +14,12 @@ default = true
 
 [tool.poetry.dependencies]
 python = "^3.8"
-pysimplegui = "*"
 rich = "*"
 textual = "*"
+pysimplegui = { version = "*", optional = true }
+
+[tool.poetry.extras]
+gui = ["pysimplegui"]  # pip install argsense[gui]
 
 [tool.poetry.scripts]
 argsense-cli = 'argsense.__main__:cli'
