@@ -7,14 +7,14 @@ TODO:
         PRETTY_ERROR
         USE_RICH_MARKUP
 """
+import typing as t
 
 
 class T:
-    from typing import Literal
-    ArgNameStyle = Literal['AAA_BBB', 'AAA-BBB', 'aaa_bbb', 'aaa-bbb', 'AaaBbb']
-    FallbackType = Literal['any', 'str']
-    OverwrittenScheme = Literal['first', 'last']
-    TitleHeadStyle = Literal['system_dependent', 'fixed']
+    ArgNameStyle = t.Literal['AAA_BBB', 'AAA-BBB', 'aaa_bbb', 'aaa-bbb', 'AaaBbb']
+    FallbackType = t.Literal['any', 'str']
+    OverwrittenScheme = t.Literal['first', 'last']
+    TitleHeadStyle = t.Literal['system_dependent', 'fixed']
 
 
 # appearance style
@@ -50,7 +50,7 @@ OVERWRITTEN_SCHEME: T.OverwrittenScheme = 'last'
 
 # console related
 WARNING_IF_RUNNING_ON_PYCHARM_CONSOLE = False
-CONSOLE_WIDTH = None
+CONSOLE_WIDTH: int = 120
 
 
 # dynamic settings
@@ -59,8 +59,13 @@ class Dynamic:
     PREFERRED_FIELD_WIDTH_OF_TYPE = 6  # the length of 'NUMBER'
 
 
-def apply_changes():
-    if CONSOLE_WIDTH is not None:
-        from .console import console
-        if console.width > CONSOLE_WIDTH:
-            console.width = CONSOLE_WIDTH
+def apply_changes():  # TODO: rename to 'finalize'?
+    from .console import console
+    if CONSOLE_WIDTH == 0:
+        rulers = (80, 100, 120, 200)
+        for x in reversed(rulers):
+            if console.width > x:
+                console.width = x
+                break
+    elif console.width > CONSOLE_WIDTH:
+        console.width = CONSOLE_WIDTH

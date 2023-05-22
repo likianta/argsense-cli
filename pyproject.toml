@@ -15,8 +15,10 @@ default = true
 [tool.poetry.dependencies]
 python = "^3.8"
 rich = "*"
+textual = "*"
 
-[tool.poetry.extras]
+[tool.poetry.scripts]
+argsense = 'argsense.__main__:tui'
 
 [build-system]
 requires = ["poetry"]

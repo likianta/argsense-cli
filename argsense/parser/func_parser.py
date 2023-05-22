@@ -1,36 +1,154 @@
 import typing as t
 from inspect import getfullargspec
 
+from .args_parser import ParamType
+from .docs_parser import T as T0
 from .. import config
-
-__all__ = ['T', 'parse_function']
 
 
 class T:
-    _DefaultValue = t.Any
-    _ParamName = str
-    
+    DocsInfo = T0.DocsInfo
     FallbackType = t.Literal['any', 'str']
     Func = t.Callable
-    # TODO: should i use [../argparse/parser.py : class ParamType] (the Enum
-    #   type) instead of the plain literals?
-    ParamType = t.Literal[
+    ParamName = str
+    # TODO: shall we use `.args_parser.ParamType` instead?
+    PlainParamType = t.Literal[
         'any', 'bool', 'dict', 'flag', 'float', 'int',
         'list', 'none', 'set', 'str', 'tuple',
     ]
     
-    FuncInfo = t.TypedDict('FuncInfo', {
+    ArgsInfo = t.Dict[
+        ParamName, t.TypedDict('ArgsInfo', {
+            'cname': str,
+            'ctype': ParamType,
+            'desc' : str,
+        })
+    ]
+    KwArgsInfo = t.Dict[
+        ParamName, t.TypedDict('KwargsInfo', {
+            'cname'   : str,
+            'ctype'   : ParamType,
+            'desc'    : str,
+            'default' : t.Any,
+        })
+    ]
+    RawInfo = t.TypedDict('RawInfo', {
         'name'  : str,
-        'args'  : t.List[t.Tuple[_ParamName, ParamType]],
-        'kwargs': t.List[t.Tuple[_ParamName, ParamType, _DefaultValue]],
-        'return': ParamType,  # noqa
+        'args'  : t.List[t.Tuple[ParamName, PlainParamType]],
+        'kwargs': t.List[t.Tuple[ParamName, PlainParamType, t.Any]],
+        'return': PlainParamType,  # noqa
     })
+
+
+class FuncInfo:
+    args: T.ArgsInfo
+    cname_2_name: t.Dict[str, str]
+    desc: str
+    kwargs: T.KwArgsInfo
+    name: str
+    target: t.Callable
+    transport_help: bool  # FIXME: temp solution
+    
+    @classmethod
+    def global_kwargs(cls) -> T.KwArgsInfo:
+        return {  # noqa
+            ':help' : {
+                'cname'   : '--help',
+                'ctype'   : ParamType.FLAG,
+                'desc'    : 'show help message and exit',
+                'default' : False,  # False means `not explicitly set by user`.
+                #   for example, when user inputs in command line:
+                #       `argsense xxx.py -h`  # -> True
+                #       `argsense xxx.py`     # -> False
+            },
+            ':helpx': {
+                'cname'   : '--helpx',
+                'ctype'   : ParamType.FLAG,
+                'desc'    : 'expand all command helps',
+                'default' : False,
+            },
+        }
+    
+    @classmethod
+    def global_cname_2_name(cls) -> t.Dict[str, str]:
+        return {
+            '--help'  : ':help',
+            '--helpx' : ':helpx',
+            '-h'      : ':help',
+            '-hh'     : ':helpx',
+            # DELETE: below are deprecated
+            '--:help' : ':help',
+            '--:helpx': ':helpx',
+            '-:h'     : ':help',
+            '-:hh'    : ':helpx',
+        }
+    
+    def __init__(self, info: T.RawInfo):
+        from ..converter import name_2_cname
+        from ..converter import type_2_ctype
+        
+        self.name = info['name']
+        # self.cname = name_2_cname(self.name, style='cmd')
+        self.desc = ''
+        # self.return_type = info['return']
+        self.args = {}
+        self.kwargs = FuncInfo.global_kwargs().copy()
+        self.cname_2_name = FuncInfo.global_cname_2_name().copy()
+        self.transport_help = False
+        
+        for name, type in info['args']:
+            cname = name_2_cname(name, style='arg')
+            self._append_cname(name, cname)
+            self.args[name] = {
+                'cname': cname,
+                'ctype': type_2_ctype(type),
+                'desc' : '',
+            }
+        
+        for name, type, default in info['kwargs']:
+            cname = name_2_cname(name, style='opt')
+            self._append_cname(name, cname)
+            self.kwargs[name] = {
+                'cname'   : cname,
+                'ctype'   : type_2_ctype(type),
+                'desc'    : '',
+                'default' : default,
+            }
+    
+    @property
+    def local_kwargs(self) -> T.KwArgsInfo:
+        return {k: v for k, v in self.kwargs.items() if not k.startswith(':')}
+    
+    def _append_cname(self, name: str, cname: str) -> None:
+        assert cname not in self.cname_2_name, (
+            f'duplicate cname: `{cname}` (for `{name}`). '
+            f'make sure you have not defined `xxx`, `_xxx` and `xxx_` '
+            f'(or something like this) in the same function.'
+        )
+        self.cname_2_name[cname] = name
+    
+    def fill_docs_info(self, info: T.DocsInfo) -> None:
+        self.desc = info['desc']
+        for name, value in info['args'].items():
+            self.args[name]['desc'] = value['desc']
+        for name, value in info['kwargs'].items():
+            self.kwargs[name]['desc'] = value['desc']
+            if value['cname'] != self.kwargs[name]['cname']:
+                # be noted value['cname'] may contain ',', we need to split it.
+                for cname in value['cname'].split(','):
+                    if cname in self.cname_2_name:
+                        continue
+                    self.cname_2_name[cname] = name
+                    # the `cname` stored in `self.kwargs` is preferred `--xxx`
+                    # than `-x`.
+                    if cname.startswith('--'):
+                        self.kwargs[name]['cname'] = cname
 
 
 def parse_function(
         func: T.Func,
         fallback_type: T.FallbackType = 'any'
-) -> T.FuncInfo:
+) -> FuncInfo:
     spec = getfullargspec(func)
     annotations = Annotations(spec.annotations, fallback_type)
     # print(':v', func.__name__, spec.annotations)
@@ -84,12 +202,12 @@ def parse_function(
     
     return_ = annotations.get_return_type()
     
-    return {
+    return FuncInfo({
         'name'  : func.__name__,
         'args'  : args,
         'kwargs': kwargs,
         'return': return_,
-    }
+    })
 
 
 class Annotations:
@@ -120,7 +238,7 @@ class Annotations:
             self._type_2_str['none'] = 'any'
     
     # noinspection PyUnresolvedReferences,PyProtectedMember
-    def _normalize_type(self, type_: t.Any) -> T.ParamType:
+    def _normalize_type(self, type_: t.Any) -> T.PlainParamType:
         if isinstance(type_, t._TypedDictMeta):
             return 'dict'
         elif isinstance(type_, t._LiteralGenericAlias):
@@ -149,13 +267,13 @@ class Annotations:
             return self._type_2_str[out]
         return 'any'
     
-    def get_arg_type(self, name: str) -> T.ParamType:
+    def get_arg_type(self, name: str) -> T.PlainParamType:
         if name in self.annotations:
             return self._normalize_type(self.annotations[name])
         else:
             return self._fallback_type
     
-    def get_kwarg_type(self, name: str, value: t.Any) -> T.ParamType:
+    def get_kwarg_type(self, name: str, value: t.Any) -> T.PlainParamType:
         if name in self.annotations:
             t = self._normalize_type(self.annotations[name])
         else:
@@ -164,14 +282,14 @@ class Annotations:
             t = 'flag'
         return t
     
-    def get_return_type(self) -> T.ParamType:
+    def get_return_type(self) -> T.PlainParamType:
         if 'return' in self.annotations:
             return self._normalize_type(self.annotations['return'])
         else:
             return 'none'
     
     @staticmethod
-    def deduce_type_by_value(default: t.Any) -> T.ParamType:
+    def deduce_type_by_value(default: t.Any) -> T.PlainParamType:
         dict_ = {
             bool : 'bool',
             dict : 'dict',

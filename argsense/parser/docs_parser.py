@@ -3,10 +3,6 @@ import typing as t
 from enum import Enum
 from textwrap import dedent
 
-from ..converter import name_2_cname
-
-__all__ = ['parse_docstring']
-
 
 class T:
     _ParamName = str
@@ -32,6 +28,8 @@ def parse_docstring(docstring: str) -> T.DocsInfo:
     """
     ref: ~/docs/how-to-parse-docstring.md
     """
+    from ..converter import name_2_cname
+    
     result: T.DocsInfo = {
         'desc'  : '',
         'args'  : {},

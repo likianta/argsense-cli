@@ -10,6 +10,7 @@ from rich.table import Table
 from rich.text import Text
 
 from .style import palette
+from ... import config
 
 
 class T:
@@ -179,7 +180,6 @@ def _draw_panel(
         }
         return style[field]
     
-    from . import config
     table = Table.grid(expand=False, padding=(0, 4))
     for i, field in enumerate(fields):
         if field == 'name' and \

@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import typing as t
+from textwrap import dedent
+
+from rich.panel import Panel
+
+from ...console import console
 
 
 class ArgvVendor:
@@ -32,9 +37,6 @@ class ArgvVendor:
         see also:
             ./exceptions.py
         """
-        from rich.panel import Panel
-        from textwrap import dedent
-        from ..console import console
         
         def make_title() -> str:
             if err_type:
@@ -89,7 +91,7 @@ class ArgvVendor:
             title_align='left',
         ))
         
-        # from ..config import FALLBACK_TO_HELP_IF_ARGPARSE_FAILED
+        # from ...config import FALLBACK_TO_HELP_IF_ARGPARSE_FAILED
         # if FALLBACK_TO_HELP_IF_ARGPARSE_FAILED:
         #     pass
         

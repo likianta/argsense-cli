@@ -29,25 +29,25 @@ def test():
 
 
 @cli.cmd()
-def hello_world():
-    print('Hello World!')
+def hello_world() -> None:
+    """ say hello to the world. """
+    print('hello world!')
 
 
 @cli.cmd()
-def hello_to_someone(name: str, title_case=True):
-    """ Say hello to the given name.
+def greet(name: str, formal=False) -> None:
+    """ say hello to the someone.
     
     args:
-        name: The name to say hello to.
+        name: the name to say hello to.
     
     kwargs:
-        title_case (-t): Force using title case.
-            For example, if the name is "john", it will be "John"; if the name -
-            is "john smith", it will be "John Smith".
+        formal (-f): if true, say hello formally.
     """
-    if title_case:
-        name = name.title()
-    print(f'Hello {name}!')
+    if formal:
+        print(f'hello, {name}!')
+    else:
+        print(f'hi, {name}!')
 
 
 @cli.cmd()

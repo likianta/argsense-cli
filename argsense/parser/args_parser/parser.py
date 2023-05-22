@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-import os
-import re
 import shlex
 import typing as t
 
@@ -33,7 +29,7 @@ def parse_argstring(argstring: str) -> t.List[str]:
 
 
 def parse_argv(
-        argv: list[str],
+        argv: t.List[str],
         mode: t.Literal['group', 'command'],
         front_matter: T.ParamsInfo,
 ) -> T.ParsedResult:
@@ -81,8 +77,7 @@ def _walking_through_argv(
         if cname in front_matter['index']:
             return front_matter['index'][cname]
         elif '**' in front_matter['index']:
-            # FIXME: this is an experimental feature.
-            return cname.lstrip('-').replace(':', '_').replace('-', '_')
+            return cname.lstrip('-').replace('-', '_')
         else:
             raise e.ParamNotFound(cname, front_matter['index'].keys())
     
@@ -175,7 +170,7 @@ def _walking_through_argv(
         
         if ctx.token == Token.READY:
             param_name, param_type = params.get_param()
-            param_value = _eval_arg_value(arg, param_type)
+            param_value = _eval_arg(arg, param_type)
             out['args'][param_name] = param_value
             ctx.update(Token.READY)
             continue
@@ -183,7 +178,7 @@ def _walking_through_argv(
         if ctx.token == Token.OPTION_NAME:
             param_name = ctx.param_name
             param_type = ctx.param_type
-            param_value = _eval_arg_value(arg, param_type)
+            param_value = _eval_arg(arg, param_type)
             out['kwargs'][param_name] = param_value
             ctx.update(Token.READY)
             continue
@@ -204,7 +199,7 @@ def _walking_through_argv(
     return out
 
 
-def extract_command_name(argv: list[str]) -> str | None:
+def extract_command_name(argv: t.List[str]) -> t.Optional[str]:
     # TODO: need to be improved
     for arg in argv[1:]:
         if arg.startswith('-'):
@@ -213,63 +208,13 @@ def extract_command_name(argv: list[str]) -> str | None:
     return None
 
 
-PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(  # noqa
-    r'^-?(?:[0-9]+|[0-9]*\.[0-9]+|0b[01]+|0x[0-9a-fA-F]+)$'
-)
-
-SPECIAL_ARGS = {
-    ':true' : True,
-    ':false': False,
-    # ':t'    : True,
-    # ':f'    : False,
-    ':none' : None,
-    ':cwd'  : os.getcwd(),
-}
-
-
-def _eval_arg_value(arg: str, possible_type: ParamType) -> t.Any:
+def _eval_arg(arg: str, possible_type: ParamType) -> t.Any:
     # print(':pv', arg, possible_type)
-    global PYTHON_ACCEPTABLE_NUMBER_PATTERN, SPECIAL_ARGS
-    
-    if arg in SPECIAL_ARGS:
-        arg = SPECIAL_ARGS[arg]
-    
+    from ...converter import cval_2_val
     try:
-        # print(':v', arg, type(arg), possible_type, type(possible_type))
-        if isinstance(arg, str):
-            assert possible_type in (
-                ParamType.TEXT, ParamType.NUMBER, ParamType.ANY
-            )
-            if possible_type == ParamType.TEXT:
-                return arg
-            elif possible_type == ParamType.NUMBER:
-                assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg)
-                return eval(arg)
-            else:
-                if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(arg):
-                    return eval(arg)
-                else:
-                    return arg
-        elif isinstance(arg, bool):
-            # warning: bool type is also an "int" type. so
-            # `isinstance(True, int)` returns True.
-            # to avoid this weird behavior, we must check
-            # `isinstance(arg, bool)` before `isinstance(arg, int)`.
-            assert possible_type in (
-                ParamType.FLAG, ParamType.BOOL, ParamType.ANY
-            )
-        elif isinstance(arg, (int, float)):
-            assert possible_type in (
-                ParamType.NUMBER, ParamType.ANY
-            )
-        elif arg is None:
-            assert possible_type in (
-                ParamType.ANY,
-            )
+        return cval_2_val(arg, possible_type)
     except AssertionError:
         raise e.TypeConversionError(
             expected_type=possible_type.name,
             given_type=str(arg)
         )
-    
-    return arg
