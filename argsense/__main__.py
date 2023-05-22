@@ -101,7 +101,7 @@ def cli(*_) -> None:
 def tui(*_) -> None:
     """
     run argsense in TUI mode.
-    :point_right: [magenta]`py -m argsense tui [yellow dim i]target[/]`[/]
+    :point_right: [magenta]`py -m argsense tui [yellow i]target[/]`[/]
     """
     os.environ['ARGSENSE_UI_MODE'] = 'TUI'
     _run()
