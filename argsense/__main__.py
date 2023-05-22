@@ -13,7 +13,7 @@ _cli = CommandLineInterface('argsense-launcher')
 @_cli.cmd()
 def help() -> None:
     """
-    the detailed help message for using argsense cli.
+    show full instructions about using argsense cli.
     :point_right: [magenta]`py -m argsense help`[/]
     """
     rprint(Markdown(dedent('''
@@ -27,16 +27,23 @@ def help() -> None:
         py -m argsense cli hello.py ...
         ```
         
+        Run argsense in GUI mode:
+        
+        ```shell
+        py -m argsense gui hello.py ...
+        ```
+        
         Run argsense in TUI mode:
         
         ```shell
         py -m argsense tui hello.py ...
         ```
         
-        We've also provided a shortcut for TUI mode:
+        We've also provided a shortcut for GUI & TUI mode:
         
         ```shell
-        argsense hello.py ...
+        argsense-gui hello.py ...
+        argsense-tui hello.py ...
         ```
         
         But in more general cases, you can simply use `python3` to start your
@@ -94,6 +101,16 @@ def cli(*_) -> None:
     [default dim i]params[/]`[/]
     """
     os.environ['ARGSENSE_UI_MODE'] = 'CLI'
+    _run()
+
+
+@_cli.cmd()
+def gui(*_) -> None:
+    """
+    run argsense in GUI mode.
+    :point_right: [magenta]`py -m argsense gui [yellow dim i]target[/]`[/]
+    """
+    os.environ['ARGSENSE_UI_MODE'] = 'GUI'
     _run()
 
 
