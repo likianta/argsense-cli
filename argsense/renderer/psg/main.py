@@ -9,7 +9,17 @@ from ...parser.func_parser import T as T0
 try:
     import PySimpleGUI as psg  # noqa
 except (ImportError, ModuleNotFoundError):
-    psg = None
+    
+    class FakeTyping:
+        
+        def __bool__(self) -> bool:
+            return False
+        
+        def __getattr__(self, k) -> t.Any:
+            return self
+            
+    psg = FakeTyping()
+    
 else:
     psg.theme('SandyBeach')
     psg.set_options(
