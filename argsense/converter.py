@@ -10,6 +10,7 @@ from .parser.func_parser import T as T0
 class T:
     ParamType1 = T0.PlainParamType  # literal
     ParamType2 = ParamType  # enum
+    ParamType3 = t.Type  # type
     Style = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
 
 
@@ -136,8 +137,29 @@ def val_2_str(value: t.Any, type_: ParamType) -> str:
 
 # -----------------------------------------------------------------------------
 
-def cname_to_name(name: str) -> str:
+def cname_2_name(name: str) -> str:
     return name.replace('-', '_')
+
+
+def ctype_2_type(t: T.ParamType2, v: t.Any = None) -> T.ParamType3:
+    if t == ParamType.ANY:
+        return str
+    elif t == ParamType.BOOL:
+        return bool
+    elif t == ParamType.DICT:
+        raise ValueError('not implemented')
+    elif t == ParamType.FLAG:
+        return bool
+    elif t == ParamType.LIST:
+        raise ValueError('not implemented')
+    elif t == ParamType.NONE:
+        return type(None)
+    elif t == ParamType.NUMBER:
+        if v is None or (isinstance(v, str) and v.isdigit()):
+            return int
+        return float
+    elif t == ParamType.TEXT:
+        return str
 
 
 PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(
