@@ -52,6 +52,9 @@ OVERWRITTEN_SCHEME: T.OverwrittenScheme = 'last'
 WARNING_IF_RUNNING_ON_PYCHARM_CONSOLE = False
 CONSOLE_WIDTH: int = 120
 
+# other
+WARN_IF_DUPLICATE_COMMANDS_OVERRIDDEN = False
+
 
 # dynamic settings
 class Dynamic:

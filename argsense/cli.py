@@ -54,19 +54,24 @@ class CommandLineInterface:
         from .converter import name_2_cname
         
         cmd_name = name or name_2_cname(func.__name__)
-        if cmd_name in self._cname_2_func and \
-                (new := func) is not (old := self._cname_2_func[cmd_name]):
-            print(
-                ':v3p',
-                f'duplicate command name: {cmd_name}',
-                f'the recorded function is: {old}',
-                f'the incoming function is: {new}',
-            )
+        
+        if (
+            (cmd_name in self._cname_2_func) 
+            and (new := func) is not (old := self._cname_2_func[cmd_name])
+        ):
+            if config.WARN_IF_DUPLICATE_COMMANDS_OVERRIDDEN:
+                print(
+                    ':v3pr',
+                    f'duplicate command name: {cmd_name}',
+                    f'the recorded function is: {old}',
+                    f'the incoming function is: {new}',
+                    '[yellow dim]the recorded one is kept.[/]'
+                    if config.OVERWRITTEN_SCHEME == 'first'
+                    else '[yellow dim]the incoming one is used.[/]'
+                )
             if config.OVERWRITTEN_SCHEME == 'first':
-                print(':v3pr', '[yellow dim]the recorded one is keeped.[/]')
                 return
-            else:
-                print(':v3pr', '[yellow dim]the incoming one is used.[/]')
+        
         self._cname_2_func[cmd_name] = func
         
         func_info = parse_function(func, fallback_type=config.FALLBACK_TYPE)
