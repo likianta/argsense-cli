@@ -59,7 +59,7 @@ class ParamNotFound(ArgvParsingFailed):
         self.index = index
     
     def __str__(self):
-        from ..general import did_you_mean
+        from ...general import did_you_mean
         if x := did_you_mean(self.param, self.index):
             return _dedent('''
                 Parameter "{}" not found, did you mean "{}"?
