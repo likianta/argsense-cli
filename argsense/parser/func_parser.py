@@ -99,6 +99,7 @@ class FuncInfo:
         for name, type in info['args']:
             cname = name_2_cname(name, style='arg')
             self._append_cname(name, cname)
+            self._append_cname(name, name_2_cname(name, style='opt'))  # alias
             self.args[name] = {
                 'cname': cname,
                 'ctype': type_2_ctype(type),
