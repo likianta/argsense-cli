@@ -172,12 +172,11 @@ PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(
 )
 
 SPECIAL_ARGS = {
-    ':true' : True,
-    ':false': False,
-    # ':t': True,
-    # ':f': False,
-    ':none' : None,
     ':cwd'  : os.getcwd(),
+    ':empty': '',
+    ':false': False,
+    ':none' : None,
+    ':true' : True,
 }
 
 
