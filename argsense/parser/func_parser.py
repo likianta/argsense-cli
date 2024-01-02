@@ -38,6 +38,14 @@ class T:
         'kwargs': t.List[t.Tuple[ParamName, PlainParamType, t.Any]],
         'return': PlainParamType,  # noqa
     })
+    ''' e.g.
+        {
+            'name': 'run',
+            'args': [('appid', 'str'), ('*', 'list')],
+            'kwargs': [('_version', 'str', None), ('**', 'dict', {})],
+            'return': 'none',
+        }
+    '''
 
 
 class FuncInfo:
@@ -49,41 +57,71 @@ class FuncInfo:
     target: t.Callable
     transport_help: bool  # FIXME: temp solution
     
-    @classmethod
-    def global_kwargs(cls) -> T.KwArgsInfo:
-        return {  # noqa
-            ':help' : {
-                'cname'   : '--help',
-                'ctype'   : ParamType.FLAG,
-                'desc'    : 'show help message and exit',
-                'default' : False,  # False means `not explicitly set by user`.
-                #   for example, when user inputs in command line:
-                #       `argsense xxx.py -h`  # -> True
-                #       `argsense xxx.py`     # -> False
-            },
-            ':helpx': {
-                'cname'   : '--helpx',
-                'ctype'   : ParamType.FLAG,
-                'desc'    : 'expand all command helps',
-                'default' : False,
-            },
-        }
+    GLOBAL_CNAME_2_NAME: t.Dict[str, str] = {
+        '--help'  : ':help',
+        '--helpx' : ':helpx',
+        '-h'      : ':help',
+        '-hh'     : ':helpx',
+        # DELETE: below are deprecated
+        '--:help' : ':help',
+        '--:helpx': ':helpx',
+        '-:h'     : ':help',
+        '-:hh'    : ':helpx',
+    }
+    GLOBAL_KWARGS: T.KwArgsInfo = {  # noqa
+        ':help' : {
+            'cname'  : '--help',
+            'ctype'  : ParamType.FLAG,
+            'desc'   : 'show help message and exit',
+            'default': False,  # False means `not explicitly set by user`.
+            #   for example, when user inputs in command line:
+            #       `argsense xxx.py -h`  # -> True
+            #       `argsense xxx.py`     # -> False
+        },
+        ':helpx': {
+            'cname'  : '--helpx',
+            'ctype'  : ParamType.FLAG,
+            'desc'   : 'expand all command helps',
+            'default': False,
+        },
+    }
     
-    @classmethod
-    def global_cname_2_name(cls) -> t.Dict[str, str]:
-        return {
-            '--help'  : ':help',
-            '--helpx' : ':helpx',
-            '-h'      : ':help',
-            '-hh'     : ':helpx',
-            # DELETE: below are deprecated
-            '--:help' : ':help',
-            '--:helpx': ':helpx',
-            '-:h'     : ':help',
-            '-:hh'    : ':helpx',
-        }
+    # @classmethod
+    # def global_kwargs(cls) -> T.KwArgsInfo:
+    #     return {  # noqa
+    #         ':help' : {
+    #             'cname'   : '--help',
+    #             'ctype'   : ParamType.FLAG,
+    #             'desc'    : 'show help message and exit',
+    #             'default' : False,  # False means `not explicitly set by user`.
+    #             #   for example, when user inputs in command line:
+    #             #       `argsense xxx.py -h`  # -> True
+    #             #       `argsense xxx.py`     # -> False
+    #         },
+    #         ':helpx': {
+    #             'cname'   : '--helpx',
+    #             'ctype'   : ParamType.FLAG,
+    #             'desc'    : 'expand all command helps',
+    #             'default' : False,
+    #         },
+    #     }
+    #
+    # @classmethod
+    # def global_cname_2_name(cls) -> t.Dict[str, str]:
+    #     return {
+    #         '--help'  : ':help',
+    #         '--helpx' : ':helpx',
+    #         '-h'      : ':help',
+    #         '-hh'     : ':helpx',
+    #         # DELETE: below are deprecated
+    #         '--:help' : ':help',
+    #         '--:helpx': ':helpx',
+    #         '-:h'     : ':help',
+    #         '-:hh'    : ':helpx',
+    #     }
     
     def __init__(self, info: T.RawInfo):
+        # print(info, ':lv')
         from ..converter import name_2_cname
         from ..converter import type_2_ctype
         
@@ -92,14 +130,16 @@ class FuncInfo:
         self.desc = ''
         # self.return_type = info['return']
         self.args = {}
-        self.kwargs = FuncInfo.global_kwargs().copy()
-        self.cname_2_name = FuncInfo.global_cname_2_name().copy()
+        self.kwargs = FuncInfo.GLOBAL_KWARGS.copy()
+        self.cname_2_name = FuncInfo.GLOBAL_CNAME_2_NAME.copy()
         self.transport_help = False
         
         for name, type in info['args']:
             cname = name_2_cname(name, style='arg')
             self._append_cname(name, cname)
-            self._append_cname(name, name_2_cname(name, style='opt'))  # alias
+            if cname != '*':
+                # alias of "option" style
+                self._append_cname(name, name_2_cname(name, style='opt'))
             self.args[name] = {
                 'cname': cname,
                 'ctype': type_2_ctype(type),
@@ -123,8 +163,8 @@ class FuncInfo:
     def _append_cname(self, name: str, cname: str) -> None:
         assert cname not in self.cname_2_name, (
             f'duplicate cname: `{cname}` (for `{name}`). '
-            f'make sure you have not defined `xxx`, `_xxx` and `xxx_` '
-            f'(or something like this) in the same function.'
+            f'make sure you have not defined parameters like `xxx`, `_xxx` and '
+            f'`xxx_` in the same function.'
         )
         self.cname_2_name[cname] = name
     
