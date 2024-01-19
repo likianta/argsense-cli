@@ -182,12 +182,12 @@ class CommandLineInterface:
                 'kwargs': {
                     k: v['ctype']
                     for k, v in (
-                        FuncInfo.global_kwargs() if func_info is None
+                        FuncInfo.GLOBAL_KWARGS if func_info is None
                         else func_info.kwargs
                     ).items()
                 },
                 'index' : (
-                    FuncInfo.global_cname_2_name() if func_info is None
+                    FuncInfo.GLOBAL_CNAME_2_NAME if func_info is None
                     else func_info.cname_2_name
                 )
             }
