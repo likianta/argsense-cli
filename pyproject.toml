@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "argsense"
-version = "0.5.6"
+version = "0.5.7"
 homepage = "https://github.com/likianta/argsense-cli"
 description = "New command line interface based on Python Rich library."
 readme = "README.md"
@@ -10,9 +10,10 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.8"
 pysimplegui = { version = "*", optional = true }
-rich = "*"
-# TODO: trogon = "*"
-textual = "*"
+rich = "^13.0.0"
+# TODO
+#   textual = "*"
+#   trogon = "*"
 
 [tool.poetry.extras]
 gui = ["pysimplegui"]  # pip install argsense[gui]
@@ -20,7 +21,7 @@ gui = ["pysimplegui"]  # pip install argsense[gui]
 [[tool.poetry.source]]
 name = "tsinghua"
 url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
-priority = "default"
+priority = "primary"
 
 [tool.poetry.scripts]
 argsense-cli = 'argsense.__main__:cli'
