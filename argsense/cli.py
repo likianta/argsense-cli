@@ -235,7 +235,12 @@ class CommandLineInterface:
                         self, func, show_func_name_in_title=True
                     )
                 else:
-                    console.print_exception()
+                    if os.getenv('ARGSENSE_TRACEBACK', '1') == '0':
+                        # will be handled by default (sys.excepthook) or third -
+                        # party excephook (e.g. lk-logger v5.7.5+).
+                        raise
+                    else:
+                        console.print_exception()
         
         # PERF: the spaghetti code is ugly.
         # print(func, ':v')
