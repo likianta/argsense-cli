@@ -228,19 +228,20 @@ class CommandLineInterface:
         def call_func() -> None:
             try:
                 func(*result['args'].values(), **result['kwargs'])
-            except Exception:
+            except Exception as e:
                 # console.print_exception()
                 if ':helpx' in result['kwargs'] or ':help' in result['kwargs']:
                     renderer.render_cli(
                         self, func, show_func_name_in_title=True
                     )
                 else:
-                    if os.getenv('ARGSENSE_TRACEBACK', '1') == '0':
-                        # will be handled by default (sys.excepthook) or third -
-                        # party excephook (e.g. lk-logger v5.7.5+).
-                        raise
-                    else:
-                        console.print_exception()
+                    raise e
+                    # if os.getenv('ARGSENSE_TRACEBACK', '1') == '0':
+                    #     # will be handled by default (sys.excepthook) or third -
+                    #     # party excephook (e.g. lk-logger v5.7.5+).
+                    #     raise
+                    # else:
+                    #     console.print_exception()
         
         # PERF: the spaghetti code is ugly.
         # print(func, ':v')
