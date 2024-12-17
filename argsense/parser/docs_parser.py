@@ -79,12 +79,15 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
             temp_str += line[:-2]
         else:
             temp_str += line + '\n'
+            
+    def add_extra_param(line: str) -> None:
+        add_param(line[4:])
     
     def add_param(line: str) -> None:
         nonlocal temp_str, temp_dict
         
-        m = re.match(r'(\w+)(?: \((-\w)\))?:(?: (.*))?', line)
-        #              ~~~~1      ~~~~2         ~~~3
+        m = re.match(r' {4}(\w+)(?: \((-\w)\))?:(?: (.*))?', line)
+        #                  ~~~~1      ~~~~2         ~~~3
         param_name = m.group(1)
         param_short = m.group(2) or ''
         leading_text = m.group(3) or ''
@@ -176,98 +179,111 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
             'args:', 'kwargs:', 'opts:', 'options:',
         )
     
-    lines = tuple(x.rstrip() for x in doc.splitlines())
-    for curr_line, next_line in zip(lines + ('',), ('',) + lines):
+    for i, line in enumerate(doc.splitlines()):
         if flag == 'INIT':
-            if curr_line:
-                if is_new_field(curr_line):
-                    if curr_line.lower() in ('argsense:', 'help:'):
+            if line:
+                if is_new_field(line):
+                    if line.lower() in ('argsense:', 'help:'):
                         flag = 'STANDALONE_DESC'
-                    elif is_params_field(curr_line):
+                    elif is_params_field(line):
                         flag = 'PARAMS'
                     else:
                         assert not temp_str
                         flag = 'DESC_DONE'
                 else:
                     assert not temp_str
-                    accumulate_lines(curr_line)
-                    flag = 'DESC'
+                    accumulate_lines(line)
+                    flag = 'TOP_DESC'
             else:
                 assert not temp_str
         
-        elif flag == 'DESC':
-            assert not is_new_field(curr_line)
-            accumulate_lines(curr_line)
-            if is_new_field(next_line):
-                finalize_desc()
-                flag = 'DESC_DONE'
-        
         elif flag == 'DESC_DONE':
-            if is_params_field(curr_line):
+            if is_params_field(line):
                 flag = 'PARAMS'
         
         elif flag == 'EXTRA_PARAM_DESC':
-            assert curr_line == '' or curr_line.startswith(' ' * 12)
-            accumulate_lines(curr_line[12:])
-            
-            if not next_line.startswith(' '):
+            if not line.startswith(' '):
+                finalize_param_desc()
+                flag = 'OVER'
                 break
-            elif is_param_field(next_line):
+            elif is_param_field(line):
                 finalize_param_desc()
-                flag = 'PARAMS'
-            elif is_extra_param_field(next_line):
+                add_param(line)
+                flag = 'PARAM_DESC'
+            elif is_extra_param_field(line):
                 finalize_param_desc()
-                flag = 'EXTRA_PARAMS'
-        
+                add_extra_param(line)
+            else:
+                assert line == '' or line.startswith(' ' * 12)
+                accumulate_lines(line[12:])
+            
         elif flag == 'EXTRA_PARAMS':
-            if curr_line:
-                assert curr_line.startswith(' ' * 8)
-                assert is_extra_param_field(curr_line)
-                add_param(curr_line[8:])
-                if not next_line.startswith(' '):
+            if line:
+                if not line.startswith(' '):
+                    finalize_param_desc()
+                    flag = 'OVER'
                     break
-                elif is_param_field(next_line):
+                elif is_param_field(line):
                     finalize_param_desc()
-                    flag = 'PARAMS'
-                elif is_extra_param_field(next_line):
-                    finalize_param_desc()
-                    flag = 'EXTRA_PARAMS'
+                    add_param(line)
+                    flag = 'PARAM_DESC'
                 else:
+                    assert line.startswith(' ' * 8)
+                    assert is_extra_param_field(line)
+                    add_extra_param(line)
                     flag = 'EXTRA_PARAM_DESC'
         
         elif flag == 'PARAM_DESC':
-            assert curr_line == '' or curr_line.startswith(' ' * 8)
-            accumulate_lines(curr_line[8:])
-            
-            if not next_line.startswith(' '):
+            if not line.startswith(' '):
                 finalize_param_desc()
+                flag = 'OVER'
                 break
-            elif is_param_field(next_line):
+            elif is_param_field(line):
                 finalize_param_desc()
-                flag = 'PARAMS'
+                add_param(line)
+            else:
+                assert line == '' or line.startswith(' ' * 8)
+                accumulate_lines(line[8:])
         
         elif flag == 'PARAMS':
-            if curr_line:
-                assert curr_line.startswith('    ')
-                assert is_param_field(curr_line)
-                if '**' in curr_line:
-                    flag = 'EXTRA_PARAMS'
+            if line:
+                if not line.startswith(' '):
+                    finalize_param_desc()
+                    flag = 'OVER'
+                    break
                 else:
-                    add_param(curr_line[4:])
-                    if not next_line.startswith(' '):
-                        break
-                    elif is_param_field(next_line):
-                        finalize_param_desc()
+                    assert line.startswith('    ')
+                    assert is_param_field(line)
+                    if '**' in line:
+                        flag = 'EXTRA_PARAMS'
                     else:
+                        add_param(line)
                         flag = 'PARAM_DESC'
         
         elif flag == 'STANDALONE_DESC':
-            assert curr_line == '' or curr_line.startswith(' ' * 4)
-            accumulate_lines(curr_line[4:])
-            if is_new_field(next_line):
+            if not line.startswith(' '):
                 finalize_desc()
                 flag = 'DESC_DONE'
+            else:
+                assert line == '' or line.startswith(' ' * 4)
+                accumulate_lines(line[4:])
+        
+        elif flag == 'TOP_DESC':
+            if is_new_field(line):
+                finalize_desc()
+                if is_params_field(line):
+                    flag = 'PARAMS'
+                else:
+                    flag = 'DESC_DONE'
+            else:
+                accumulate_lines(line)
     
-    print(flag, ':v')
+    # print(flag, ':v1')
+    if flag == 'DESC':
+        finalize_desc()
+    elif flag == 'PARAM_DESC':
+        finalize_param_desc()
+    else:
+        assert flag == 'OVER', flag
     
     return out

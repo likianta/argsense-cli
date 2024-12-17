@@ -247,8 +247,10 @@ class CommandLineInterface:
         # print(func, ':v')
         if func is None:
             if mode == 'gui':
+                # noinspection PyUnresolvedReferences
                 renderer.launch_gui(tuple(self.commands.values()))
             elif mode == 'tui':
+                # noinspection PyUnresolvedReferences
                 renderer.launch_tui(tuple(self.commands.values()))
             elif mode == 'cli':
                 if ':helpx' in result['kwargs']:
@@ -272,9 +274,11 @@ class CommandLineInterface:
             # here, `:helpx` is downgraded to what `:help` does.
             # i.e. they have same effect, and possibly `:helpx` is an user typo.
             if mode == 'gui':
+                # noinspection PyUnresolvedReferences
                 renderer.launch_gui((func_info,))
                 return
             elif mode == 'tui':
+                # noinspection PyUnresolvedReferences
                 renderer.launch_tui((func_info,))
                 return
             has_help, help_type, is_explicit = get_help_option(
