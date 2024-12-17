@@ -2,6 +2,8 @@
 
 **argsense** is a command line interface made with Python.
 
+![](.assets/pixpin-20241217-192503.png)
+
 ![group help](.assets/examples/classic/20220615143658.jpg)
 
 ![minimal help](.assets/examples/classic/20220615143730.jpg)

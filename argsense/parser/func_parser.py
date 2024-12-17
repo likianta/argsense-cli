@@ -199,7 +199,8 @@ class FuncInfo:
             self.args[name]['desc'] = value['desc']
             if value['cshort']:
                 self.cname_2_name[value['cshort']] = name
-                self.args[name]['cname'] = '{} ({})'.format(
+                # FIXME: need a better way
+                self.args[name]['cname'] = '{}, {}'.format(
                     value['cname'], value['cshort']
                 )
             
@@ -208,7 +209,7 @@ class FuncInfo:
             self.kwargs[name]['desc'] = value['desc']
             if value['cshort']:
                 self.cname_2_name[value['cshort']] = name
-                self.kwargs[name]['cname'] = '{} ({})'.format(
+                self.kwargs[name]['cname'] = '{}, {}'.format(
                     value['cname'], value['cshort']
                 )
 

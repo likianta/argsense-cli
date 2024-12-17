@@ -11,8 +11,6 @@ from __future__ import annotations
 
 import typing as t
 
-__all__ = ['palette']
-
 
 class T:
     _Color = str
@@ -100,10 +98,11 @@ class Color(BaseColor):
     blue1 = '#61afef'
     blue2 = '#5f87ff'  # cornflower blue
     dark_magenta = '#8700af'
-    deep_grey = '#bcbcbc'
+    deep_gray = '#bcbcbc'
     dim_acrylic = '#29315a'
-    grey1 = '#777b7f'
-    grey2 = '#909396'
+    gray1 = '#777b7f'
+    gray2 = '#909396'
+    green = '#50ab0e'
     magenta = '#d08bf3'
     red = 'red'
     scarlet = '#e64747'
@@ -152,15 +151,15 @@ palette: T.Palette2 = Palette({
         'func_name': color.magenta,
         'arg1'     : color.blue1,
         'arg2'     : color.blue2,
-        'kwarg1'   : color.grey1,
-        'kwarg2'   : color.grey2,
+        'kwarg1'   : color.gray1,
+        'kwarg2'   : color.gray2,
     },
     'panel': {
         'border'           : {
             'group'    : color.magenta,
             'command'  : color.tan,
             'argument' : color.blue,
-            'option'   : color.deep_grey,
+            'option'   : color.deep_gray,
             'extension': color.dim,
             'error'    : color.red,
         },

@@ -209,7 +209,7 @@ def post_logo(style: t.Literal[
     """ show logo in gradient color. """
     from rich.color import Color
     color_pair: tuple = getattr(palette.logo, style)
-    return _blend_text(
+    return blend_text(
         '♥ powered by argsense',  # TODO: embed a homepage link to the name.
         *(Color.parse(x).triplet for x in color_pair)
     )
@@ -218,7 +218,7 @@ def post_logo(style: t.Literal[
 # -----------------------------------------------------------------------------
 # neutral functions
 
-def _blend_text(
+def blend_text(
         message: str,
         color1: t.Tuple[int, int, int],
         color2: t.Tuple[int, int, int]

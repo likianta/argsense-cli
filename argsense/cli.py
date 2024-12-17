@@ -244,7 +244,7 @@ class CommandLineInterface:
                     #     console.print_exception()
         
         # PERF: the spaghetti code is ugly.
-        # print(func, ':v')
+        # print(func, mode, ':v')
         if func is None:
             if mode == 'gui':
                 # noinspection PyUnresolvedReferences
@@ -256,7 +256,7 @@ class CommandLineInterface:
                 if ':helpx' in result['kwargs']:
                     renderer.render_cli_2(self)
                 else:
-                    renderer.render_cli(
+                    renderer.render_cli_3(
                         self, None, show_func_name_in_title=cmd_type == 'group'
                     )
             else:
@@ -267,7 +267,7 @@ class CommandLineInterface:
                         renderer.render_cli_2(self)
                         return
                 # fallback to CLI `:help`
-                renderer.render_cli(
+                renderer.render_cli_3(
                     self, func, show_func_name_in_title=cmd_type == 'group'
                 )
         else:
@@ -276,32 +276,31 @@ class CommandLineInterface:
             if mode == 'gui':
                 # noinspection PyUnresolvedReferences
                 renderer.launch_gui((func_info,))
-                return
             elif mode == 'tui':
                 # noinspection PyUnresolvedReferences
                 renderer.launch_tui((func_info,))
-                return
-            has_help, help_type, is_explicit = get_help_option(
-                consider_transport_action=(
+            else:
+                has_help, help_type, is_explicit = get_help_option(
+                    consider_transport_action=(
                         '**' in func_info.kwargs
                         and func_info.transport_help
+                    )
                 )
-            )
-            if mode == 'cli':
-                if has_help:
-                    renderer.render_cli(
-                        self, func, show_func_name_in_title=True
-                    )
+                if mode == 'cli':
+                    if has_help:
+                        renderer.render_cli_3(
+                            self, func, show_func_name_in_title=True
+                        )
+                    else:
+                        call_func()
                 else:
-                    call_func()
-            else:
-                if has_help:
-                    # ignore `help_type`, because they have same effect.
-                    renderer.render_cli(
-                        self, func, show_func_name_in_title=True
-                    )
-                else:
-                    call_func()
+                    if has_help:
+                        # ignore `help_type`, because they have same effect.
+                        renderer.render_cli_3(
+                            self, func, show_func_name_in_title=True
+                        )
+                    else:
+                        call_func()
 
 
 cli = CommandLineInterface(name='argsense-cli')

@@ -10,6 +10,7 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.8"
 rich = "^13.9.0"
+# rich-gradient = { version = "^0.1.7", python = "^3.10" }
 
 # --- TODO: GUI
 pysimplegui = { version = "^5.0.0", optional = true }
@@ -23,6 +24,7 @@ pysimplegui = { version = "^5.0.0", optional = true }
 gui = ["pysimplegui"]  # pip install argsense[gui]
 
 [tool.poetry.group.dev.dependencies]
+lk-logger = "^6.0.3"
 pyinstrument = "^5.0.0"
 
 [[tool.poetry.source]]

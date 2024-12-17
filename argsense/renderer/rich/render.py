@@ -335,7 +335,7 @@ def _detect_program_name() -> str:
             - 'example.exe'
     """
     main = sys.modules['__main__']
-    path = sys.argv[0]
+    path = sys.orig_argv[1]
     name = os.path.splitext(os.path.basename(path))[0]
     
     head = 'python' if config.TITLE_HEAD_STYLE == 'fixed' else (
