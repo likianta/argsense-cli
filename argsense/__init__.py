@@ -25,4 +25,4 @@ from .parser import parse_argv
 from .parser import parse_docstring
 from .parser import parse_function
 
-__version__ = '0.5.9'
+__version__ = '0.6.0'

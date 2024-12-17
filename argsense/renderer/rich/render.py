@@ -11,9 +11,9 @@ from ...parser import FuncInfo
 
 
 def render(
-        self: CommandLineInterface,
-        func: t.Optional[t.Callable],
-        **kwargs
+    self: CommandLineInterface,
+    func: t.Optional[t.Callable],
+    **kwargs
 ) -> None:
     """
     reference: [lib:click/core.py : BaseCommand.main()]
@@ -52,16 +52,18 @@ def render(
         desc = func_info.desc
         is_group = False
         has_args = bool(func_info.args)
-        has_kwargs = bool(func_info.local_kwargs)
+        has_kwargs = bool(func_info.func_kwargs)
         
         # experimental
         if config.ALIGN_ARGS_AND_OPTS_FIELD_WIDTH:
             if has_args and has_kwargs:
                 config.Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
-                    *map(len, (x['cname']
-                               for x in func_info.args.values())),
-                    *map(len, (x['cname'].replace(',', ', ')
-                               for x in func_info.local_kwargs.values())),
+                    *map(len, (
+                        x['cname'] for x in func_info.args.values()
+                    )),
+                    *map(len, (
+                        x['cname'] for x in func_info.func_kwargs.values()
+                    )),
                 ))
                 # print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
         
@@ -77,8 +79,7 @@ def render(
                         v['cname'] for v in func_info.args.values()
                     ),
                     kwargs=tuple(
-                        v['cname'].split(',', 1)[0]
-                        for v in func_info.local_kwargs.values()
+                        v['cname'] for v in func_info.func_kwargs.values()
                     )
                 ), justify='center'
             )
@@ -96,8 +97,7 @@ def render(
                         v['cname'] for v in func_info.args.values()
                     ),
                     kwargs=tuple(
-                        v['cname'].split(',', 1)[0]
-                        for v in func_info.local_kwargs.values()
+                        v['cname'] for v in func_info.func_kwargs.values()
                     ),
                     add_serif_line=True,
                 ), '    '),
@@ -113,15 +113,16 @@ def render(
                 ))
             )
         
-        if kwargs := func_info.local_kwargs:
+        if kwargs := func_info.func_kwargs:
             console.print(
                 artist.draw_options_panel((
-                    (v['cname'].replace(',', ', '),
-                     v['ctype'].name,
-                     v['desc'],
-                     '[red dim](default={})[/]'.format(
-                         v['default'] if v['default'] != '' else '""'
-                     ))
+                    (
+                        v['cname'],
+                        v['ctype'].name,
+                        v['desc'],
+                        '[red dim](default={})[/]'
+                        .format(v['default'] if v['default'] != '' else '""')
+                    )
                     for v in kwargs.values()
                 ))
             )
@@ -200,10 +201,12 @@ def render2(self):
             if config.ALIGN_ARGS_AND_OPTS_FIELD_WIDTH:
                 if has_args and has_kwargs:
                     config.Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME = max((
-                        *map(len, (x['cname']
-                                   for x in func_info['args'].values())),
-                        *map(len, (x['cname'].replace(',', ', ')
-                                   for x in func_info['kwargs'].values())),
+                        *map(len, (
+                            x['cname'] for x in func_info['args'].values()
+                        )),
+                        *map(len, (
+                            x['cname'] for x in func_info['kwargs'].values()
+                        )),
                     ))
                     # print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
             
@@ -215,8 +218,7 @@ def render2(self):
                         v['cname'] for v in func_info['args'].values()
                     ),
                     kwargs=tuple(
-                        v['cname'].split(',', 1)[0]
-                        for v in func_info['kwargs'].values()
+                        v['cname'] for v in func_info['kwargs'].values()
                     ),
                 )
             )
@@ -237,10 +239,12 @@ def render2(self):
             if kwargs := func_info['kwargs']:
                 collect_renderables['opt_panel'] = (
                     artist.draw_options_panel((
-                        (v['cname'].replace(',', ', '),
-                         v['ctype'].name,
-                         v['desc'],
-                         '[red dim](default={})[/]'.format(v['default']))
+                        (
+                            v['cname'],
+                            v['ctype'].name,
+                            v['desc'],
+                            '[red dim](default={})[/]'.format(v['default'])
+                        )
                         for v in kwargs.values()
                     ))
                 )
@@ -269,23 +273,6 @@ def render2(self):
         # from rich.columns import Columns
         from rich.console import Group
         from rich.panel import Panel
-        
-        # preferred_field_width = {
-        #     'command_field': max(
-        #         map(len, (v['cname']
-        #                   for v in self.commands.values()))
-        #     ),
-        #     'param_field'  : max((
-        #         *map(len, (w['cname']
-        #                    for v in self.commands.values()
-        #                    for w in v['args'].values())),
-        #         *map(len, (w['cname'].replace(',', ', ')
-        #                    for v in self.commands.values()
-        #                    for w in v['kwargs'].values())),
-        #     )),
-        #     'type_field'   : len('NUMBER'),
-        # }
-        # print(preferred_field_width, ':v')
         
         def tint(text: str, color: str) -> str:
             # a simple function to tint a text snippet.

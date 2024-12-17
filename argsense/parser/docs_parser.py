@@ -1,121 +1,273 @@
 import re
 import typing as t
-from enum import Enum
 from textwrap import dedent
+
+if __name__ == '__main__':
+    from .func_parser import FuncInfo
 
 
 class T:
-    _ParamName = str
-    _CliName = str  # e.g. 'ARGUMENT', '--option'
-    _CliName2 = str  # e.g. '--option,-o'
-    _Desc = str  # the description
-    
     # noinspection PyTypedDict
     DocsInfo = t.TypedDict('DocsInfo', {
-        'desc'  : _Desc,  # noqa
-        'args'  : t.Dict[_ParamName, t.TypedDict('ArgInfo', {
-            'cname': _CliName,
-            'desc' : _Desc,
-        })],
-        'kwargs': t.Dict[_ParamName, t.TypedDict('OptInfo', {
-            'cname': _CliName2,
-            'desc' : _Desc,
-        })]
+        'desc'  : str,
+        'args'  : t.Dict[
+            # e.g.
+            #   {
+            #       'aaa': {
+            #           'cname': 'aaa',
+            #           'cshort': '-a',
+            #           'desc': 'the description of aaa.'
+            #       }, ...
+            #   }
+            str, t.TypedDict('ArgInfo', {
+                'cname' : str,
+                'cshort': str,
+                'desc'  : str,
+            })
+        ],
+        'kwargs': t.Dict[
+            # e.g.
+            #   {
+            #       'bbb': {
+            #           'cname': '--bbb',
+            #           'cshort': '-b',
+            #           'desc': 'the description of bbb.'
+            #       }, ...
+            #   }
+            str, t.TypedDict('OptInfo', {
+                'cname' : str,
+                'cshort': str,
+                'desc'  : str,
+            })
+        ]
     })
 
 
-def parse_docstring(docstring: str) -> T.DocsInfo:
+def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
     """
-    ref: ~/docs/how-to-parse-docstring.md
+    doc: /docs/how-to-parse-docstring.md
+    params:
+        funsig: function signature.
     """
     from ..converter import name_2_cname
     
-    result: T.DocsInfo = {
+    out: T.DocsInfo = {
         'desc'  : '',
         'args'  : {},
         'kwargs': {},
     }
     
-    # sanitize docstring
-    if len(docstring) >= 2 and (docstring[0] == ' ' and docstring[1] != ' '):
-        docstring = '   ' + docstring
-    docstring = dedent(docstring).strip()
+    if '\n' not in doc:
+        '''
+        example:
+            def foo(...):
+                """ blabla. """
+        '''
+        out['desc'] = doc.strip()
+        return out
     
-    class Scope(Enum):
-        ROOT = 'desc'
-        ARGS = 'args'
-        KWARGS = 'kwargs'
-        OTHER = 'other'
+    doc = dedent(doc).strip()
+    doc = re.sub(r' - *\n', ' ', doc)
     
-    # walk through lines
-    scope = Scope.ROOT
-    args_pending_line_pattern = re.compile(r'^(\w+): ?(.*)')
-    #   example: 'apple: the description text.'
-    #             ~~~~1  ~~~~~~~~~~~~~~~~~~~~2
-    kwargs_pending_line_pattern = re.compile(
-        r'^([\w-]+)(?: \(([-,\w]+)\))?: ?(.*)')
-    #   example: 'aaa_bbb (-ab): the description text.'
-    #             ~~~~~~1  ~~2   ~~~~~~~~~~~~~~~~~~~~3
-    last_key = ''
+    flag = 'INIT'
+    temp_str: str = ''
+    temp_dict: t.Optional[dict] = None
     
-    for line in docstring.splitlines():
-        line = line.rstrip()
-        if not line:
-            continue
-        
-        # determine scope
-        if line.lower().startswith(('args:', 'arguments:')):
-            scope = Scope.ARGS
-            continue
-        elif line.lower().startswith(('kwargs:', 'opt:', 'opts:', 'options:')):
-            scope = Scope.KWARGS
-            continue
+    def accumulate_lines(line: str) -> None:
+        nonlocal temp_str
+        if line.endswith(' -'):
+            temp_str += line[:-2]
         else:
-            if scope == Scope.ROOT:
-                pass
-            elif scope == Scope.OTHER:
-                continue
-            elif not line.startswith('    '):
-                scope = Scope.OTHER
-                continue
-        
-        if scope == Scope.ROOT:
-            result['desc'] = _feed_line(line, result['desc'])
-        elif scope in (Scope.ARGS, Scope.KWARGS):
-            node = result[scope.value]  # noqa
-            line = line[4:]  # dedent 4 spaces
-            
-            pattern = args_pending_line_pattern if scope == Scope.ARGS \
-                else kwargs_pending_line_pattern
-            if m := pattern.match(line):
-                if scope == Scope.ARGS:
-                    name = m.group(1)
-                    cname = name_2_cname(name, style='arg')
-                    leading_text = m.group(2)
-                else:
-                    name = m.group(1)
-                    long_option = name_2_cname(name, style='opt')
-                    short_option = m.group(2) or ''
-                    cname = f'{long_option},{short_option}'.rstrip(',')
-                    leading_text = m.group(3)
-                
-                node[name] = {'cname': cname, 'desc': leading_text}
-                last_key = name
-                continue
-            else:
-                line = line[4:]
-                node[last_key]['desc'] = _feed_line(
-                    line, node[last_key]['desc']
-                )
+            temp_str += line + '\n'
     
-    return result
-
-
-def _feed_line(line: str, refer: str = ''):
-    # note: param `line` has been stripped.
-    if not refer:
-        return line
-    if refer.endswith(' -'):
-        return refer[:-1] + line
-    else:
-        return refer + '\n' + line
+    def add_param(line: str) -> None:
+        nonlocal temp_str, temp_dict
+        
+        m = re.match(r'(\w+)(?: \((-\w)\))?:(?: (.*))?', line)
+        #              ~~~~1      ~~~~2         ~~~3
+        param_name = m.group(1)
+        param_short = m.group(2) or ''
+        leading_text = m.group(3) or ''
+        
+        if param_name in funsig.args:
+            temp_dict = out['args'][param_name] = {
+                'cname' : funsig.args[param_name]['cname'],
+                'cshort': param_short,
+                'desc'  : '',
+            }
+        elif param_name in funsig.kwargs:
+            temp_dict = out['kwargs'][param_name] = {
+                'cname' : funsig.kwargs[param_name]['cname'],
+                'cshort': param_short,
+                'desc'  : '',
+            }
+        else:
+            if '**' in funsig.kwargs:
+                temp_dict = out['kwargs'][param_name] = {
+                    'cname' : name_2_cname(param_name, 'opt'),
+                    'cshort': param_short,
+                    'desc'  : '',
+                }
+            else:
+                raise Exception(
+                    'docstring parsing failed: "{}" is not in the '
+                    'signature of function `{}`.'.format(
+                        param_name, funsig.name
+                    )
+                )
+        
+        assert temp_str == ''
+        accumulate_lines(leading_text)
+    
+    def finalize_desc() -> None:
+        nonlocal temp_str
+        out['desc'] = temp_str.strip()
+        temp_str = ''
+    
+    def finalize_param_desc() -> None:
+        nonlocal temp_str, temp_dict
+        assert temp_dict
+        temp_dict['desc'] = temp_str.strip()
+        temp_dict = None
+        temp_str = ''
+    
+    def is_extra_param_field(line: str) -> bool:
+        """
+        example:
+              | def foo(...):
+              |     '''
+              |     params:
+              |         aaa: the description text.
+              |         bbb: the description text.
+              |         **kwargs:
+            * |             ddd: the description text.
+            * |             eee: the description text.
+              |     '''
+        """
+        return bool(re.match(r' {8}\w+(?: \(-\w\))?:', line))
+    
+    def is_new_field(line: str) -> bool:
+        if line.startswith(' '):
+            return False
+        if line.endswith(':'):
+            return True
+        return False
+    
+    def is_param_field(line: str) -> bool:
+        """
+        example:
+              | def foo(...):
+              |     '''
+              |     params:
+            * |         aaa: the description text.
+            * |         bbb: the description text.
+            * |         **kwargs:
+              |             ddd: the description text.
+              |     '''
+        """
+        return (
+            bool(re.match(r' {4}\w+(?: \(-\w\))?:', line)) or
+            bool(re.match(r' {4}\*\*\w+: *', line))
+        )
+    
+    def is_params_field(line: str) -> bool:
+        return line.lower() in (
+            'params:',  # recommended
+            'args:', 'kwargs:', 'opts:', 'options:',
+        )
+    
+    lines = tuple(x.rstrip() for x in doc.splitlines())
+    for curr_line, next_line in zip(lines + ('',), ('',) + lines):
+        if flag == 'INIT':
+            if curr_line:
+                if is_new_field(curr_line):
+                    if curr_line.lower() in ('argsense:', 'help:'):
+                        flag = 'STANDALONE_DESC'
+                    elif is_params_field(curr_line):
+                        flag = 'PARAMS'
+                    else:
+                        assert not temp_str
+                        flag = 'DESC_DONE'
+                else:
+                    assert not temp_str
+                    accumulate_lines(curr_line)
+                    flag = 'DESC'
+            else:
+                assert not temp_str
+        
+        elif flag == 'DESC':
+            assert not is_new_field(curr_line)
+            accumulate_lines(curr_line)
+            if is_new_field(next_line):
+                finalize_desc()
+                flag = 'DESC_DONE'
+        
+        elif flag == 'DESC_DONE':
+            if is_params_field(curr_line):
+                flag = 'PARAMS'
+        
+        elif flag == 'EXTRA_PARAM_DESC':
+            assert curr_line == '' or curr_line.startswith(' ' * 12)
+            accumulate_lines(curr_line[12:])
+            
+            if not next_line.startswith(' '):
+                break
+            elif is_param_field(next_line):
+                finalize_param_desc()
+                flag = 'PARAMS'
+            elif is_extra_param_field(next_line):
+                finalize_param_desc()
+                flag = 'EXTRA_PARAMS'
+        
+        elif flag == 'EXTRA_PARAMS':
+            if curr_line:
+                assert curr_line.startswith(' ' * 8)
+                assert is_extra_param_field(curr_line)
+                add_param(curr_line[8:])
+                if not next_line.startswith(' '):
+                    break
+                elif is_param_field(next_line):
+                    finalize_param_desc()
+                    flag = 'PARAMS'
+                elif is_extra_param_field(next_line):
+                    finalize_param_desc()
+                    flag = 'EXTRA_PARAMS'
+                else:
+                    flag = 'EXTRA_PARAM_DESC'
+        
+        elif flag == 'PARAM_DESC':
+            assert curr_line == '' or curr_line.startswith(' ' * 8)
+            accumulate_lines(curr_line[8:])
+            
+            if not next_line.startswith(' '):
+                finalize_param_desc()
+                break
+            elif is_param_field(next_line):
+                finalize_param_desc()
+                flag = 'PARAMS'
+        
+        elif flag == 'PARAMS':
+            if curr_line:
+                assert curr_line.startswith('    ')
+                assert is_param_field(curr_line)
+                if '**' in curr_line:
+                    flag = 'EXTRA_PARAMS'
+                else:
+                    add_param(curr_line[4:])
+                    if not next_line.startswith(' '):
+                        break
+                    elif is_param_field(next_line):
+                        finalize_param_desc()
+                    else:
+                        flag = 'PARAM_DESC'
+        
+        elif flag == 'STANDALONE_DESC':
+            assert curr_line == '' or curr_line.startswith(' ' * 4)
+            accumulate_lines(curr_line[4:])
+            if is_new_field(next_line):
+                finalize_desc()
+                flag = 'DESC_DONE'
+    
+    print(flag, ':v')
+    
+    return out

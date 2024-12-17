@@ -1,6 +1,8 @@
 import typing as t
 from inspect import getfullargspec
 
+from enum import Enum, auto
+
 from .args_parser import ParamType
 from .docs_parser import T as T0
 from .. import config
@@ -48,6 +50,26 @@ class T:
             'return': 'none',
         }
     '''
+
+
+class ArgumentType(Enum):
+    """
+    argument type explanation:
+        for example here is a function:
+            def foo(aaa, *bbb, ccc, ddd=123, **eee):
+                pass
+        the argument type of each parameter is:
+            aaa: required positional argument
+            bbb: variable-length positional argument
+            ccc: required keyword argument
+            ddd: optional keyword argument
+            eee: variable-length keyword argument
+    """
+    REQUIRED_POSITIONAL_ARGUMENT = auto()
+    VARIABLE_POSITIONAL_ARGUMENT = auto()
+    REQUIRED_KEYWORD_ARGUMENT = auto()
+    OPTIONAL_KEYWORD_ARGUMENT = auto()
+    VARIABLE_KEYWORD_ARGUMENT = auto()
 
 
 class FuncInfo:
@@ -122,7 +144,7 @@ class FuncInfo:
     #         '-:hh'    : ':helpx',
     #     }
     
-    def __init__(self, info: T.RawInfo):
+    def __init__(self, info: T.RawInfo) -> None:
         # print(info, ':lv')
         from ..converter import name_2_cname
         from ..converter import type_2_ctype
@@ -159,7 +181,7 @@ class FuncInfo:
             }
     
     @property
-    def local_kwargs(self) -> T.KwArgsInfo:
+    def func_kwargs(self) -> T.KwArgsInfo:
         return {k: v for k, v in self.kwargs.items() if not k.startswith(':')}
     
     def _append_cname(self, name: str, cname: str) -> None:
@@ -173,19 +195,22 @@ class FuncInfo:
     def fill_docs_info(self, info: T.DocsInfo) -> None:
         self.desc = info['desc']
         for name, value in info['args'].items():
+            # assert self.args[name]['cname'] == value['cname']
             self.args[name]['desc'] = value['desc']
+            if value['cshort']:
+                self.cname_2_name[value['cshort']] = name
+                self.args[name]['cname'] = '{} ({})'.format(
+                    value['cname'], value['cshort']
+                )
+            
         for name, value in info['kwargs'].items():
+            # assert self.kwargs[name]['cname'] == value['cname']
             self.kwargs[name]['desc'] = value['desc']
-            if value['cname'] != self.kwargs[name]['cname']:
-                # be noted value['cname'] may contain ',', we need to split it.
-                for cname in value['cname'].split(','):
-                    if cname in self.cname_2_name:
-                        continue
-                    self.cname_2_name[cname] = name
-                    # the `cname` stored in `self.kwargs` is preferred `--xxx`
-                    # than `-x`.
-                    if cname.startswith('--'):
-                        self.kwargs[name]['cname'] = cname
+            if value['cshort']:
+                self.cname_2_name[value['cshort']] = name
+                self.kwargs[name]['cname'] = '{} ({})'.format(
+                    value['cname'], value['cshort']
+                )
 
 
 def parse_function(

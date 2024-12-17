@@ -35,7 +35,7 @@ class CommandLineInterface:
     TODO: we will add group feature in future version.
     """
     
-    def __init__(self, name=None):
+    def __init__(self, name: str = None) -> None:
         self.name = name
         self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
@@ -43,10 +43,10 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     
     def add_cmd(
-            self,
-            func: T.Func,
-            name: str = None,
-            transport_help: bool = False
+        self,
+        func: T.Func,
+        name: str = None,
+        transport_help: bool = False
     ) -> None:
         if name:
             assert not name.startswith('-')
@@ -75,7 +75,7 @@ class CommandLineInterface:
         self._cname_2_func[cmd_name] = func
         
         func_info = parse_function(func, fallback_type=config.FALLBACK_TYPE)
-        docs_info = parse_docstring(func.__doc__ or '')
+        docs_info = parse_docstring(func.__doc__ or '', func_info)
         
         func_info.target = func
         func_info.name = cmd_name
@@ -115,9 +115,9 @@ class CommandLineInterface:
         self.run(func, mode='tui')
     
     def run(
-            self,
-            func: T.Func = None,
-            mode: T.RenderMode = 'auto'
+        self,
+        func: T.Func = None,
+        mode: T.RenderMode = 'auto'
     ) -> None:
         config.apply_changes()
         cmd_type: T.CommandType = 'group' if not func else 'command'  # noqa
@@ -255,9 +255,7 @@ class CommandLineInterface:
                     renderer.render_cli_2(self)
                 else:
                     renderer.render_cli(
-                        self, func, show_func_name_in_title=bool(
-                            cmd_type == 'group'
-                        )
+                        self, None, show_func_name_in_title=cmd_type == 'group'
                     )
             else:
                 # [2023-04-27] do not use TUI mode
@@ -268,9 +266,7 @@ class CommandLineInterface:
                         return
                 # fallback to CLI `:help`
                 renderer.render_cli(
-                    self, func, show_func_name_in_title=bool(
-                        cmd_type == 'group'
-                    )
+                    self, func, show_func_name_in_title=cmd_type == 'group'
                 )
         else:
             # here, `:helpx` is downgraded to what `:help` does.

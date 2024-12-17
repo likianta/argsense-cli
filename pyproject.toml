@@ -1,17 +1,21 @@
 [tool.poetry]
 name = "argsense"
-version = "0.5.9a0"
+version = "0.6.0a0"
 homepage = "https://github.com/likianta/argsense-cli"
-description = "New command line interface based on Python Rich library."
+description = "New command line interface based on Rich library."
 readme = "README.md"
 authors = ["Likianta <likianta@foxmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
+rich = "^13.9.0"
+
+# --- TODO: GUI
 pysimplegui = { version = "^5.0.0", optional = true }
-rich = "^13.0.0"
-# TODO
+#   freesimplegui = "*"
+#   pyapp-window = "*"
+#   streamlit = "*"
 #   textual = "*"
 #   trogon = "*"
 
