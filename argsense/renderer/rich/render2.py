@@ -109,7 +109,9 @@ def render(
                 short + '   ',
                 arg['ctype'].name + '   ',
                 arg['desc'],
-                'default={}'.format(arg['default']),
+                '   ' + 'default={}'.format(
+                    arg['default'] if arg['default'] != '' else '""'
+                ),
             )
         console.print(
             rich.panel.Panel(
