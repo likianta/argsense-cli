@@ -9,6 +9,8 @@ TODO:
 """
 import typing as t
 
+from rich import get_console
+
 
 class T:
     ArgNameStyle = t.Literal['AAA_BBB', 'AAA-BBB', 'aaa_bbb', 'aaa-bbb', 'AaaBbb']
@@ -63,7 +65,7 @@ class Dynamic:
 
 
 def apply_changes():  # TODO: rename to 'finalize'?
-    from .console import console
+    console = get_console()
     if CONSOLE_WIDTH == 0:
         rulers = (80, 100, 120, 200)
         for x in reversed(rulers):

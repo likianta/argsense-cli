@@ -4,8 +4,9 @@ import os
 import sys
 import typing as t
 
+from rich import print as rprint
+
 from . import config
-from .console import console
 from .parser import FuncInfo
 from .parser import parse_argv
 from .parser import parse_docstring
@@ -124,7 +125,7 @@ class CommandLineInterface:
         config.apply_changes()
         cmd_type: T.CommandType = 'group' if not func else 'command'  # noqa
         
-        def update_ui_mode() -> None:
+        def determine_mode() -> None:
             nonlocal mode
             if force_mode := os.getenv('ARGSENSE_UI_MODE'):
                 assert force_mode in ('CLI', 'GUI', 'TUI')
@@ -135,14 +136,17 @@ class CommandLineInterface:
                 if old_mode != 'AUTO':
                     print(
                         'argsense ui mode is force changed by environment '
-                        'setting: [red]{}[/] -> [green]{}[/]'.format(
-                            old_mode, new_mode
-                        ), ':v3sp2r'
+                        'setting: [red]{}[/] -> [green]{}[/]'
+                        .format(old_mode, new_mode),
+                        ':v6p2r'
                     )
                 mode = new_mode.lower()
                 os.environ['ARGSENSE_UI_MODE'] = ''  # "pop" key
+            else:
+                if mode == 'auto':
+                    mode = 'cli'
         
-        update_ui_mode()
+        determine_mode()
         
         # ---------------------------------------------------------------------
         
@@ -155,10 +159,12 @@ class CommandLineInterface:
                 except KeyError:
                     from .general import did_you_mean
                     if x := did_you_mean(cmd_name, self._cname_2_func):
-                        console.print('[red]Command "{}" not found, did you '
-                                      'mean "{}"?[/]'.format(cmd_name, x))
+                        rprint(
+                            '[red]Command "{}" not found, did you mean "{}"?[/]'
+                            .format(cmd_name, x)
+                        )
                     else:
-                        console.print(f'[red]Unknown command: {cmd_name}[/]')
+                        rprint(f'[red]Unknown command: {cmd_name}[/]')
                     sys.exit(1)
             return None
         
@@ -204,8 +210,9 @@ class CommandLineInterface:
         # ---------------------------------------------------------------------
         from . import renderer
         
-        def get_help_option(consider_transport_action=False) \
-                -> t.Tuple[bool, str, bool]:
+        def get_help_option(
+            consider_transport_action: bool = False
+        ) -> t.Tuple[bool, str, bool]:
             """
             return: (has_help, help_type, is_explicit)
             """
@@ -227,86 +234,44 @@ class CommandLineInterface:
             else:
                 return False, '', False
         
-        def call_func() -> None:
-            try:
-                func(*result['args'].values(), **result['kwargs'])
-            except Exception as e:
-                # console.print_exception()
-                if ':helpx' in result['kwargs'] or ':help' in result['kwargs']:
-                    renderer.render_cli(
-                        self, func, show_func_name_in_title=True
-                    )
-                else:
-                    raise e
-                    # if os.getenv('ARGSENSE_TRACEBACK', '1') == '0':
-                    #     # will be handled by default (sys.excepthook) or third -
-                    #     # party excephook (e.g. lk-logger v5.7.5+).
-                    #     raise
-                    # else:
-                    #     console.print_exception()
-        
-        # PERF: the spaghetti code is ugly.
         # print(func, mode, ':v')
         if func is None:
-            if mode == 'gui':
-                # noinspection PyUnresolvedReferences
-                renderer.launch_gui(tuple(self.commands.values()))
-            elif mode == 'tui':
-                # noinspection PyUnresolvedReferences
-                renderer.launch_tui(tuple(self.commands.values()))
-            elif mode == 'cli':
-                if ':helpx' in result['kwargs']:
-                    renderer.render_cli_2(self)
-                else:
-                    renderer.render_cli_3(
-                        self, None, show_func_name_in_title=cmd_type == 'group'
-                    )
+            has_help, help_type, is_explicit = get_help_option()
+            if has_help:
+                if has_help == ':helpx':
+                    raise NotImplementedError
+            if mode == 'cli':
+                renderer.render_functions(self.commands.values())
             else:
-                # [2023-04-27] do not use TUI mode
-                has_help, help_type, is_explicit = get_help_option()
-                if has_help:
-                    if has_help == ':helpx':
-                        renderer.render_cli_2(self)
-                        return
-                # fallback to CLI `:help`
-                renderer.render_cli_3(
-                    self, func, show_func_name_in_title=cmd_type == 'group'
-                )
+                raise NotImplementedError(mode)
         else:
             # here, `:helpx` is downgraded to what `:help` does.
             # i.e. they have same effect, and possibly `:helpx` is an user typo.
-            if mode == 'gui':
-                # noinspection PyUnresolvedReferences
-                renderer.launch_gui((func_info,))
-            elif mode == 'tui':
-                # noinspection PyUnresolvedReferences
-                renderer.launch_tui((func_info,))
-            else:
-                has_help, help_type, is_explicit = get_help_option(
-                    consider_transport_action=(
-                        '**' in func_info.kwargs
-                        and func_info.transport_help
-                    )
+            has_help, help_type, is_explicit = get_help_option(
+                consider_transport_action=(
+                    '**' in func_info.kwargs
+                    and func_info.transport_help
                 )
+            )
+            if has_help:
                 if mode == 'cli':
-                    if has_help:
-                        renderer.render_cli_3(
-                            self,
-                            func,
-                            show_func_name_in_title=not single_func_entrance
-                        )
-                    else:
-                        call_func()
+                    renderer.render_function_parameters(
+                        self.commands[id(func)],
+                        show_func_name_in_title=not single_func_entrance
+                    )
                 else:
-                    if has_help:
-                        # ignore `help_type`, because they have same effect.
-                        renderer.render_cli_3(
-                            self,
-                            func,
+                    raise NotImplementedError(mode)
+            else:
+                try:
+                    func(*result['args'].values(), **result['kwargs'])
+                except Exception as e:
+                    if has_help:  # DELETE: unreachable case?
+                        renderer.render_function_parameters(
+                            self.commands[id(func)],
                             show_func_name_in_title=not single_func_entrance
                         )
                     else:
-                        call_func()
+                        raise e
 
 
 cli = CommandLineInterface(name='argsense-cli')

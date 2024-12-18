@@ -1,16 +1,13 @@
-from __future__ import annotations
-
 import typing as t
 from textwrap import dedent
 
 from rich.panel import Panel
-
-from ...console import console
+from rich import print as rprint
 
 
 class ArgvVendor:
     
-    def __init__(self, argv: list[str]):
+    def __init__(self, argv: t.List[str]) -> None:
         self.argv = argv
         self.pointer = 0
     
@@ -22,7 +19,7 @@ class ArgvVendor:
             yield arg
         self.pointer = 0
     
-    def report(self, msg: str, err_type: str = None):
+    def report(self, msg: str, err_type: str = None) -> None:
         """
         accurately report that which element is parsing failed.
         
@@ -44,7 +41,7 @@ class ArgvVendor:
             else:
                 return '\\[argsense] argparsing failed'
         
-        def make_argv_string():
+        def make_argv_string() -> str:
             # TODO: highlight the command line.
             # scheme A
             if self.pointer == 0:
@@ -62,7 +59,7 @@ class ArgvVendor:
             # # else:
             # #     return out
         
-        def make_indicator():
+        def make_indicator() -> str:
             if self.pointer:
                 return '{spaces} [red dim]{wave}[/]'.format(
                     spaces=' ' * len(' '.join(self.argv[:self.pointer])),
@@ -73,26 +70,26 @@ class ArgvVendor:
                     spaces=' ' * len(' '.join(self.argv))
                 )
         
-        console.print(Panel(
-            dedent('''
-                Failed parsing command line arguments -- there was an error -
-                happened in the following position:
-                
-                [default on #1d1d1d] [bold cyan]>[/] {argv} [/]
-                   {indicator}
-                {reason}
-            ''').strip().replace(' -\n', ' ').format(
-                argv=make_argv_string(),
-                indicator=make_indicator(),
-                reason=msg
-            ),
-            border_style='red',
-            title=make_title(),
-            title_align='left',
-        ))
-        
-        # from ...config import FALLBACK_TO_HELP_IF_ARGPARSE_FAILED
-        # if FALLBACK_TO_HELP_IF_ARGPARSE_FAILED:
-        #     pass
+        rprint(
+            Panel(
+                dedent(
+                    '''
+                    Failed parsing command line arguments -- there was an -
+                    error happened in the following position:
+                    
+                    [default on #1d1d1d] [bold cyan]>[/] {argv} [/]
+                       {indicator}
+                    {reason}
+                    '''
+                ).strip().replace(' -\n', ' ').format(
+                    argv=make_argv_string(),
+                    indicator=make_indicator(),
+                    reason=msg
+                ),
+                border_style='red',
+                title=make_title(),
+                title_align='left',
+            )
+        )
         
         exit(1)

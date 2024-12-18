@@ -16,7 +16,6 @@ from . import converter
 from . import parser
 from .cli import CommandLineInterface
 from .cli import cli
-from .console import rprint
 from .converter import args_2_cargs
 from .converter import name_2_cname
 from .converter import type_2_ctype

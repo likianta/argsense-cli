@@ -87,38 +87,47 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
         nonlocal temp_str, temp_dict
         
         # print(line, ':v')
-        m = re.match(r' {4}(\w+)(?: \((-\w)\))?:(?: (.*))?', line)
-        #                  ~~~~1      ~~~~2         ~~~3
-        param_name = m.group(1)
-        param_short = m.group(2) or ''
-        leading_text = m.group(3) or ''
+        m = re.match(r' {4}(\*?)(\w+)(?: \((-\w\d*)\))?:(?: (.*))?', line)
+        #                  ~~~~1~~~~2      ~~~~~~~3         ~~~4
+        has_asterisk = bool(m.group(1))
+        param_name = m.group(2)
+        param_short = m.group(3) or ''
+        leading_text = m.group(4) or ''
         
-        if param_name in funsig.args:
-            temp_dict = out['args'][param_name] = {
-                'cname' : funsig.args[param_name]['cname'],
-                'cshort': param_short,
-                'desc'  : '',
-            }
-        elif param_name in funsig.kwargs:
-            temp_dict = out['kwargs'][param_name] = {
-                'cname' : funsig.kwargs[param_name]['cname'],
-                'cshort': param_short,
+        if has_asterisk:
+            assert param_short == ''
+            temp_dict = out['args']['*'] = {
+                'cname' : funsig.args['*']['cname'],
+                'cshort': '',
                 'desc'  : '',
             }
         else:
-            if '**' in funsig.kwargs:
+            if param_name in funsig.args:
+                temp_dict = out['args'][param_name] = {
+                    'cname' : funsig.args[param_name]['cname'],
+                    'cshort': param_short,
+                    'desc'  : '',
+                }
+            elif param_name in funsig.kwargs:
                 temp_dict = out['kwargs'][param_name] = {
-                    'cname' : name_2_cname(param_name, 'opt'),
+                    'cname' : funsig.kwargs[param_name]['cname'],
                     'cshort': param_short,
                     'desc'  : '',
                 }
             else:
-                raise Exception(
-                    'docstring parsing failed: "{}" is not in the '
-                    'signature of function `{}`.'.format(
-                        param_name, funsig.name
+                if '**' in funsig.kwargs:
+                    temp_dict = out['kwargs'][param_name] = {
+                        'cname' : name_2_cname(param_name, 'opt'),
+                        'cshort': param_short,
+                        'desc'  : '',
+                    }
+                else:
+                    raise Exception(
+                        'docstring parsing failed: "{}" is not in the '
+                        'signature of function `{}`.'.format(
+                            param_name, funsig.name
+                        )
                     )
-                )
         
         assert temp_str == ''
         accumulate_lines(leading_text)
@@ -142,10 +151,10 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
               |     '''
               |     params:
               |         aaa: the description text.
-              |         bbb: the description text.
+              |         bbb (-b): the description text.
               |         **kwargs:
-            * |             ddd: the description text.
-            * |             eee: the description text.
+            * |             ccc: the description text.
+            * |             ddd (-d): the description text.
               |     '''
         """
         return bool(re.match(r' {8}\w+(?: \(-\w\))?:', line))
@@ -157,22 +166,26 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
             return True
         return False
     
-    def is_param_field(line: str) -> bool:
+    def is_param_field(line: str) -> int:
         """
-        example:
+        diagram:
               | def foo(...):
               |     '''
               |     params:
             * |         aaa: the description text.
-            * |         bbb: the description text.
+            * |         *args: the description text.
             * |         **kwargs:
-              |             ddd: the description text.
+              |             aaa: the description text.
               |     '''
         """
-        return (
-            bool(re.match(r' {4}\w+(?: \(-\w\))?:', line)) or
-            bool(re.match(r' {4}\*\*\w+: *', line))
-        )
+        if bool(re.match(r' {4}\w+(?: \(-\w\))?:', line)):
+            return 1
+        elif bool(re.match(r' {4}\*\w+:.*', line)):
+            return 2
+        elif bool(re.match(r' {4}\*\*\w+: *', line)):
+            return 3
+        else:
+            return 0
     
     def is_params_field(line: str) -> bool:
         return line.lower() in (
@@ -239,12 +252,12 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
                 finalize_param_desc()
                 flag = 'OVER'
                 break
-            elif is_param_field(line):
+            elif x := is_param_field(line):
                 finalize_param_desc()
-                if '**' in line:
-                    flag = 'EXTRA_PARAMS'
-                else:
+                if x == 1 or x == 2:
                     add_param(line)
+                else:
+                    flag = 'EXTRA_PARAMS'
             else:
                 assert line == '' or line.startswith(' ' * 8)
                 accumulate_lines(line[8:])
@@ -257,12 +270,14 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
                     break
                 else:
                     assert line.startswith('    ')
-                    assert is_param_field(line)
-                    if '**' in line:
-                        flag = 'EXTRA_PARAMS'
+                    if x := is_param_field(line):
+                        if x == 1 or x == 2:
+                            add_param(line)
+                            flag = 'PARAM_DESC'
+                        else:
+                            flag = 'EXTRA_PARAMS'
                     else:
-                        add_param(line)
-                        flag = 'PARAM_DESC'
+                        raise Exception(i, line)
         
         elif flag == 'STANDALONE_DESC':
             if not line.startswith(' '):
@@ -283,13 +298,11 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
                 accumulate_lines(line)
     
     # print(flag, ':v1')
-    if flag == 'DESC':
+    if flag in ('TOP_DESC', 'STANDALONE_DESC'):
         finalize_desc()
-    elif flag == 'PARAM_DESC':
-        finalize_param_desc()
-    elif flag == 'EXTRA_PARAM_DESC':
+    elif flag in ('PARAM_DESC', 'EXTRA_PARAM_DESC'):
         finalize_param_desc()
     else:
-        assert flag == 'OVER', flag
+        assert flag in ('DESC_DONE', 'OVER'), flag
     
     return out

@@ -1,3 +1,2 @@
-from .render import render
-from .render import render2
-from .render2 import render as render3
+from .render2 import render_function_parameters
+from .render2 import render_functions

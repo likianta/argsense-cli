@@ -9,30 +9,55 @@ import rich.padding
 import rich.panel
 import rich.table
 import rich.text
+from rich import get_console
 
 from .style import color
 from ... import config
-from ...cli import CommandLineInterface
-from ...console import console
 from ...converter import val_2_cval
 from ...parser import FuncInfo
 
+console = get_console()
 
-def render(
-    self: CommandLineInterface,
-    func: t.Optional[t.Callable],
+
+def render_functions(funcs: t.Iterable[FuncInfo]) -> None:
+    console.print(
+        _simple_gradient(
+            _detect_program_name() + ' ...',
+            (0xFF0000, 0xFFFF00)  # red -> yellow
+        ),
+        justify='center',
+        style='bold',
+    )
+    
+    table = rich.table.Table.grid(expand=True, padding=(0, 4))
+    table.add_column('index', style=color.yellow)
+    table.add_column('function', style=color.magenta)
+    table.add_column('description', style=color.gray2, ratio=1)
+    
+    for i, f in enumerate(funcs, 1):
+        table.add_row(str(i), f.name, f.desc)
+    
+    console.print(
+        rich.panel.Panel(
+            table,
+            border_style=color.magenta,
+            padding=(0, 2),
+            title='FUNCTIONS',
+            title_align='right',
+        )
+    )
+    
+    _post_logo(color_seed='magenta')
+
+
+def render_function_parameters(
+    func_info: FuncInfo,
     *,
     show_func_name_in_title: bool = True,
 ) -> None:
-    func_info: FuncInfo
-    
-    if func is None:
-        raise NotImplementedError
-    else:
-        func_info = self.commands[id(func)]
-        has_args = bool(func_info.args or func_info.kwargs)
-        has_var_args = '*' in func_info.args
-        has_var_kwargs = '**' in func_info.kwargs
+    has_args = bool(func_info.args or func_info.kwargs)
+    has_var_args = '*' in func_info.args
+    has_var_kwargs = '**' in func_info.kwargs
     
     if not has_args:
         raise NotImplementedError
@@ -54,14 +79,32 @@ def render(
     if func_info.desc:
         console.print(
             rich.padding.Padding(
-                rich.text.Text(func_info.desc, style='gray70'),
+                rich.text.Text(func_info.desc, style=color.gray2),
                 (0, 2, 0, 2)
             )
         )
     
     if has_args:
+        # _longest_length_of_cname = max(
+        #     (
+        #         *(
+        #             len(x['cname'].split(',')[0])
+        #             for x in func_info.args.values()
+        #         ),
+        #         *(
+        #             len(x['cname'].lstrip('-').split(',')[0])
+        #             for x in func_info.kwargs.values()
+        #         ),
+        #     )
+        # )
+        #
+        # def pretty_cname(cname):
+        #     return '{:>{}}'.format(
+        #         cname, _longest_length_of_cname
+        #     )
+        
         table = rich.table.Table.grid(expand=True, padding=(0, 1))
-        #   padding=(0, 1): vertical padding 0, horizontal padding 1.
+        #   padding=(0, 1): cell's padding, (vertical, horizontal).
         #       we use small padding for horizontal, so that the required mark -
         #       '*' can be closer to the param name.
         #       but other fields should have more padding, the workaround is -
@@ -87,6 +130,7 @@ def render(
                 arg['cname'].split(', ') if ', ' in arg['cname']
                 else (arg['cname'], '')
             )
+            # name = pretty_cname(name)
             table.add_row(
                 '*',
                 '{:<4}'.format(i),
@@ -100,6 +144,7 @@ def render(
                 ' ',
                 '*',
                 func_info.args['*']['cname'],
+                # pretty_cname(func_info.args['*']['cname']),
                 '',
                 func_info.args['*']['ctype'].name + '   ',
                 # '(allow passing variable arguments...)',
@@ -112,10 +157,13 @@ def render(
                 arg['cname'].split(', ') if ', ' in arg['cname']
                 else (arg['cname'], '')
             )
+            name = name.lstrip('-')  # FIXME: is this good?
+            # name = pretty_cname(name)
+            is_var_kwargs = arg['default'] is ...  # WORKAROUND
             table.add_row(
                 ' ',
-                '-   ' if has_var_args else '{:<4}'.format(i),
-                name.lstrip('-') + '   ',  # FIXME: is this good?
+                '-   ' if has_var_args or is_var_kwargs else '{:<4}'.format(i),
+                name + '   ',
                 short + '   ',
                 arg['ctype'].name + '   ',
                 arg['desc'],
@@ -126,6 +174,7 @@ def render(
                 ' ',
                 '-   ',
                 func_info.kwargs['**']['cname'],
+                # pretty_cname(func_info.kwargs['**']['cname']),
                 '',
                 func_info.kwargs['**']['ctype'].name + '   ',
                 # '(allow passing variable keyword arguments...)',
@@ -140,20 +189,10 @@ def render(
             )
         )
     
-    # logo
-    console.print(
-        _simple_gradient(
-            '♥ powered by argsense',
-            (0xFFFFFF, 0xA8A8A8)
-            # _roll_color_pair()
-        ),
-        justify='right',
-        style='bold',
-        end=' \n',
-    )
+    _post_logo(color_seed='blue')
 
 
-def _detect_program_name() -> str:
+def _detect_program_name(func_cname: str = None) -> str:
     """
     code reference: `lib click : /utils.py : def _detect_program_name()`
     
@@ -165,30 +204,28 @@ def _detect_program_name() -> str:
         - 'example.exe'
     """
     # print(sys.orig_argv, ':v')
+    argv = sys.orig_argv + [''] * 10
+    #                    ~~~~~~~~~~~ in case of IndexError
     
-    main = sys.modules['__main__']
-    path = sys.orig_argv[1]
-    name = os.path.splitext(os.path.basename(path))[0]
+    parts = []  # noqa
     
-    head = 'python' if config.TITLE_HEAD_STYLE == 'fixed' else (
-        'python' if os.name == 'nt' else 'python3'
+    parts.append(
+        'python' if config.TITLE_HEAD_STYLE == 'fixed' else
+        'python' if os.name == 'nt' else
+        'python3'
     )
     
-    if getattr(main, '__package__', None) is None:
-        return f'{head} {name}.py'
-    elif (
-        os.name == 'nt'
-        and main.__package__ == ''
-        and not os.path.exists(path)
-        and os.path.exists(f'{path}.exe')
-    ):
-        return f'{name}.exe'
+    if argv[1] == '-m':
+        parts.append(argv[1])
+        parts.append(argv[2])
+        if func_cname and argv[3] == func_cname:
+            parts.append(func_cname)
+    else:
+        parts.append(os.path.basename(argv[1]))
+        if func_cname and argv[2] == func_cname:
+            parts.append(func_cname)
     
-    py_module = t.cast(str, main.__package__)
-    if name != '__main__':  # a submodule like 'example.cli'
-        py_module = f'{py_module}.{name}'.lstrip('.')
-    
-    return f'{head} -m {py_module}'
+    return ' '.join(parts)
 
 
 # FIXME
@@ -206,17 +243,37 @@ def _gradient(text: str, colors: t.Sequence[int]):
                 )
             )
         return rich.text.Text.assemble(*text_parts)
-    
-    
-def _roll_color_pair() -> t.Tuple[int, int]:
-    return (
-        int('{:02x}{:02x}{:02x}'.format(
-            randint(128, 255), randint(128, 255), randint(128, 255)
-        ), 16),
-        int('{:02x}{:02x}{:02x}'.format(
-            randint(0, 127), randint(0, 127), randint(0, 127)
-        ), 16),
+
+
+def _post_logo(color_seed: str = 'white') -> None:
+    console.print(
+        _simple_gradient(
+            '♥ powered by argsense',
+            (0x0A87EE, 0x9294F0) if color_seed == 'blue' else
+            (0xF38CFD, 0xCE628C) if color_seed == 'magenta' else
+            (0xF47FA4, 0xF49364) if color_seed == 'tan' else
+            (0xFFFFFF, 0x909090) if color_seed == 'white' else
+            _roll_color_pair()
+        ),
+        justify='right',
+        style='bold',
+        end=' \n',
     )
+
+
+def _roll_color_pair() -> t.Tuple[int, int]:
+    start = int('{:02x}{:02x}{:02x}'.format(
+        randint(128, 255), randint(128, 255), randint(128, 255)
+    ), 16)
+    end = int('{:02x}{:02x}{:02x}'.format(
+        randint(0, 127), randint(0, 127), randint(0, 127)
+    ), 16)
+    print(
+        ':r',
+        '[#{:06x}]#{:06x}[/] -> [#{:06x}]#{:06x}[/]'
+        .format(start, start, end, end)
+    )
+    return start, end
 
 
 def _simple_gradient(text: str, colors: t.Tuple[int, int]) -> rich.text.Text:
