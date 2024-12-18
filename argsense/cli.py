@@ -119,6 +119,8 @@ class CommandLineInterface:
         func: T.Func = None,
         mode: T.RenderMode = 'auto'
     ) -> None:
+        single_func_entrance = bool(func)
+        
         config.apply_changes()
         cmd_type: T.CommandType = 'group' if not func else 'command'  # noqa
         
@@ -289,7 +291,9 @@ class CommandLineInterface:
                 if mode == 'cli':
                     if has_help:
                         renderer.render_cli_3(
-                            self, func, show_func_name_in_title=True
+                            self,
+                            func,
+                            show_func_name_in_title=not single_func_entrance
                         )
                     else:
                         call_func()
@@ -297,7 +301,9 @@ class CommandLineInterface:
                     if has_help:
                         # ignore `help_type`, because they have same effect.
                         renderer.render_cli_3(
-                            self, func, show_func_name_in_title=True
+                            self,
+                            func,
+                            show_func_name_in_title=not single_func_entrance
                         )
                     else:
                         call_func()

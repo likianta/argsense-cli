@@ -2,6 +2,7 @@ import math
 import os
 import sys
 import typing as t
+from random import randint
 
 import rich.box
 import rich.padding
@@ -9,7 +10,6 @@ import rich.panel
 import rich.table
 import rich.text
 
-from . import artist
 from .style import color
 from ... import config
 from ...cli import CommandLineInterface
@@ -20,7 +20,8 @@ from ...parser import FuncInfo
 def render(
     self: CommandLineInterface,
     func: t.Optional[t.Callable],
-    **_
+    *,
+    show_func_name_in_title: bool = True,
 ) -> None:
     func_info: FuncInfo
     
@@ -32,26 +33,19 @@ def render(
     
     if not has_params:
         raise NotImplementedError
-
+    
+    title_parts = [_detect_program_name()]
+    if show_func_name_in_title:
+        title_parts.append(func_info.name)
+    if has_params:
+        title_parts.append('...')
     console.print(
         _simple_gradient(
-            '{} {} {}'
-            .format(
-                _detect_program_name(),
-                func_info.name,
-                '...' if has_params else ''
-            )
-            .strip(),
-            0xFF0000,  # red
-            0xFFFF00,  # yellow
-            # int('{:02X}{:02X}{:02X}'.format(
-            #     randint(0x80, 0xFF), randint(0x80, 0xFF), randint(0x80, 0xFF)
-            # ), 16),
-            # int('{:02X}{:02X}{:02X}'.format(
-            #     randint(0x00, 0x80), randint(0x00, 0x80), randint(0x00, 0x80)
-            # ), 16),
+            ' '.join(title_parts),
+            (0xFF0000, 0xFFFF00)  # red -> yellow
         ),
-        justify='center'
+        justify='center',
+        style='bold',
     )
     
     if func_info.desc:
@@ -118,16 +112,21 @@ def render(
                 table,
                 border_style=color.blue,
                 padding=(0, 2),
-                title='Parameters',
+                title='PARAMETERS',
                 title_align='right',
             )
         )
     
+    # logo
     console.print(
-        artist.post_logo(style='option'),
+        _simple_gradient(
+            '♥ powered by argsense',
+            (0xFFFFFF, 0xA8A8A8)
+            # _roll_color_pair()
+        ),
         justify='right',
         style='bold',
-        end=' \n'
+        end=' \n',
     )
 
 
@@ -172,7 +171,7 @@ def _detect_program_name() -> str:
 # FIXME
 def _gradient(text: str, colors: t.Sequence[int]):
     if len(colors) == 2:
-        return _simple_gradient(text, *colors)
+        return _simple_gradient(text, colors)  # noqa
     else:
         text_parts = []
         substr_len = math.ceil(len(text) / len(colors))
@@ -180,14 +179,25 @@ def _gradient(text: str, colors: t.Sequence[int]):
             text_parts.append(
                 _simple_gradient(
                     text[(i * substr_len):((i + 1) * substr_len)],
-                    colors[i],
-                    colors[i + 1]
+                    (colors[i], colors[i + 1])
                 )
             )
         return rich.text.Text.assemble(*text_parts)
+    
+    
+def _roll_color_pair() -> t.Tuple[int, int]:
+    return (
+        int('{:02x}{:02x}{:02x}'.format(
+            randint(128, 255), randint(128, 255), randint(128, 255)
+        ), 16),
+        int('{:02x}{:02x}{:02x}'.format(
+            randint(0, 127), randint(0, 127), randint(0, 127)
+        ), 16),
+    )
 
 
-def _simple_gradient(text, color1: int, color2: int) -> rich.text.Text:
+def _simple_gradient(text: str, colors: t.Tuple[int, int]) -> rich.text.Text:
+    color1, color2 = colors
     # print('{:06X}, {:06X}'.format(color1, color2), ':pv')
     text = rich.text.Text(text, style='bold')
     r1, g1, b1 = (color1 >> 16) & 0xFF, (color1 >> 8) & 0xFF, color1 & 0xFF
