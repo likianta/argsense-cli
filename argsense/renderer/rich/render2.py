@@ -42,8 +42,14 @@ def render(
                 '...' if has_params else ''
             )
             .strip(),
-            (0xFF, 0x00, 0x00),
-            (0xFF, 0xFF, 0x00),
+            0xFF0000,  # red
+            0xFFFF00,  # yellow
+            # int('{:02X}{:02X}{:02X}'.format(
+            #     randint(0x80, 0xFF), randint(0x80, 0xFF), randint(0x80, 0xFF)
+            # ), 16),
+            # int('{:02X}{:02X}{:02X}'.format(
+            #     randint(0x00, 0x80), randint(0x00, 0x80), randint(0x00, 0x80)
+            # ), 16),
         ),
         justify='center'
     )
@@ -57,12 +63,22 @@ def render(
         )
     
     if has_params:
-        table = rich.table.Table.grid(expand=False, padding=(0, 4))
+        table = rich.table.Table.grid(expand=True, padding=(0, 1))
+        #   padding=(0, 1): vertical padding 0, horizontal padding 1.
+        #       we use small padding for horizontal, so that the required mark -
+        #       '*' can be closer to the param name.
+        #       but other fields should have more padding, the workaround is -
+        #       to use `value + '   '` to manually add the spaces.
+        #   expand=True:
+        #       set expand to True, so that columns can use `ratio` to decide -
+        #       their widths. currently we only set `desc` column to be -
+        #       expanded.
+        table.add_column('required', style=color.red)
         table.add_column('index', style=color.yellow + ' dim')
         table.add_column('param', style=color.blue + ' bold')
         table.add_column('short', style=color.green + ' bold')
         table.add_column('type', style='dim')
-        table.add_column('description', style=None)
+        table.add_column('description', style=None, ratio=1)
         table.add_column('default', style=color.scarlet)
         
         i = 0
@@ -73,10 +89,11 @@ def render(
                 else (arg['cname'], '')
             )
             table.add_row(
-                str(i),
-                name,
-                short,
-                arg['ctype'].name,
+                '*',
+                str(i) + '   ',
+                name + '   ',
+                short + '   ',
+                arg['ctype'].name + '   ',
                 arg['desc'],
             )
         for arg in func_info.func_kwargs.values():
@@ -86,10 +103,11 @@ def render(
                 else (arg['cname'], '')
             )
             table.add_row(
-                str(i),
-                name.lstrip('-'),  # FIXME: is this good?
-                short,
-                arg['ctype'].name,
+                ' ',
+                str(i) + '   ',
+                name.lstrip('-') + '   ',  # FIXME: is this good?
+                short + '   ',
+                arg['ctype'].name + '   ',
                 arg['desc'],
                 'default={}'.format(arg['default']),
             )
@@ -150,7 +168,7 @@ def _detect_program_name() -> str:
 
 
 # FIXME
-def _gradient(text: str, colors: t.Sequence[t.Tuple[int, int, int]]):
+def _gradient(text: str, colors: t.Sequence[int]):
     if len(colors) == 2:
         return _simple_gradient(text, *colors)
     else:
@@ -167,10 +185,11 @@ def _gradient(text: str, colors: t.Sequence[t.Tuple[int, int, int]]):
         return rich.text.Text.assemble(*text_parts)
 
 
-def _simple_gradient(text, color1, color2):
+def _simple_gradient(text, color1: int, color2: int) -> rich.text.Text:
+    # print('{:06X}, {:06X}'.format(color1, color2), ':pv')
     text = rich.text.Text(text, style='bold')
-    r1, g1, b1 = color1
-    r2, g2, b2 = color2
+    r1, g1, b1 = (color1 >> 16) & 0xFF, (color1 >> 8) & 0xFF, color1 & 0xFF
+    r2, g2, b2 = (color2 >> 16) & 0xFF, (color2 >> 8) & 0xFF, color2 & 0xFF
     dr = r2 - r1
     dg = g2 - g1
     db = b2 - b1
