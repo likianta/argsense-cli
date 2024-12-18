@@ -67,7 +67,7 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
         return out
     
     doc = dedent(doc).strip()
-    doc = re.sub(r' - *\n', ' ', doc)
+    doc = re.sub(r' - *\n +', ' ', doc)
     
     flag = 'INIT'
     temp_str: str = ''

@@ -84,8 +84,8 @@
       params:
           aaa: the description of aaa.
           bbb: the description of bbb.
-          ccc: the description of ccc.
-          
+          **kwargs:
+              ccc: the description of ccc.
       """
   ```
 

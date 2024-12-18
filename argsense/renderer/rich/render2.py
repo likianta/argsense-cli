@@ -74,7 +74,7 @@ def render(
         #       their widths. currently we only set `desc` column to be -
         #       expanded.
         table.add_column('required', style=color.red)
-        table.add_column('index', style=color.yellow + ' dim')
+        table.add_column('index', style=color.yellow)
         table.add_column('param', style=color.blue + ' bold')
         table.add_column('short', style=color.green + ' bold')
         table.add_column('type', style='dim')

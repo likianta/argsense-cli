@@ -107,7 +107,7 @@ class Color(BaseColor):
     red = 'red'
     scarlet = '#e64747'
     tan = '#f49364'
-    yellow = '#ffff00'
+    yellow = '#ccbf2f'
     yellow_accent = '#fffd3c'
 
 
