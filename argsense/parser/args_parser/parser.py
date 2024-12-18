@@ -1,3 +1,4 @@
+import re
 import shlex
 import typing as t
 
@@ -29,23 +30,22 @@ def parse_argstring(argstring: str) -> t.List[str]:
 
 
 def parse_argv(
-        argv: t.List[str],
-        mode: t.Literal['group', 'command'],
-        front_matter: T.ParamsInfo,
+    argv: t.List[str],
+    mode: t.Literal['group', 'command'],
+    front_matter: T.ParamsInfo,
 ) -> T.ParsedResult:
-    # print(argv, front_matter, ':l')
-    # path, argv = argv[0], argv[1:]
     argv_vendor = ArgvVendor(argv)
     try:
         return _walking_through_argv(argv_vendor, mode, front_matter)
     except Exception as err:
+        # raise err  # TEST
         argv_vendor.report(str(err))
 
 
 def _walking_through_argv(
-        argv_vendor: ArgvVendor,
-        mode: t.Literal['group', 'command'],
-        front_matter: T.ParamsInfo
+    argv_vendor: ArgvVendor,
+    mode: t.Literal['group', 'command'],
+    front_matter: T.ParamsInfo
 ) -> T.ParsedResult:
     """
     all possible cases (examples):
@@ -62,7 +62,8 @@ def _walking_through_argv(
     # print(':vl', front_matter)
     
     params = ParamsHolder(
-        front_matter['args'], front_matter['kwargs'],
+        front_matter['args'],
+        front_matter['kwargs'],
         cnames=tuple(front_matter['index'].keys())
     )
     ctx = Context()
@@ -76,7 +77,7 @@ def _walking_through_argv(
         """ convert cname to name. """
         if cname in front_matter['index']:
             return front_matter['index'][cname]
-        elif '**' in front_matter['index']:
+        elif '**' in front_matter['kwargs']:
             return cname.lstrip('-').replace('-', '_')
         else:
             raise e.ParamNotFound(cname, front_matter['index'].keys())
@@ -87,8 +88,11 @@ def _walking_through_argv(
     param_type: ParamType
     param_value: t.Any
     
-    for arg in argv_vendor:
-        # print(':v', arg)
+    for i, arg in argv_vendor:
+        # print(':vi2', i, arg)
+        if i == 0 or i == 1:
+            continue
+            
         if ctx.token in (Token.START, Token.READY):
             if arg.startswith('-'):
                 if (
@@ -106,8 +110,9 @@ def _walking_through_argv(
                     except AssertionError:
                         raise e.MixinCase()
                     
-                    if arg.startswith('--not-'):
-                        option_name = arg.replace('--not-', '--', 1)
+                    if arg.startswith(('--not-', '--no-')):
+                        # option_name = arg.replace('--not-', '--', 1)
+                        option_name = re.sub(r'--not?-', '--', arg, 1)
                         param_name = get_option_name(option_name)
                         param_type = params.get_param(param_name)[1]
                         try:
@@ -199,9 +204,9 @@ def _walking_through_argv(
     return out
 
 
+# FIXME: not reliable
 def extract_command_name(argv: t.List[str]) -> t.Optional[str]:
-    # TODO: need to be improved
-    for arg in argv[1:]:
+    for arg in argv[2:]:
         if arg.startswith('-'):
             continue
         return arg

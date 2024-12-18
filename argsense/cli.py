@@ -62,7 +62,7 @@ class CommandLineInterface:
         ):
             if config.WARN_IF_DUPLICATE_COMMANDS_OVERRIDDEN:
                 print(
-                    ':v3pr',
+                    ':v6pr',
                     f'duplicate command name: {cmd_name}',
                     f'the recorded function is: {old}',
                     f'the incoming function is: {new}',
@@ -88,7 +88,7 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     # decorators
     
-    def cmd(self, name: str = None, transport_help=False) -> T.Func:
+    def cmd(self, name: str = None, transport_help: bool = False) -> T.Func:
         """
         usage:
             from argsense import cli
@@ -152,7 +152,7 @@ class CommandLineInterface:
         
         def auto_detect_func_from_argv() -> t.Optional[T.Func]:
             # try to find the command name from argv
-            if cmd_name := extract_command_name(sys.argv):
+            if cmd_name := extract_command_name(sys.orig_argv):
                 # print(':v', cmd_name)
                 try:
                     return self._cname_2_func[cmd_name]
@@ -173,30 +173,29 @@ class CommandLineInterface:
         
         # ---------------------------------------------------------------------
         
-        func_info: t.Optional[T.FuncInfo]
-        func_info = func and self.commands[id(func)]
+        func_info: t.Optional[T.FuncInfo] = func and self.commands[id(func)]
         
         result = parse_argv(
-            argv=sys.argv,
+            argv=sys.orig_argv,
             mode=cmd_type,
             front_matter={
                 'args'  : {
                     k: v['ctype']
                     for k, v in (
-                        {} if func_info is None
-                        else func_info.args
+                        {} if func_info is None else
+                        func_info.args
                     ).items()
                 },
                 'kwargs': {
                     k: v['ctype']
                     for k, v in (
-                        FuncInfo.GLOBAL_KWARGS if func_info is None
-                        else func_info.extended_kwargs
+                        FuncInfo.GLOBAL_KWARGS if func_info is None else
+                        func_info.extended_kwargs
                     ).items()
                 },
                 'index' : (
-                    FuncInfo.GLOBAL_CNAME_2_NAME if func_info is None
-                    else func_info.cname_2_name
+                    FuncInfo.GLOBAL_CNAME_2_NAME if func_info is None else
+                    func_info.cname_2_name
                 )
             }
         )

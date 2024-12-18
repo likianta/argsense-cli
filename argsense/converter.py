@@ -137,6 +137,11 @@ def val_2_cval(value: t.Any, type_: ParamType = ParamType.ANY) -> str:
                 return '""'
             else:
                 return value
+        if type_ in (ParamType.ANY, ParamType.NUMBER):
+            assert isinstance(value, (int, float))
+            return str(value)
+        elif type_ in (ParamType.BOOL,):
+            return ':true' if bool(value) else ':false'
         else:
             raise NotImplementedError(value, type_)
 

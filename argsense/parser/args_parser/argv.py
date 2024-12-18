@@ -11,12 +11,10 @@ class ArgvVendor:
         self.argv = argv
         self.pointer = 0
     
-    def __iter__(self) -> t.Iterator[str]:
+    def __iter__(self) -> t.Iterator[t.Tuple[int, str]]:
         for i, arg in enumerate(self.argv):
             self.pointer = i
-            if i == 0:
-                continue
-            yield arg
+            yield i, arg
         self.pointer = 0
     
     def report(self, msg: str, err_type: str = None) -> None:
