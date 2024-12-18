@@ -52,7 +52,7 @@ def render(
         desc = func_info.desc
         is_group = False
         has_args = bool(func_info.args)
-        has_kwargs = bool(func_info.func_kwargs)
+        has_kwargs = bool(func_info.kwargs)
         
         # experimental
         if config.ALIGN_ARGS_AND_OPTS_FIELD_WIDTH:
@@ -62,7 +62,7 @@ def render(
                         x['cname'] for x in func_info.args.values()
                     )),
                     *map(len, (
-                        x['cname'] for x in func_info.func_kwargs.values()
+                        x['cname'] for x in func_info.kwargs.values()
                     )),
                 ))
                 # print(Dynamic.PREFERRED_FIELD_WIDTH_OF_NAME, ':v')
@@ -79,7 +79,7 @@ def render(
                         v['cname'] for v in func_info.args.values()
                     ),
                     kwargs=tuple(
-                        v['cname'] for v in func_info.func_kwargs.values()
+                        v['cname'] for v in func_info.kwargs.values()
                     )
                 ), justify='center'
             )
@@ -97,7 +97,7 @@ def render(
                         v['cname'] for v in func_info.args.values()
                     ),
                     kwargs=tuple(
-                        v['cname'] for v in func_info.func_kwargs.values()
+                        v['cname'] for v in func_info.kwargs.values()
                     ),
                     add_serif_line=True,
                 ), '    '),
@@ -113,7 +113,7 @@ def render(
                 ))
             )
         
-        if kwargs := func_info.func_kwargs:
+        if kwargs := func_info.kwargs:
             console.print(
                 artist.draw_options_panel((
                     (

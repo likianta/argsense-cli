@@ -7,8 +7,6 @@ from .args_parser import ParamType
 from .docs_parser import T as T0
 from .. import config
 
-_compatible_mode: bool = getattr(t, '_LiteralGenericAlias', None) is None
-
 
 class T:
     DocsInfo = T0.DocsInfo
@@ -154,64 +152,90 @@ class FuncInfo:
         self.desc = ''
         # self.return_type = info['return']
         self.args = {}
-        self.kwargs = FuncInfo.GLOBAL_KWARGS.copy()
+        self.kwargs = {}
         self.cname_2_name = FuncInfo.GLOBAL_CNAME_2_NAME.copy()
         self.transport_help = False
         
         for name, type in info['args']:
-            cname = name_2_cname(name, style='arg')
-            self._append_cname(name, cname)
-            if cname != '*':
-                # alias of "option" style
-                self._append_cname(name, name_2_cname(name, style='opt'))
-            self.args[name] = {
-                'cname': cname,
-                'ctype': type_2_ctype(type),
-                'desc' : '',
-            }
+            if name.startswith('*'):
+                self.args['*'] = {
+                    'cname': name_2_cname(name, style='arg'),
+                    'ctype': type_2_ctype(type),
+                    'desc' : '',
+                }
+            else:
+                self._register_cname(name_2_cname(name, style='arg'), name)
+                self._register_cname(name_2_cname(name, style='opt'), name)
+                self.args[name] = {
+                    'cname': name_2_cname(name, style='arg'),
+                    'ctype': type_2_ctype(type),
+                    'desc' : '',
+                }
         
         for name, type, default in info['kwargs']:
-            cname = name_2_cname(name, style='opt')
-            self._append_cname(name, cname)
-            self.kwargs[name] = {
-                'cname'  : cname,
-                'ctype'  : type_2_ctype(type),
-                'desc'   : '',
-                'default': default,
-            }
+            if name.startswith('**'):
+                self.kwargs['**'] = {
+                    'cname'  : name_2_cname(name, style='opt'),
+                    'ctype'  : type_2_ctype(type),
+                    'desc'   : '',
+                    'default': default,
+                }
+            else:
+                self._register_cname(name_2_cname(name, style='opt'), name)
+                self.kwargs[name] = {
+                    'cname'  : name_2_cname(name, style='opt'),
+                    'ctype'  : type_2_ctype(type),
+                    'desc'   : '',
+                    'default': default,
+                }
     
     @property
-    def func_kwargs(self) -> T.KwArgsInfo:
-        return {k: v for k, v in self.kwargs.items() if not k.startswith(':')}
-    
-    def _append_cname(self, name: str, cname: str) -> None:
-        assert cname not in self.cname_2_name, (
-            f'duplicate cname: `{cname}` (for `{name}`). '
-            f'make sure you have not defined parameters like `xxx`, `_xxx` and '
-            f'`xxx_` in the same function.'
-        )
-        self.cname_2_name[cname] = name
+    def extended_kwargs(self) -> T.KwArgsInfo:
+        return {
+            **{k: v for k, v in self.kwargs.items()},
+            **FuncInfo.GLOBAL_KWARGS
+        }
     
     def fill_docs_info(self, info: T.DocsInfo) -> None:
         self.desc = info['desc']
+        
         for name, value in info['args'].items():
             # assert self.args[name]['cname'] == value['cname']
             self.args[name]['desc'] = value['desc']
             if value['cshort']:
-                self.cname_2_name[value['cshort']] = name
+                self._register_cname(value['cshort'], name)
                 # FIXME: need a better way
                 self.args[name]['cname'] = '{}, {}'.format(
                     value['cname'], value['cshort']
                 )
             
         for name, value in info['kwargs'].items():
-            # assert self.kwargs[name]['cname'] == value['cname']
-            self.kwargs[name]['desc'] = value['desc']
-            if value['cshort']:
-                self.cname_2_name[value['cshort']] = name
-                self.kwargs[name]['cname'] = '{}, {}'.format(
-                    value['cname'], value['cshort']
-                )
+            if name in self.kwargs:
+                # assert self.kwargs[name]['cname'] == value['cname']
+                self.kwargs[name]['desc'] = value['desc']
+                if value['cshort']:
+                    self._register_cname(value['cshort'], name)
+                    self.kwargs[name]['cname'] = '{}, {}'.format(
+                        value['cname'], value['cshort']
+                    )
+            else:
+                self._register_cname(value['cname'], name)
+                if value['cshort']:
+                    self._register_cname(value['cshort'], name)
+                self.kwargs[name] = {
+                    'cname'  : value['cname'],
+                    'ctype'  : ParamType.ANY,
+                    'desc'   : value['desc'],
+                    'default': ...,
+                }
+    
+    def _register_cname(self, cname: str, for_name: str) -> None:
+        assert cname not in self.cname_2_name, (
+            'duplicate cname: "{}" (for "{}")! make sure you have not defined '
+            'parameters like `xxx`, `_xxx` or `xxx_` in the function.'
+            .format(cname, for_name)
+        )
+        self.cname_2_name[cname] = for_name
 
 
 def parse_function(
@@ -250,7 +274,7 @@ def parse_function(
         type_ = annotations.get_arg_type(name)
         args.append((name, type_))
     if spec.varargs:
-        args.append(('*', 'list'))
+        args.append(('*' + spec.varargs, 'any'))
     
     kwargs = []
     if spec.defaults:
@@ -267,7 +291,7 @@ def parse_function(
             type_ = annotations.get_kwarg_type(name, default)
             kwargs.append((name, type_, default))
     if spec.varkw:
-        kwargs.append(('**', 'dict', {}))
+        kwargs.append(('**' + spec.varkw, 'any', ...))
     
     return_ = annotations.get_return_type()
     
@@ -319,7 +343,12 @@ class Annotations:
         ):
             return 'tuple'  # typing.NamedTuple
         else:
-            if _compatible_mode:
+            # if we are running in lower version python, be noted some classes -
+            # are not available.
+            _is_legacy_typing: bool = (
+                getattr(t, '_LiteralGenericAlias', None) is None
+            )
+            if _is_legacy_typing:
                 if isinstance(type_, t._GenericAlias):
                     return 'any'
             else:

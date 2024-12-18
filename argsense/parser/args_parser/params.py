@@ -4,8 +4,6 @@ import typing as t
 from enum import Enum
 from enum import auto
 
-__all__ = ['ParamType', 'ParamsHolder']
-
 
 class ParamType(Enum):
     ANY = auto()
@@ -16,6 +14,7 @@ class ParamType(Enum):
     NONE = auto()
     NUMBER = auto()
     TEXT = auto()
+    # UNKNOWN = auto()
 
 
 class T:

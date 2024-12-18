@@ -85,7 +85,7 @@ def _create_tab_group(funcs_info: T.FuncsInfo) -> psg.TabGroup:
                 [
                     psg.Frame(
                         'keyword arguments',
-                        _build_kwargs_panel(info.func_kwargs)
+                        _build_kwargs_panel(info.kwargs)
                     )
                 ]
             ])

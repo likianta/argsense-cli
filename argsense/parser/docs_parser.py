@@ -86,6 +86,7 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
     def add_param(line: str) -> None:
         nonlocal temp_str, temp_dict
         
+        # print(line, ':v')
         m = re.match(r' {4}(\w+)(?: \((-\w)\))?:(?: (.*))?', line)
         #                  ~~~~1      ~~~~2         ~~~3
         param_name = m.group(1)
@@ -240,7 +241,10 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
                 break
             elif is_param_field(line):
                 finalize_param_desc()
-                add_param(line)
+                if '**' in line:
+                    flag = 'EXTRA_PARAMS'
+                else:
+                    add_param(line)
             else:
                 assert line == '' or line.startswith(' ' * 8)
                 accumulate_lines(line[8:])
@@ -282,6 +286,8 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
     if flag == 'DESC':
         finalize_desc()
     elif flag == 'PARAM_DESC':
+        finalize_param_desc()
+    elif flag == 'EXTRA_PARAM_DESC':
         finalize_param_desc()
     else:
         assert flag == 'OVER', flag

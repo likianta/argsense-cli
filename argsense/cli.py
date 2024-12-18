@@ -185,7 +185,7 @@ class CommandLineInterface:
                     k: v['ctype']
                     for k, v in (
                         FuncInfo.GLOBAL_KWARGS if func_info is None
-                        else func_info.kwargs
+                        else func_info.extended_kwargs
                     ).items()
                 },
                 'index' : (

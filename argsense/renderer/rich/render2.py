@@ -14,6 +14,7 @@ from .style import color
 from ... import config
 from ...cli import CommandLineInterface
 from ...console import console
+from ...converter import val_2_cval
 from ...parser import FuncInfo
 
 
@@ -29,15 +30,17 @@ def render(
         raise NotImplementedError
     else:
         func_info = self.commands[id(func)]
-        has_params = bool(func_info.args or func_info.func_kwargs)
+        has_args = bool(func_info.args or func_info.kwargs)
+        has_var_args = '*' in func_info.args
+        has_var_kwargs = '**' in func_info.kwargs
     
-    if not has_params:
+    if not has_args:
         raise NotImplementedError
     
     title_parts = [_detect_program_name()]
     if show_func_name_in_title:
         title_parts.append(func_info.name)
-    if has_params:
+    if has_args:
         title_parts.append('...')
     console.print(
         _simple_gradient(
@@ -56,7 +59,7 @@ def render(
             )
         )
     
-    if has_params:
+    if has_args:
         table = rich.table.Table.grid(expand=True, padding=(0, 1))
         #   padding=(0, 1): vertical padding 0, horizontal padding 1.
         #       we use small padding for horizontal, so that the required mark -
@@ -77,6 +80,8 @@ def render(
         
         i = 0
         for arg in func_info.args.values():
+            if arg['cname'].startswith('*'):
+                continue
             i += 1
             name, short = (
                 arg['cname'].split(', ') if ', ' in arg['cname']
@@ -84,13 +89,24 @@ def render(
             )
             table.add_row(
                 '*',
-                str(i) + '   ',
+                '{:<4}'.format(i),
                 name + '   ',
                 short + '   ',
                 arg['ctype'].name + '   ',
                 arg['desc'],
             )
-        for arg in func_info.func_kwargs.values():
+        if has_var_args:
+            table.add_row(
+                ' ',
+                '*',
+                func_info.args['*']['cname'],
+                '',
+                func_info.args['*']['ctype'].name + '   ',
+                '(allow passing variable arguments...)',
+            )
+        for arg in func_info.kwargs.values():
+            if arg['cname'].startswith('**'):
+                continue
             i += 1
             name, short = (
                 arg['cname'].split(', ') if ', ' in arg['cname']
@@ -98,14 +114,21 @@ def render(
             )
             table.add_row(
                 ' ',
-                str(i) + '   ',
+                '-   ' if has_var_args else '{:<4}'.format(i),
                 name.lstrip('-') + '   ',  # FIXME: is this good?
                 short + '   ',
                 arg['ctype'].name + '   ',
                 arg['desc'],
-                '   ' + 'default={}'.format(
-                    arg['default'] if arg['default'] != '' else '""'
-                ),
+                '   ' + 'default = {}'.format(val_2_cval(arg['default'])),
+            )
+        if has_var_kwargs:
+            table.add_row(
+                ' ',
+                '-   ',
+                func_info.kwargs['**']['cname'],
+                '',
+                func_info.kwargs['**']['ctype'].name + '   ',
+                '(allow passing variable keyword arguments...)',
             )
         console.print(
             rich.panel.Panel(

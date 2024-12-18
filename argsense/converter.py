@@ -19,31 +19,23 @@ def args_2_cargs(*args, **kwargs) -> t.List[str]:
     example:
         args_2_cargs(
             123, 'abc', True, False, None,
-            aaa=456, bbb=True, ccc=False, ddd=None, eee='hello')
-        -> ['123', 'abc', ':true', ':false', ':none', '--aaa', '456', '--bbb',
-            '--not-ccc', '--ddd', ':none', '--eee', 'hello']
+            aaa=456, bbb=True, ccc=False, ddd=None, eee='hello'
+        )
+        -> [
+            '123', 'abc', ':true', ':false', ':none', '--aaa', '456', '--bbb',
+            '--no-ccc', '--ddd', ':none', '--eee', 'hello'
+        ]
     """
-    
-    def value_2_cvalue(value: t.Any) -> str:
-        if value is None:
-            return ':none'
-        elif value is True:
-            return ':true'
-        elif value is False:
-            return ':false'
-        else:
-            return str(value)
-    
     out = []
     for value in args:
-        out.append(value_2_cvalue(value))
+        out.append(val_2_cval(value))
     for name, value in kwargs.items():
         out.append(name_2_cname(name, style='opt'))
         if isinstance(value, bool):
             if value is False:
-                out[-1] = '--not-' + out[-1][2:]
+                out[-1] = '--no-' + out[-1][2:]
         else:
-            out.append(value_2_cvalue(value))
+            out.append(val_2_cval(value))
     return out
 
 
@@ -58,12 +50,14 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
     arg     __aaa_bbb   aaa-bbb
     arg     aaa_bbb_    aaa-bbb
     arg     aaa_bbb__   aaa-bbb
+    arg     *aaa_bbb    *aaa-bbb
     opt     aaa_bbb     --aaa-bbb
     opt     _aaa_bbb    --aaa-bbb
     opt     __aaa_bbb   --aaa-bbb  # FIXME: maybe we should not show it in CLI?
     opt     ___aaa_bbb  --aaa-bbb
     opt     aaa_bbb_    --aaa-bbb
     opt     _aaa_bbb_   --aaa-bbb
+    opt     **aaa_bbb   **aaa-bbb
     
     other styles follow the same rule with `arg`.
     
@@ -73,11 +67,13 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
     warning:
         be careful using `xxx_`, `_xxx`, etc. in the same function. it produces
         duplicate cnames and causes unexpected behavior!
-        `./parser/func_parser.py : class FuncInfo : def _append_cname()` will
+        `./parser/func_parser.py : class FuncInfo : def _register_cname()` will
         raise an error if this happens.
     """
-    if name in ('*', '**'):
-        return name
+    if name.startswith('*'):
+        i = name.rindex('*')
+        return name[:i + 1] + name_2_cname(name[i + 1:], style='arg')
+    
     name = name.lower().strip('_')
     if style == 'arg':
         style = config.ARG_NAME_STYLE
@@ -107,32 +103,42 @@ def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
     """
     return {
         'any'  : ParamType.ANY,
-        'str'  : ParamType.TEXT,
-        'float': ParamType.NUMBER,
-        'flag' : ParamType.FLAG,
         'bool' : ParamType.BOOL,
+        'dict' : ParamType.DICT,
+        'flag' : ParamType.FLAG,
+        'float': ParamType.NUMBER,
         'int'  : ParamType.NUMBER,
         'list' : ParamType.LIST,
-        'tuple': ParamType.LIST,
-        'set'  : ParamType.LIST,
-        'dict' : ParamType.DICT,
         'none' : ParamType.NONE,
+        'set'  : ParamType.LIST,
+        'str'  : ParamType.TEXT,
+        'tuple': ParamType.LIST,
     }.get(t, ParamType.ANY)
 
 
-def val_2_str(value: t.Any, type_: ParamType) -> str:
-    assert type_ not in (ParamType.DICT, ParamType.LIST), (
-        'the complex type is not implemented', type_
-    )
-    conv = {
-        None : ':none',
-        True : ':true',
-        False: ':false',
-    }
-    if value in conv:
-        return conv[value]
+def val_2_cval(value: t.Any, type_: ParamType = ParamType.ANY) -> str:
+    """
+    FIXME:
+        - this function is not stable.
+        - this function is not reversible with `cval_2_val()`.
+    """
+    if value is None:
+        return ':none'
+    elif value is True:
+        return ':true'
+    elif value is False:
+        return ':false'
+    elif value is ...:
+        assert type_ == ParamType.ANY
+        return '...'
     else:
-        return str(value)
+        if isinstance(value, str):
+            if value == '':
+                return '""'
+            else:
+                return value
+        else:
+            raise NotImplementedError(value, type_)
 
 
 # -----------------------------------------------------------------------------
@@ -146,12 +152,8 @@ def ctype_2_type(t: T.ParamType2, v: t.Any = None) -> T.ParamType3:
         return str
     elif t == ParamType.BOOL:
         return bool
-    elif t == ParamType.DICT:
-        raise ValueError('not implemented')
     elif t == ParamType.FLAG:
         return bool
-    elif t == ParamType.LIST:
-        raise ValueError('not implemented')
     elif t == ParamType.NONE:
         return type(None)
     elif t == ParamType.NUMBER:
@@ -160,6 +162,8 @@ def ctype_2_type(t: T.ParamType2, v: t.Any = None) -> T.ParamType3:
         return float
     elif t == ParamType.TEXT:
         return str
+    else:
+        raise NotImplementedError
 
 
 PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(
@@ -181,87 +185,29 @@ SPECIAL_ARGS = {
 
 
 def cval_2_val(value: str, type_: ParamType) -> t.Any:
-    if value in SPECIAL_ARGS:
-        value = SPECIAL_ARGS[value]
-    
     # print(':v', arg, type(arg), type, type(type))
-    if isinstance(value, str):
-        assert type_ in (
-            ParamType.TEXT, ParamType.NUMBER, ParamType.ANY
-        )
-        if type_ == ParamType.TEXT:
-            return value
-        elif type_ == ParamType.NUMBER:
-            assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value)
+    if value in SPECIAL_ARGS:
+        return SPECIAL_ARGS[value]
+    
+    if type_ == ParamType.ANY:
+        if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value):
             return eval(value)
         else:
-            if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value):
-                return eval(value)
-            else:
-                return value
-    elif isinstance(value, bool):
-        # warning: bool type is also an "int" type. so
-        # `isinstance(True, int)` returns True.
-        # to avoid this weird behavior, we must check
-        # `isinstance(arg, bool)` before `isinstance(arg, int)`.
-        assert type_ in (
-            ParamType.FLAG, ParamType.BOOL, ParamType.ANY
+            return value
+    elif type_ == ParamType.BOOL:
+        assert value in (
+            ':true', ':false', 'true', 'false', 'TRUE', 'FALSE', '1', '0'
         )
-    elif isinstance(value, (int, float)):
-        assert type_ in (
-            ParamType.NUMBER, ParamType.ANY
-        )
-    elif value is None:
-        assert type_ in (
-            ParamType.ANY,
-        )
-    
-    return value
-
-
-def str_2_val(value: str, type_: ParamType) -> t.Any:
-    assert type_ not in (ParamType.DICT, ParamType.LIST), (
-        'the complex type is not implemented', type_
-    )
-    if type_ != ParamType.TEXT:
-        value = value.strip()
-    
-    if type_ in (ParamType.ANY, ParamType.NONE):
-        if not value:
-            return None if type_ == ParamType.NONE else ''
-        
-        if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value):
-            out = eval(value)
-            assert isinstance(out, (int, float))
-            return out
-        
-        value_lower = value.lower()
-        if value_lower in SPECIAL_ARGS:
-            return SPECIAL_ARGS[value_lower]
-        if value_lower in ('true', 'false'):
-            return value_lower == 'true'
-        if value_lower in ('none', 'null'):
-            return None
-        
-        return value
-    
-    if value == ':none':
+        return True if value in (':true', 'true', 'TRUE', '1') else False
+    elif type_ == ParamType.FLAG:
+        raise Exception('unreachable code')
+    elif type_ == ParamType.NONE:
+        assert value in (':none', 'none', 'null', '')
         return None
-    
-    if type_ in (ParamType.BOOL, ParamType.FLAG):
-        if value.strip().lower() in ('false', ':false', 'f', ':f', '0'):
-            return False
-        return True
-    
-    if type_ == ParamType.NUMBER:
+    elif type_ == ParamType.NUMBER:
         assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value)
-        out = eval(value)
-        assert isinstance(out, (int, float))
-        return out
-    
-    assert type_ == ParamType.TEXT
-    # if ':cwd' in value:  # TODO: use `re` to replace all `:cwd` in `value`
-    #     return SPECIAL_ARGS[':cwd']
-    # else:
-    #     return value
-    return value
+        return eval(value)
+    elif type_ == ParamType.TEXT:
+        return value
+    else:
+        raise NotImplementedError(value, type_)

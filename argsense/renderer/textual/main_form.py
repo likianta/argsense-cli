@@ -6,8 +6,8 @@ from textual.widget import Widget
 from .tooltip import Help
 from .typehint import T
 from .typehint import t
-from ...converter import str_2_val
-from ...converter import val_2_str
+from ...converter import cval_2_val as str_2_val
+from ...converter import val_2_cval as val_2_str
 from ...parser import ParamType
 
 
@@ -65,7 +65,7 @@ class MainForm(Widget):
             has_child = False
             label_width = _get_proper_width(
                 (*self._func_info.args.keys(),
-                 *self._func_info.kwargs.keys()),
+                 *self._func_info.extended_kwargs.keys()),
                 limit=20
             ) + 1
             
@@ -85,7 +85,7 @@ class MainForm(Widget):
                     row.styles.height = 3
             
             for key, dict_ in self._func_info.kwargs.items():
-                if key.startswith((':', '*')):
+                if key.startswith('*'):
                     continue
                 has_child = True
                 with MainRow(
