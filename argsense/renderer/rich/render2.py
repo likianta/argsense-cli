@@ -79,8 +79,8 @@ def render(
         table.add_column('default', style=color.scarlet)
         
         i = 0
-        for arg in func_info.args.values():
-            if arg['cname'].startswith('*'):
+        for key, arg in func_info.args.items():
+            if key == '*':
                 continue
             i += 1
             name, short = (
@@ -102,10 +102,10 @@ def render(
                 func_info.args['*']['cname'],
                 '',
                 func_info.args['*']['ctype'].name + '   ',
-                '(allow passing variable arguments...)',
+                # '(allow passing variable arguments...)',
             )
-        for arg in func_info.kwargs.values():
-            if arg['cname'].startswith('**'):
+        for key, arg in func_info.kwargs.items():
+            if key == '**':
                 continue
             i += 1
             name, short = (
@@ -128,7 +128,7 @@ def render(
                 func_info.kwargs['**']['cname'],
                 '',
                 func_info.kwargs['**']['ctype'].name + '   ',
-                '(allow passing variable keyword arguments...)',
+                # '(allow passing variable keyword arguments...)',
             )
         console.print(
             rich.panel.Panel(

@@ -199,12 +199,13 @@ class FuncInfo:
     def fill_docs_info(self, info: T.DocsInfo) -> None:
         self.desc = info['desc']
         
+        # FIXME: do not use '<cname>, <cshort>' format. we need a better way.
+        
         for name, value in info['args'].items():
             # assert self.args[name]['cname'] == value['cname']
             self.args[name]['desc'] = value['desc']
             if value['cshort']:
                 self._register_cname(value['cshort'], name)
-                # FIXME: need a better way
                 self.args[name]['cname'] = '{}, {}'.format(
                     value['cname'], value['cshort']
                 )
@@ -222,12 +223,21 @@ class FuncInfo:
                 self._register_cname(value['cname'], name)
                 if value['cshort']:
                     self._register_cname(value['cshort'], name)
-                self.kwargs[name] = {
-                    'cname'  : value['cname'],
-                    'ctype'  : ParamType.ANY,
-                    'desc'   : value['desc'],
-                    'default': ...,
-                }
+                    self.kwargs[name] = {
+                        'cname'  : '{}, {}'.format(
+                            value['cname'], value['cshort']
+                        ),
+                        'ctype'  : ParamType.ANY,
+                        'desc'   : value['desc'],
+                        'default': ...,
+                    }
+                else:
+                    self.kwargs[name] = {
+                        'cname'  : value['cname'],
+                        'ctype'  : ParamType.ANY,
+                        'desc'   : value['desc'],
+                        'default': ...,
+                    }
     
     def _register_cname(self, cname: str, for_name: str) -> None:
         assert cname not in self.cname_2_name, (
