@@ -4,9 +4,12 @@ import shlex
 import typing as t
 
 from . import exceptions as e
-from .argv import ArgvVendor
+from .argv import argv_info
+from .argv import report
+from .context import Context
+from .context import Token
 from .params import ParamType
-from ...sys_argv import argv
+from .params import ParamsHolder
 
 
 class T:  # Typehint
@@ -31,23 +34,20 @@ def parse_argstring(argstring: str) -> t.List[str]:
     return shlex.split(argstring)
 
 
-def parse_argv(
-    argv: t.List[str],
+def parse_sys_argv(
     mode: t.Literal['group', 'command'],
     front_matter: T.ParamsInfo,
 ) -> T.ParsedResult:
-    argv_vendor = ArgvVendor(argv)
     try:
-        return _walking_through_argv(argv_vendor, mode, front_matter)
-    except Exception as err:
-        if os.getenv('ARGSENSE_DEBUG'):
+        return _walking_through_argv(mode, front_matter)
+    except e.ArgvParsingFailed as err:
+        if os.getenv('ARGSENSE_DEBUG') == '1':
             raise err
         else:
-            argv_vendor.report(str(err))
+            report(err.index, str(err))
 
 
 def _walking_through_argv(
-    argv_vendor: ArgvVendor,
     mode: t.Literal['group', 'command'],
     front_matter: T.ParamsInfo
 ) -> T.ParsedResult:
@@ -60,9 +60,6 @@ def _walking_through_argv(
         python main.py true
         python main.py "'true'"
     """
-    from .context import Context, Token
-    from .params import ParamsHolder
-    
     # print(':vl', front_matter)
     
     params = ParamsHolder(
@@ -77,6 +74,10 @@ def _walking_through_argv(
         'kwargs' : {},  # dict[str name, any value]
     }
     
+    param_name: str
+    param_type: ParamType
+    param_value: t.Any
+    
     def get_option_name(cname: str) -> str:
         """ convert cname to name. """
         if cname in front_matter['index']:
@@ -84,16 +85,25 @@ def _walking_through_argv(
         elif '**' in front_matter['kwargs']:
             return cname.lstrip('-').replace('-', '_')
         else:
-            raise e.ParamNotFound(cname, front_matter['index'].keys())
+            raise e.ParamNotFound(index, cname, front_matter['index'].keys())
     
-    # -------------------------------------------------------------------------
+    def eval_arg(arg: str, possible_type: ParamType) -> t.Any:
+        # print(':pv', arg, possible_type)
+        from ...converter import cval_2_val
+        try:
+            return cval_2_val(arg, possible_type)
+        except AssertionError:
+            raise e.TypeConversionError(
+                index,
+                expected_type=possible_type.name,
+                given_type=str(arg)
+            )
     
-    param_name: str
-    param_type: ParamType
-    param_value: t.Any
-    
-    for arg in argv_vendor.main_args():
-        # print(':vi2', i, arg)
+    for index, arg, type_code in tuple(iter(argv_info)):
+        # print(':vi2', index, arg)
+        if type_code == 0:
+            continue
+            
         if ctx.token in (Token.START, Token.READY):
             if arg.startswith('-'):
                 if (
@@ -103,30 +113,30 @@ def _walking_through_argv(
                         and front_matter['index'].get(arg)
                         not in (':help', ':helpx')
                 ):
-                    raise e.ParamAheadOfCommand()
+                    raise e.ParamAheadOfCommand(index)
                 
                 if arg.startswith('--'):
                     try:
                         assert arg == arg.lower()
                     except AssertionError:
-                        raise e.MixinCase()
+                        raise e.MixinCase(index)
                     
                     if arg.startswith(('--not-', '--no-')):
                         # option_name = arg.replace('--not-', '--', 1)
                         option_name = re.sub(r'--not?-', '--', arg, 1)
                         param_name = get_option_name(option_name)
-                        param_type = params.get_param(param_name)[1]
+                        param_type = params.get_param(index, param_name)[1]
                         try:
                             assert param_type in (ParamType.FLAG, ParamType.ANY)
                         except AssertionError:
-                            raise e.TypeNotCorrect(expected_type='bool')
+                            raise e.TypeNotCorrect(index, expected_type='bool')
                         out['kwargs'][param_name] = False
                         ctx.update(Token.READY)
                         continue
                     else:
                         option_name = arg
                         param_name = get_option_name(option_name)
-                        param_type = params.get_param(param_name)[1]
+                        param_type = params.get_param(index, param_name)[1]
                         if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
                             ctx.update(Token.READY)
@@ -135,27 +145,27 @@ def _walking_through_argv(
                     try:
                         assert arg.count('-') == 1
                     except AssertionError:
-                        raise e.ShortOptionFormat(arg)
+                        raise e.ShortOptionFormat(index, arg)
                     try:
                         assert arg == arg.lower() or arg == arg.upper()
                     except AssertionError:
-                        raise e.MixinCase()
+                        raise e.MixinCase(index)
                     
                     if arg[1:].isupper():
                         option_name = arg.lower()
                         param_name = get_option_name(option_name)
-                        param_type = params.get_param(param_name)[1]
+                        param_type = params.get_param(index, param_name)[1]
                         try:
                             assert param_type in (ParamType.FLAG, ParamType.ANY)
                         except AssertionError:
-                            raise e.TypeNotCorrect(expected_type='bool')
+                            raise e.TypeNotCorrect(index, expected_type='bool')
                         out['kwargs'][param_name] = False
                         ctx.update(Token.READY)
                         continue
                     else:
                         option_name = arg
                         param_name = get_option_name(option_name)
-                        param_type = params.get_param(param_name)[1]
+                        param_type = params.get_param(index, param_name)[1]
                         if param_type == ParamType.FLAG:
                             out['kwargs'][param_name] = True
                             ctx.update(ctx.token)
@@ -175,8 +185,8 @@ def _walking_through_argv(
         assert not arg.startswith('-')
         
         if ctx.token == Token.READY:
-            param_name, param_type = params.get_param()
-            param_value = _eval_arg(arg, param_type)
+            param_name, param_type = params.get_param(index)
+            param_value = eval_arg(arg, param_type)
             out['args'][param_name] = param_value
             ctx.update(Token.READY)
             continue
@@ -184,7 +194,7 @@ def _walking_through_argv(
         if ctx.token == Token.OPTION_NAME:
             param_name = ctx.param_name
             param_type = ctx.param_type
-            param_value = _eval_arg(arg, param_type)
+            param_value = eval_arg(arg, param_type)
             out['kwargs'][param_name] = param_value
             ctx.update(Token.READY)
             continue
@@ -199,19 +209,7 @@ def _walking_through_argv(
             out['kwargs'][':help'] = True
         elif ':help' not in out['kwargs'] and ':helpx' not in out['kwargs']:
             raise e.InsufficientArguments(
-                tuple(front_matter['args'].keys())[len(out['args']):]
+                -1, tuple(front_matter['args'].keys())[len(out['args']):]
             )
     
     return out
-
-
-def _eval_arg(arg: str, possible_type: ParamType) -> t.Any:
-    # print(':pv', arg, possible_type)
-    from ...converter import cval_2_val
-    try:
-        return cval_2_val(arg, possible_type)
-    except AssertionError:
-        raise e.TypeConversionError(
-            expected_type=possible_type.name,
-            given_type=str(arg)
-        )

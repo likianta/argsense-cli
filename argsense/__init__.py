@@ -24,7 +24,7 @@ from .converter import args_2_cargs
 from .converter import name_2_cname
 from .converter import type_2_ctype
 from .parser import parse_argstring
-from .parser import parse_argv
+from .parser import parse_sys_argv
 from .parser import parse_docstring
 from .parser import parse_function
 

@@ -1,8 +1,8 @@
-from __future__ import annotations
-
 import typing as t
 from enum import Enum
 from enum import auto
+
+from . import exceptions as e
 
 
 class ParamType(Enum):
@@ -25,21 +25,19 @@ class T:
 
 class ParamsHolder:
     
-    def __init__(self, args: T.Args, kwargs: T.Kwargs, **references):
+    def __init__(self, args: T.Args, kwargs: T.Kwargs, **references) -> None:
         self._cnames = references.get('cnames', ('[i]...[/]',))
         
         self._args = [(k, v) for k, v in args.items() if k != '*']
         self._kwargs = [(k, v) for k, v in kwargs.items() if k != '**']
-        # self._kwargs_subset = [(k, v) for k, v in kwargs.items()
-        #                        if not k.startswith(':')]
         
         self._has_args = '*' in args
         self._has_kwargs = '**' in kwargs
         
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self._args)
     
-    def get_param(self, name: str = None) -> T.Param:
+    def get_param(self, index: int, name: str = None) -> T.Param:
         if name:
             # let's check kwargs first.
             for i, (k, _) in enumerate(self._kwargs):
@@ -50,8 +48,7 @@ class ParamsHolder:
                     return self._args.pop(i)
             if self._has_kwargs:
                 return name, ParamType.ANY
-            from .exceptions import ParamNotFound
-            raise ParamNotFound(name, self._cnames)
+            raise e.ParamNotFound(index, name, self._cnames)
         else:
             # check args first.
             if self._args:
@@ -62,8 +59,7 @@ class ParamsHolder:
                 for i, (k, _) in enumerate(self._kwargs):
                     if not k.startswith(':'):
                         return self._kwargs.pop(i)
-            from .exceptions import TooManyArguments
-            raise TooManyArguments()
+            raise e.TooManyArguments(index)
     
     def resolve(self, kwname: str) -> None:  # note: no usage yet.
         for i, (k, v) in enumerate(self._kwargs):

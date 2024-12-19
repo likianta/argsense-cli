@@ -4,11 +4,12 @@ import typing as t
 
 from . import config
 from .parser import FuncInfo
-from .parser import parse_argv
+from .parser import ParamType
+from .parser import argv_info
+from .parser import did_you_mean
+from .parser import parse_sys_argv
 from .parser import parse_docstring
 from .parser import parse_function
-from .parser.args_parser import ParamType
-from .parser.args_parser import argv_info
 
 __all__ = ['CommandLineInterface', 'cli']
 
@@ -153,7 +154,6 @@ class CommandLineInterface:
                 try:
                     return self._cname_2_func[cmd_name]
                 except KeyError:
-                    from .general import did_you_mean
                     if x := did_you_mean(cmd_name, self._cname_2_func):
                         print(
                             ':v8',
@@ -172,8 +172,7 @@ class CommandLineInterface:
         
         func_info: t.Optional[T.FuncInfo] = func and self.commands[id(func)]
         
-        result = parse_argv(
-            argv=sys.orig_argv,
+        result = parse_sys_argv(
             mode=cmd_type,
             front_matter={
                 'args'  : {

@@ -1140,4 +1140,4 @@ gui = ["pysimplegui"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "75378eee5a95a1762961289fa6ade2bbb29aa304589d065aaae53fc799b74bc2"
+content-hash = "5fba0de0dc8f4f7edbc32015de467fe573c5e012d86263a56a5ff87dc53a0c0a"

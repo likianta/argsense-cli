@@ -99,7 +99,7 @@ def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
     """
     related:
         from: [./parser/func_parser.py : def parse_function()]
-        to: [./argparse/parser.py : def parse_argv()]
+        to: [./argparse/parser.py : def parse_sys_argv()]
     """
     return {
         'any'  : ParamType.ANY,

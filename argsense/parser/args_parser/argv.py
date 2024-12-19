@@ -1,103 +1,89 @@
+import sys
 import typing as t
 from textwrap import dedent
 
-from rich.panel import Panel
-from rich import print as rprint
+import rich
+import rich.panel
 
 
-class ArgvVendor:
+class OrigSysArgvInfo:
+    """ wrapper for `sys.org_argv`. """
     
-    def __init__(self, argv: t.List[str]) -> None:
-        self.argv = argv
-        self.pointer = 0
-    
-    # DELETE
-    def __iter__(self) -> t.Iterator[t.Tuple[int, str]]:
-        for i, arg in enumerate(self.argv):
-            self.pointer = i
-            yield i, arg
-        self.pointer = 0
-        
-    def main_args(self) -> t.Iterator[str]:
-        skip = (0, 1, 2) if self.argv[1] == '-m' else (0, 1)
-        for i, arg in enumerate(self.argv):
-            if i in skip:
-                continue
-            self.pointer = i
-            yield arg
-        self.pointer = 0
-    
-    def report(self, msg: str, err_type: str = None) -> None:
-        """
-        accurately report that which element is parsing failed.
-        
-        conception:
-            input: py test.py foo --bar baz
-            report:
-                py test.py foo --bar baz
-                               ~~~~~
-                    `--bar` was not recognized as a valid option in `foo`
-                    command. did you mean "--bart"?
-        
-        see also:
-            ./exceptions.py
-        """
-        
-        def make_title() -> str:
-            if err_type:
-                return f'\\[argsense.{err_type}] argparsing failed'
-            else:
-                return '\\[argsense] argparsing failed'
-        
-        def make_argv_string() -> str:
-            # TODO: highlight the command line.
-            # scheme A
-            if self.pointer == 0:
-                return ' '.join(self.argv) + ' [dim]???[/]'
-            else:
-                return '{} [red]{}[/] {}'.format(
-                    ' '.join(self.argv[:self.pointer]),
-                    self.argv[self.pointer],
-                    ' '.join(self.argv[self.pointer + 1:]),
-                ).rstrip()
-            # scheme B (abandoned)
-            # # out = ' '.join(self.argv)
-            # # if self.pointer == 0:
-            # #     return out + ' [dim]???[/]'
-            # # else:
-            # #     return out
-        
-        def make_indicator() -> str:
-            if self.pointer:
-                return '{spaces} [red dim]{wave}[/]'.format(
-                    spaces=' ' * len(' '.join(self.argv[:self.pointer])),
-                    wave='~' * len(self.argv[self.pointer])
-                )
-            else:
-                return '{spaces} [red dim]~~~[/]'.format(
-                    spaces=' ' * len(' '.join(self.argv))
-                )
-        
-        rprint(
-            Panel(
-                dedent(
-                    '''
-                    Failed parsing command line arguments -- there was an -
-                    error happened in the following position:
-                    
-                    [default on #1d1d1d] [bold cyan]>[/] {argv} [/]
-                       {indicator}
-                    {reason}
-                    '''
-                ).strip().replace(' -\n', ' ').format(
-                    argv=make_argv_string(),
-                    indicator=make_indicator(),
-                    reason=msg
-                ),
-                border_style='red',
-                title=make_title(),
-                title_align='left',
-            )
+    def __init__(self) -> None:
+        self.argv = sys.orig_argv
+        self._is_package_mode = self.argv[1] == '-m'
+        self.main_args = (
+            self.argv[3:] if self._is_package_mode else self.argv[2:]
         )
-        
-        exit(1)
+        self.exec_path = self.argv[0]
+        self.target = self.argv[2] if self._is_package_mode else self.argv[1]
+        self.command = ''
+        for x in self.main_args:
+            if not x.startswith('-'):
+                self.command = x  # FIXME: not reliable
+                break
+    
+    def __iter__(self) -> t.Iterator[t.Tuple[int, str, int]]:
+        """
+        yields:
+            ((index, arg, type_code), ...)
+        """
+        for i, arg in enumerate(self.argv):
+            t = 1
+            if self._is_package_mode:
+                if i in (0, 1, 2):
+                    t = 0
+            else:
+                if i in (0, 1):
+                    t = 0
+            yield i, arg, t
+
+
+argv_info = OrigSysArgvInfo()
+
+
+def report(err_idx: int, err_msg: str, err_type: str = None) -> None:
+    """
+    accurately report which element is parsing failed.
+    
+    conception:
+        input: py test.py foo --bar baz
+        report:
+            > python test.py foo --bar baz
+            `--bar` was not recognized as a valid option in `foo` command. did
+            you mean "--bart"?
+    
+    see also:
+        ./exceptions.py
+    """
+    xlist = argv_info.argv.copy()
+    xlist[0] = 'python'
+    if 0 <= err_idx < len(xlist):
+        xlist[err_idx] = '[red u]{}[/]'.format(xlist[err_idx])
+    else:
+        xlist.append('[red dim u]???[/]')
+    
+    rich.print(
+        rich.panel.Panel(
+            dedent(
+                '''
+                Failed parsing command line arguments -- there was an error \\
+                happened in the following position:
+
+                [default on #1d1d1d] [bold cyan]>[/] {argv} [/]
+
+                {reason}
+                '''
+            ).strip().replace(' \\\n', ' ').format(
+                argv=' '.join(xlist),
+                reason=err_msg,
+            ),
+            border_style='red',
+            title='\\[argsense{}] argparsing failed'.format(
+                f'.{err_type}' if err_type else ''
+            ),
+            title_align='left',
+        )
+    )
+    
+    exit(1)

@@ -3,8 +3,9 @@ from . import docs_parser
 from . import func_parser
 from .args_parser import ParamType
 from .args_parser import argv_info
+from .args_parser import did_you_mean
 from .args_parser import parse_argstring
-from .args_parser import parse_argv
+from .args_parser import parse_sys_argv
 from .docs_parser import parse_docstring
 from .func_parser import FuncInfo
 from .func_parser import parse_function
