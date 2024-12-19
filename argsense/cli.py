@@ -1,10 +1,6 @@
-from __future__ import annotations
-
 import os
 import sys
 import typing as t
-
-from rich import print as rprint
 
 from . import config
 from .parser import FuncInfo
@@ -12,7 +8,7 @@ from .parser import parse_argv
 from .parser import parse_docstring
 from .parser import parse_function
 from .parser.args_parser import ParamType
-from .parser.args_parser import extract_command_name
+from .parser.args_parser import argv_info
 
 __all__ = ['CommandLineInterface', 'cli']
 
@@ -57,8 +53,8 @@ class CommandLineInterface:
         cmd_name = name or name_2_cname(func.__name__)
         
         if (
-            (cmd_name in self._cname_2_func) 
-            and (new := func) is not (old := self._cname_2_func[cmd_name])
+            (cmd_name in self._cname_2_func) and
+            (new := func) is not (old := self._cname_2_func[cmd_name])
         ):
             if config.WARN_IF_DUPLICATE_COMMANDS_OVERRIDDEN:
                 print(
@@ -152,19 +148,20 @@ class CommandLineInterface:
         
         def auto_detect_func_from_argv() -> t.Optional[T.Func]:
             # try to find the command name from argv
-            if cmd_name := extract_command_name(sys.orig_argv):
+            if cmd_name := argv_info.command:
                 # print(':v', cmd_name)
                 try:
                     return self._cname_2_func[cmd_name]
                 except KeyError:
                     from .general import did_you_mean
                     if x := did_you_mean(cmd_name, self._cname_2_func):
-                        rprint(
-                            '[red]Command "{}" not found, did you mean "{}"?[/]'
+                        print(
+                            ':v8',
+                            'command "{}" not found, did you mean "{}"?'
                             .format(cmd_name, x)
                         )
                     else:
-                        rprint(f'[red]Unknown command: {cmd_name}[/]')
+                        print(':v8', 'unknown command: {}'.format(cmd_name))
                     sys.exit(1)
             return None
         

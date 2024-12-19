@@ -492,16 +492,16 @@ reference = "tsinghua"
 
 [[package]]
 name = "pyapp-window"
-version = "2.2.0a2"
+version = "2.2.0a3"
 description = "Launching URL with native window in WebView mode."
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "pyapp_window-2.2.0a2-py3-none-any.whl", hash = "sha256:55c61a2dd9f367f75a2e8c6cc2650285ae9d94ff13500b4c712949feb5396974"},
+    {file = "pyapp_window-2.2.0a3-py3-none-any.whl", hash = "sha256:ea610c0d0613e2ebc03fbaef9f4a75bcf6d41697d47026f61e9d0ea0faca744f"},
 ]
 
 [package.dependencies]
-argsense = ">=0.6.0a4,<0.7.0"
+argsense = ">=0.6.0b2,<0.7.0"
 lk-logger = ">=6.0.3,<7.0.0"
 lk-utils = ">=3.1.2a5,<4.0.0"
 requests = ">=2.32.0,<3.0.0"
@@ -1140,4 +1140,4 @@ gui = ["pysimplegui"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "c909b72c917349a38043bca9a9a58be855d1554d2fa2b4a280d861f5c81c2265"
+content-hash = "75378eee5a95a1762961289fa6ade2bbb29aa304589d065aaae53fc799b74bc2"

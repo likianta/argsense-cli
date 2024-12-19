@@ -6,6 +6,7 @@ import typing as t
 from . import exceptions as e
 from .argv import ArgvVendor
 from .params import ParamType
+from ...sys_argv import argv
 
 
 class T:  # Typehint
@@ -202,15 +203,6 @@ def _walking_through_argv(
             )
     
     return out
-
-
-# FIXME: not reliable
-def extract_command_name(argv: t.List[str]) -> t.Optional[str]:
-    for arg in argv[2:]:
-        if arg.startswith('-'):
-            continue
-        return arg
-    return None
 
 
 def _eval_arg(arg: str, possible_type: ParamType) -> t.Any:

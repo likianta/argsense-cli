@@ -11,6 +11,10 @@ d88P     888 888    "Y899888i  "Y8888P"   "Y8888  888  888  88888P'  "Y8888
                    Y8b    d8P
                     "Y8888P"
 """
+if 1:
+    import lk_logger
+    lk_logger.setup(quiet=True)
+
 from . import config
 from . import converter
 from . import parser

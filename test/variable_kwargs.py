@@ -1,6 +1,3 @@
-import lk_logger
-lk_logger.setup(quiet=True)
-
 from argsense import cli
 
 
