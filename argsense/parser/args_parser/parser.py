@@ -1,3 +1,4 @@
+import os
 import re
 import shlex
 import typing as t
@@ -38,8 +39,10 @@ def parse_argv(
     try:
         return _walking_through_argv(argv_vendor, mode, front_matter)
     except Exception as err:
-        # raise err  # TEST
-        argv_vendor.report(str(err))
+        if os.getenv('ARGSENSE_DEBUG'):
+            raise err
+        else:
+            argv_vendor.report(str(err))
 
 
 def _walking_through_argv(
@@ -88,11 +91,8 @@ def _walking_through_argv(
     param_type: ParamType
     param_value: t.Any
     
-    for i, arg in argv_vendor:
+    for arg in argv_vendor.main_args():
         # print(':vi2', i, arg)
-        if i == 0 or i == 1:
-            continue
-            
         if ctx.token in (Token.START, Token.READY):
             if arg.startswith('-'):
                 if (

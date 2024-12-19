@@ -1,5 +1,7 @@
 # Argsense CLI
 
+[中文版](https://blog.csdn.net/Likianta/article/details/144585120)
+
 **argsense** is a command line interface made with Python.
 
 ![](.assets/pixpin-20241217-192503.png)

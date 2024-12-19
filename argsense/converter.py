@@ -205,7 +205,11 @@ def cval_2_val(value: str, type_: ParamType) -> t.Any:
         )
         return True if value in (':true', 'true', 'TRUE', '1') else False
     elif type_ == ParamType.FLAG:
-        raise Exception('unreachable code')
+        # raise Exception('unreachable code', value, type_)
+        assert value in (
+            ':true', ':false', 'true', 'false', 'TRUE', 'FALSE', '1', '0'
+        ), ('incorrect value for flag type', value, type_)
+        return True if value in (':true', 'true', 'TRUE', '1') else False
     elif type_ == ParamType.NONE:
         assert value in (':none', 'none', 'null', '')
         return None

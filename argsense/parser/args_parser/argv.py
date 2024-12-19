@@ -11,10 +11,20 @@ class ArgvVendor:
         self.argv = argv
         self.pointer = 0
     
+    # DELETE
     def __iter__(self) -> t.Iterator[t.Tuple[int, str]]:
         for i, arg in enumerate(self.argv):
             self.pointer = i
             yield i, arg
+        self.pointer = 0
+        
+    def main_args(self) -> t.Iterator[str]:
+        skip = (0, 1, 2) if self.argv[1] == '-m' else (0, 1)
+        for i, arg in enumerate(self.argv):
+            if i in skip:
+                continue
+            self.pointer = i
+            yield arg
         self.pointer = 0
     
     def report(self, msg: str, err_type: str = None) -> None:

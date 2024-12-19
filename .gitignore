@@ -1,7 +1,7 @@
 /.idea/
 /deleted/
 /dist/
-/tests/
+/test/argsense
 __pycache__
 *.pyc
 
