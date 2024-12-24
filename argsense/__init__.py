@@ -28,4 +28,4 @@ from .parser import parse_sys_argv
 from .parser import parse_docstring
 from .parser import parse_function
 
-__version__ = '0.6.0'
+__version__ = '0.6.1'

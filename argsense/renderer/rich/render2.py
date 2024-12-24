@@ -55,24 +55,21 @@ def render_function_parameters(
     *,
     show_func_name_in_title: bool = True,
 ) -> None:
-    has_args = bool(func_info.args or func_info.kwargs)
+    has_any_args = bool(func_info.args or func_info.kwargs)
     has_var_args = '*' in func_info.args
     has_var_kwargs = '**' in func_info.kwargs
-    
-    if not has_args:
-        raise NotImplementedError
     
     title_parts = [_detect_program_name()]
     if show_func_name_in_title:
         title_parts.append(func_info.name)
-    if has_args:
+    if has_any_args:
         title_parts.append('...')
     console.print(
         _simple_gradient(
             ' '.join(title_parts),
             (0xFF0000, 0xFFFF00)  # red -> yellow
         ),
-        justify='center',
+        justify='center' if has_any_args else None,
         style='bold',
     )
     
@@ -84,110 +81,112 @@ def render_function_parameters(
             )
         )
     
-    if has_args:
-        # _longest_length_of_cname = max(
-        #     (
-        #         *(
-        #             len(x['cname'].split(',')[0])
-        #             for x in func_info.args.values()
-        #         ),
-        #         *(
-        #             len(x['cname'].lstrip('-').split(',')[0])
-        #             for x in func_info.kwargs.values()
-        #         ),
-        #     )
-        # )
-        #
-        # def pretty_cname(cname):
-        #     return '{:>{}}'.format(
-        #         cname, _longest_length_of_cname
-        #     )
-        
-        table = rich.table.Table.grid(expand=True, padding=(0, 1))
-        #   padding=(0, 1): cell's padding, (vertical, horizontal).
-        #       we use small padding for horizontal, so that the required mark -
-        #       '*' can be closer to the param name.
-        #       but other fields should have more padding, the workaround is -
-        #       to use `value + '   '` to manually add the spaces.
-        #   expand=True:
-        #       set expand to True, so that columns can use `ratio` to decide -
-        #       their widths. currently we only set `desc` column to be -
-        #       expanded.
-        table.add_column('required', style=color.red)
-        table.add_column('index', style=color.yellow)
-        table.add_column('param', style=color.blue + ' bold')
-        table.add_column('short', style=color.green + ' bold')
-        table.add_column('type', style='dim')
-        table.add_column('description', style=None, ratio=1)
-        table.add_column('default', style=color.scarlet)
-        
-        i = 0
-        for key, arg in func_info.args.items():
-            if key == '*':
-                continue
-            i += 1
-            name, short = (
-                arg['cname'].split(', ') if ', ' in arg['cname']
-                else (arg['cname'], '')
-            )
-            # name = pretty_cname(name)
-            table.add_row(
-                '*',
-                '{:<4}'.format(i),
-                name + '   ',
-                short + '   ',
-                arg['ctype'].name + '   ',
-                arg['desc'],
-            )
-        if has_var_args:
-            table.add_row(
-                ' ',
-                '*',
-                func_info.args['*']['cname'],
-                # pretty_cname(func_info.args['*']['cname']),
-                '',
-                func_info.args['*']['ctype'].name + '   ',
-                # '(allow passing variable arguments...)',
-            )
-        for key, arg in func_info.kwargs.items():
-            if key == '**':
-                continue
-            i += 1
-            name, short = (
-                arg['cname'].split(', ') if ', ' in arg['cname']
-                else (arg['cname'], '')
-            )
-            name = name.lstrip('-')  # FIXME: is this good?
-            # name = pretty_cname(name)
-            is_var_kwargs = arg['default'] is ...  # WORKAROUND
-            table.add_row(
-                ' ',
-                '-   ' if has_var_args or is_var_kwargs else '{:<4}'.format(i),
-                name + '   ',
-                short + '   ',
-                arg['ctype'].name + '   ',
-                arg['desc'],
-                '   ' + 'default = {}'.format(val_2_cval(arg['default'])),
-            )
-        if has_var_kwargs:
-            table.add_row(
-                ' ',
-                '-   ',
-                func_info.kwargs['**']['cname'],
-                # pretty_cname(func_info.kwargs['**']['cname']),
-                '',
-                func_info.kwargs['**']['ctype'].name + '   ',
-                # '(allow passing variable keyword arguments...)',
-            )
-        console.print(
-            rich.panel.Panel(
-                table,
-                border_style=color.blue,
-                padding=(0, 2),
-                title='PARAMETERS',
-                title_align='right',
-            )
+    if not has_any_args:
+        return
+
+    # _longest_length_of_cname = max(
+    #     (
+    #         *(
+    #             len(x['cname'].split(',')[0])
+    #             for x in func_info.args.values()
+    #         ),
+    #         *(
+    #             len(x['cname'].lstrip('-').split(',')[0])
+    #             for x in func_info.kwargs.values()
+    #         ),
+    #     )
+    # )
+    #
+    # def pretty_cname(cname):
+    #     return '{:>{}}'.format(
+    #         cname, _longest_length_of_cname
+    #     )
+    
+    table = rich.table.Table.grid(expand=True, padding=(0, 1))
+    #   padding=(0, 1): cell's padding, (vertical, horizontal).
+    #       we use small padding for horizontal, so that the required mark -
+    #       '*' can be closer to the param name.
+    #       but other fields should have more padding, the workaround is -
+    #       to use `value + '   '` to manually add the spaces.
+    #   expand=True:
+    #       set expand to True, so that columns can use `ratio` to decide -
+    #       their widths. currently we only set `desc` column to be -
+    #       expanded.
+    table.add_column('required', style=color.red)
+    table.add_column('index', style=color.yellow)
+    table.add_column('param', style=color.blue + ' bold')
+    table.add_column('short', style=color.green + ' bold')
+    table.add_column('type', style='dim')
+    table.add_column('description', style=None, ratio=1)
+    table.add_column('default', style=color.scarlet)
+    
+    i = 0
+    for key, arg in func_info.args.items():
+        if key == '*':
+            continue
+        i += 1
+        name, short = (
+            arg['cname'].split(', ') if ', ' in arg['cname']
+            else (arg['cname'], '')
         )
+        # name = pretty_cname(name)
+        table.add_row(
+            '*',
+            '{:<4}'.format(i),
+            name,
+            short + '   ',
+            arg['ctype'].name + '   ',
+            arg['desc'],
+        )
+    if has_var_args:
+        table.add_row(
+            ' ',
+            '*',
+            func_info.args['*']['cname'],
+            # pretty_cname(func_info.args['*']['cname']),
+            '',
+            func_info.args['*']['ctype'].name + '   ',
+            # '(allow passing variable arguments...)',
+        )
+    for key, arg in func_info.kwargs.items():
+        if key == '**':
+            continue
+        i += 1
+        name, short = (
+            arg['cname'].split(', ') if ', ' in arg['cname']
+            else (arg['cname'], '')
+        )
+        name = name.lstrip('-')  # FIXME: is this good?
+        # name = pretty_cname(name)
+        is_var_kwargs = arg['default'] is ...  # WORKAROUND
+        table.add_row(
+            ' ',
+            '-   ' if has_var_args or is_var_kwargs else '{:<4}'.format(i),
+            name,
+            short + '   ',
+            arg['ctype'].name + '   ',
+            arg['desc'],
+            '   ' + 'default = {}'.format(val_2_cval(arg['default'])),
+        )
+    if has_var_kwargs:
+        table.add_row(
+            ' ',
+            '-   ',
+            func_info.kwargs['**']['cname'],
+            # pretty_cname(func_info.kwargs['**']['cname']),
+            '',
+            func_info.kwargs['**']['ctype'].name + '   ',
+            # '(allow passing variable keyword arguments...)',
+        )
+    console.print(
+        rich.panel.Panel(
+            table,
+            border_style=color.blue,
+            padding=(0, 2),
+            title='PARAMETERS',
+            title_align='right',
+        )
+    )
     
     _post_logo(color_seed='blue')
 
