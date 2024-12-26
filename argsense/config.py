@@ -13,7 +13,9 @@ from rich import get_console
 
 
 class T:
-    ArgNameStyle = t.Literal['AAA_BBB', 'AAA-BBB', 'aaa_bbb', 'aaa-bbb', 'AaaBbb']
+    ArgNameStyle = t.Literal[
+        'AAA_BBB', 'AAA-BBB', 'aaa_bbb', 'aaa-bbb', 'AaaBbb'
+    ]
     FallbackType = t.Literal['any', 'str']
     OverwrittenScheme = t.Literal['first', 'last']
     TitleHeadStyle = t.Literal['system_dependent', 'fixed']

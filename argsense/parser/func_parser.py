@@ -259,19 +259,19 @@ def parse_function(
         def foo(a: str, b: int, c=123, *args, d: bool = False, **kwargs):
             pass
         spec = getfullargspec(foo)
-        # -> FullArgSpec(
-        #   args=['a', 'b', 'c'],
-        #   varargs='args',
-        #   varkw='kwargs',
-        #   defaults=(123,),
-        #   kwonlyargs=['d'],
-        #   kwonlydefaults={'d': False},
-        #   annotations={
-        #       'a': <class 'str'>,
-        #       'b': <class 'int'>,
-        #       'd': <class 'bool'>,
-        #   }
-        # )
+        #   FullArgSpec(
+        #       args=['a', 'b', 'c'],
+        #       varargs='args',
+        #       varkw='kwargs',
+        #       defaults=(123,),
+        #       kwonlyargs=['d'],
+        #       kwonlydefaults={'d': False},
+        #       annotations={
+        #           'a': <class 'str'>,
+        #           'b': <class 'int'>,
+        #           'd': <class 'bool'>,
+        #       }
+        #   )
     '''
     
     args = []
@@ -288,10 +288,10 @@ def parse_function(
     
     kwargs = []
     if spec.defaults:
-        enumerator: t.Iterator[t.Tuple[int, int]] = \
-            enumerate(range(len(spec.args) - len(spec.defaults),
-                            len(spec.args)))
-        for i, j in enumerator:
+        enum: t.Iterator[t.Tuple[int, int]] = enumerate(
+            range(len(spec.args) - len(spec.defaults), len(spec.args))
+        )
+        for i, j in enum:
             name = spec.args[j]
             default = spec.defaults[i]
             type_ = annotations.get_kwarg_type(name, default)

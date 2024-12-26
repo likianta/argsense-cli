@@ -20,7 +20,7 @@ class OrigSysArgvInfo:
         self.command = ''
         for x in self.main_args:
             if not x.startswith('-'):
-                self.command = x  # FIXME: not reliable
+                self.command = x.replace('_', '-')  # FIXME: not reliable
                 break
     
     def __iter__(self) -> t.Iterator[t.Tuple[int, str, int]]:

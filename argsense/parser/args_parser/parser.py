@@ -176,7 +176,7 @@ def _walking_through_argv(
         
         if ctx.token == Token.START:
             if mode == 'group':
-                out['command'] = arg
+                out['command'] = arg.replace('_', '-')
                 ctx.update(Token.READY)
                 continue
             else:
