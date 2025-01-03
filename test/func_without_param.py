@@ -15,7 +15,7 @@ def case2() -> None:
 
 
 if __name__ == '__main__':
-    # pox test/parse_argv/no_param.py -h
-    # pox test/parse_argv/no_param.py case1 -h
-    # pox test/parse_argv/no_param.py case2 -h
+    # pox test/func_without_param.py -h
+    # pox test/func_without_param.py case1 -h
+    # pox test/func_without_param.py case2 -h
     cli.run()

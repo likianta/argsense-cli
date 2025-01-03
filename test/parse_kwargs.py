@@ -7,6 +7,6 @@ def main(aaa, bbb=None, **ccc):
 
 
 if __name__ == '__main__':
-    # pox test/parse_argv/kwargs.py -h
-    # pox test/parse_argv/kwargs.py mmm nnn --ooo ppp
+    # pox test/parse_kwargs.py -h
+    # pox test/parse_kwargs.py mmm nnn --ooo ppp
     cli.run(main)
