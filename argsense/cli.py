@@ -1,5 +1,4 @@
 import os
-import sys
 import typing as t
 
 from . import config
@@ -117,6 +116,7 @@ class CommandLineInterface:
         func: T.Func = None,
         mode: T.RenderMode = 'auto'
     ) -> None:
+        # print(':pv', argv_info.argv)
         single_func_entrance = bool(func)
         
         config.apply_changes()
@@ -153,7 +153,7 @@ class CommandLineInterface:
                 # print(':v', cmd_name)
                 try:
                     return self._cname_2_func[cmd_name]
-                except KeyError:
+                except KeyError as e:
                     if x := did_you_mean(cmd_name, self._cname_2_func):
                         print(
                             ':v8',
@@ -162,7 +162,8 @@ class CommandLineInterface:
                         )
                     else:
                         print(':v8', 'unknown command: {}'.format(cmd_name))
-                    sys.exit(1)
+                    print(':v8l', argv_info.argv)
+                    raise e
             return None
         
         if func is None:

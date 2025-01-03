@@ -10,7 +10,10 @@ class OrigSysArgvInfo:
     """ wrapper for `sys.org_argv`. """
     
     def __init__(self) -> None:
-        self.argv = sys.orig_argv
+        # note: python 3.8 has no `sys.orig_argv`
+        # self.argv = getattr(sys, 'orig_argv', [sys.executable] + sys.argv)
+        self.argv = [sys.executable] + sys.argv  # FIXME: workaround
+        # print(self.argv, ':lv')
         self._is_package_mode = self.argv[1] == '-m'
         self.main_args = (
             self.argv[3:] if self._is_package_mode else self.argv[2:]

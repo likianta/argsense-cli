@@ -15,6 +15,7 @@ from .style import color
 from ... import config
 from ...converter import val_2_cval
 from ...parser import FuncInfo
+from ...parser import argv_info
 
 console = get_console()
 
@@ -202,9 +203,8 @@ def _detect_program_name(func_cname: str = None) -> str:
         - 'python3 -m example'
         - 'example.exe'
     """
-    # print(sys.orig_argv, ':v')
-    argv = sys.orig_argv + [''] * 10
-    #                    ~~~~~~~~~~~ in case of IndexError
+    argv = argv_info.argv + [''] * 10
+    #                     ~~~~~~~~~~~ in case of IndexError
     
     parts = []  # noqa
     
