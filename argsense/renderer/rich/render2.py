@@ -203,11 +203,9 @@ def _detect_program_name(func_cname: str = None) -> str:
         - 'python3 -m example'
         - 'example.exe'
     """
-    argv = argv_info.argv + [''] * 10
-    #                     ~~~~~~~~~~~ in case of IndexError
-    
+    argv = argv_info.argv + ('',) * 10
+    #                     ~~~~~~~~~~~~ in case of IndexError
     parts = []  # noqa
-    
     parts.append(
         'python' if config.TITLE_HEAD_STYLE == 'fixed' else
         'python' if os.name == 'nt' else
