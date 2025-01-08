@@ -116,6 +116,7 @@ class CommandLineInterface:
         func: T.Func = None,
         mode: T.RenderMode = 'auto'
     ) -> None:
+        argv_info.defer_init()
         # print(':pv', argv_info.argv)
         single_func_entrance = bool(func)
         

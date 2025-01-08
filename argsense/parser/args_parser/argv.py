@@ -1,9 +1,13 @@
+import os
 import sys
 import typing as t
+from functools import cache
 from textwrap import dedent
 
 import rich
 import rich.panel
+
+_DEBUG = os.getenv('ARGSENSE_DEBUG') == '1'
 
 
 class OrigSysArgvInfo:
@@ -17,44 +21,47 @@ class OrigSysArgvInfo:
     
     def __init__(self) -> None:
         # note: python 3.8 has no `sys.orig_argv`
-        if hasattr(sys, 'orig_argv'):
-            self.argv = tuple(sys.orig_argv)  # TODO
+        if hasattr(sys, 'orig_argv') and not _DEBUG:
+            self._is_package_mode = sys.orig_argv[1] == '-m'
         else:
-            # print(
-            #     ':vl',
-            #     sys.modules['__main__'],
-            #     {
-            #         k: getattr(sys.modules['__main__'], k)
-            #         for k in dir(sys.modules['__main__'])
-            #     },
-            # )
-            if sys.argv[0] == '-m':
-                self.argv = (
-                    sys.executable,
-                    '-m',
-                    sys.modules['__main__'].__package__ or 'argsense',
-                    *sys.argv[1:]
-                )
+            if _DEBUG:
+                print(':lv', {
+                    '__main__': (x := sys.modules.get('__main__')),
+                    '__package__': x.__package__ if x else None,
+                    'sys.argv': sys.argv,
+                })
+            self._is_package_mode = sys.argv[0] == '-m'
+    
+    @cache
+    def defer_init(self) -> None:
+        if hasattr(sys, 'orig_argv') and not _DEBUG:
+            argv = tuple(sys.orig_argv)
+        else:
+            if _DEBUG:
+                print(':lv', {
+                    '__main__': (x := sys.modules.get('__main__')),
+                    '__package__': x.__package__ if x else None,
+                    'sys.argv': sys.argv,
+                    #   caution: this is changed that is different from the -
+                    #   one in `def __init__` stage.
+                })
+            if self._is_package_mode:
+                main_module = sys.modules['__main__']
+                package_name = main_module.__package__
+                argv = (sys.executable, '-m', package_name, *sys.argv[1:])
             else:
-                self.argv = (sys.executable, *sys.argv)
-        # print(':lv', {
-        #     'sys.orig_argv': getattr(sys, 'orig_argv', (
-        #         'NO_ORIG_ARGV', sys.version.split()[0]
-        #     )),
-        #     'sys.argv'     : sys.argv,
-        #     'self.argv'    : self.argv,
-        # })
-        self._is_package_mode = self.argv[1] == '-m'
-        self.main_args = (
-            self.argv[3:] if self._is_package_mode else self.argv[2:]
-        )
-        self.exec_path = self.argv[0]
-        self.target = self.argv[2] if self._is_package_mode else self.argv[1]
-        self.command = ''
+                argv = (sys.executable, *sys.argv)
+        
+        self.argv = argv
+        self.main_args = (argv[3:] if self._is_package_mode else argv[2:])
+        self.exec_path = argv[0]
+        self.target = argv[2] if self._is_package_mode else argv[1]
         for x in self.main_args:
             if not x.startswith('-'):
                 self.command = x.replace('_', '-')  # FIXME: not reliable
                 break
+        else:
+            self.command = ''
     
     def __iter__(self) -> t.Iterator[t.Tuple[int, str, int]]:
         """
