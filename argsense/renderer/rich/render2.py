@@ -1,6 +1,5 @@
 import math
 import os
-import sys
 import typing as t
 from random import randint
 
@@ -173,11 +172,12 @@ def render_function_parameters(
         table.add_row(
             ' ',
             '-   ',
-            func_info.kwargs['**']['cname'],
-            # pretty_cname(func_info.kwargs['**']['cname']),
+            # func_info.kwargs['**']['cname'],
+            '...',
             '',
             func_info.kwargs['**']['ctype'].name + '   ',
-            # '(allow passing variable keyword arguments...)',
+            '[dim](this function may accept more keyword arguments as implicit '
+            'vars...)[/]',
         )
     console.print(
         rich.panel.Panel(
