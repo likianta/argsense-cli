@@ -29,9 +29,9 @@ else:
 
 
 class T:
-    ArgsInfo = T0.ArgsInfo
+    ArgsInfo = T0.ArgsTypeA
     FuncsInfo = t.Union[t.Tuple[FuncInfo, ...], t.List[FuncInfo]]
-    KwArgsInfo = T0.KwArgsInfo
+    KwArgsInfo = T0.ArgsTypeB
     ParamName = T0.ParamName
     
     Layout = t.List[t.List[psg.Element]]

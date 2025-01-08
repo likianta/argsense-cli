@@ -115,7 +115,7 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
                     'desc'  : '',
                 }
             else:
-                if '**' in funsig.kwargs:
+                if funsig.has_var_kwargs:
                     temp_dict = out['kwargs'][param_name] = {
                         'cname' : name_2_cname(param_name, 'opt'),
                         'cshort': param_short,

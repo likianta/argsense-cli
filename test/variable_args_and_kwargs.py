@@ -57,6 +57,14 @@ def func3(aaa: int, *args, bbb: str = 'ccc', **kwargs) -> None:
     print(aaa, bbb, args, kwargs)
 
 
+@cli.cmd()
+def func4(aaa, bbb=None, *ccc):
+    """
+    param `bbb` should be appeared in front of `*ccc`.
+    """
+    print(aaa, bbb, ccc)
+
+
 if __name__ == '__main__':
     # pox test/variable_args_and_kwargs.py -h
     # pox test/variable_args_and_kwargs.py func1 -h

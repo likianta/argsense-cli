@@ -56,8 +56,8 @@ def render_function_parameters(
     show_func_name_in_title: bool = True,
 ) -> None:
     has_any_args = bool(func_info.args or func_info.kwargs)
-    has_var_args = '*' in func_info.args
-    has_var_kwargs = '**' in func_info.kwargs
+    has_var_args = func_info.has_var_args
+    # has_var_kwargs = func_info.has_var_kwargs
     
     title_parts = [_detect_program_name()]
     if show_func_name_in_title:
@@ -121,9 +121,7 @@ def render_function_parameters(
     table.add_column('default', style=color.scarlet)
     
     i = 0
-    for key, arg in func_info.args.items():
-        if key == '*':
-            continue
+    for key, arg in func_info.args0.items():
         i += 1
         name, short = (
             arg['cname'].split(', ') if ', ' in arg['cname']
@@ -138,19 +136,34 @@ def render_function_parameters(
             arg['ctype'].name + '   ',
             arg['desc'],
         )
-    if has_var_args:
+    for key, arg in func_info.args1.items():
+        i += 1
+        name, short = (
+            arg['cname'].split(', ') if ', ' in arg['cname']
+            else (arg['cname'], '')
+        )
+        name = name.lstrip('-')  # FIXME: is this good?
+        # name = pretty_cname(name)
+        table.add_row(
+            ' ',
+            '{:<4}'.format(i),
+            name,
+            short + '   ',
+            arg['ctype'].name + '   ',
+            arg['desc'],
+            '   ' + 'default = {}'.format(val_2_cval(arg['default'])),
+        )
+    if func_info.args2:
         table.add_row(
             ' ',
             '*',
-            func_info.args['*']['cname'],
-            # pretty_cname(func_info.args['*']['cname']),
+            func_info.args2['*']['cname'],
+            # pretty_cname(func_info.args2['*']['cname']),
             '',
-            func_info.args['*']['ctype'].name + '   ',
-            # '(allow passing variable arguments...)',
+            func_info.args2['*']['ctype'].name + '   ',
+            # '[dim](allow passing variable arguments...)[/]',
         )
-    for key, arg in func_info.kwargs.items():
-        if key == '**':
-            continue
+    for key, arg in func_info.args3.items():
         i += 1
         name, short = (
             arg['cname'].split(', ') if ', ' in arg['cname']
@@ -168,14 +181,14 @@ def render_function_parameters(
             arg['desc'],
             '   ' + 'default = {}'.format(val_2_cval(arg['default'])),
         )
-    if has_var_kwargs:
+    if func_info.args4:
         table.add_row(
             ' ',
             '-   ',
-            # func_info.kwargs['**']['cname'],
+            # func_info.args4['**']['cname'],
             '...',
             '',
-            func_info.kwargs['**']['ctype'].name + '   ',
+            func_info.args4['**']['ctype'].name + '   ',
             '[dim](this function may accept more keyword arguments as implicit '
             'vars...)[/]',
         )
