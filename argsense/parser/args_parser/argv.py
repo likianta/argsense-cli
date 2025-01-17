@@ -21,36 +21,38 @@ class OrigSysArgvInfo:
     
     def __init__(self) -> None:
         # note: python 3.8 has no `sys.orig_argv`
-        if hasattr(sys, 'orig_argv') and not _DEBUG:
-            self._is_package_mode = sys.orig_argv[1] == '-m'
-        else:
-            if _DEBUG:
-                print(':lv', {
-                    '__main__': (x := sys.modules.get('__main__')),
-                    '__package__': x.__package__ if x else None,
-                    'sys.argv': sys.argv,
-                })
-            self._is_package_mode = sys.argv[0] == '-m'
+        # FIXME
+        # if hasattr(sys, 'orig_argv') and not _DEBUG:
+        #     self._is_package_mode = sys.orig_argv[1] == '-m'
+        # else:
+        if _DEBUG:
+            print(':lv', {
+                '__main__'   : (x := sys.modules.get('__main__')),
+                '__package__': x.__package__ if x else None,
+                'sys.argv'   : sys.argv,
+            })
+        self._is_package_mode = sys.argv[0] == '-m'
     
     @cache
     def defer_init(self) -> None:
-        if hasattr(sys, 'orig_argv') and not _DEBUG:
-            argv = tuple(sys.orig_argv)
+        # FIXME
+        # if hasattr(sys, 'orig_argv') and not _DEBUG:
+        #     argv = tuple(sys.orig_argv)
+        # else:
+        if _DEBUG:
+            print(':lv', {
+                '__main__'   : (x := sys.modules.get('__main__')),
+                '__package__': x.__package__ if x else None,
+                'sys.argv'   : sys.argv,
+                #   caution: this is changed that is different from the -
+                #   one in `def __init__` stage.
+            })
+        if self._is_package_mode:
+            main_module = sys.modules['__main__']
+            package_name = main_module.__package__
+            argv = (sys.executable, '-m', package_name, *sys.argv[1:])
         else:
-            if _DEBUG:
-                print(':lv', {
-                    '__main__': (x := sys.modules.get('__main__')),
-                    '__package__': x.__package__ if x else None,
-                    'sys.argv': sys.argv,
-                    #   caution: this is changed that is different from the -
-                    #   one in `def __init__` stage.
-                })
-            if self._is_package_mode:
-                main_module = sys.modules['__main__']
-                package_name = main_module.__package__
-                argv = (sys.executable, '-m', package_name, *sys.argv[1:])
-            else:
-                argv = (sys.executable, *sys.argv)
+            argv = (sys.executable, *sys.argv)
         
         self.argv = argv
         self.main_args = (argv[3:] if self._is_package_mode else argv[2:])
