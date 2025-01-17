@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "argsense"
-version = "0.6.4"
+version = "0.7.0a0"
 homepage = "https://github.com/likianta/argsense-cli"
 description = "New command line interface based on Rich library."
 readme = "README.md"
@@ -40,6 +40,7 @@ url = "http://likianta.pro:2131/"
 priority = "supplemental"
 
 [tool.poetry.scripts]
+argsense = 'argsense.__main__:cli'
 argsense-cli = 'argsense.__main__:cli'
 argsense-gui = 'argsense.__main__:gui'
 argsense-tui = 'argsense.__main__:tui'
