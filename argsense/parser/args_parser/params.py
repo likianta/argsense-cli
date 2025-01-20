@@ -19,13 +19,13 @@ class ParamType(Enum):
 
 class T:
     Args = t.Dict[str, ParamType]
-    Kwargs = t.Dict[str, ParamType]
+    KwArgs = t.Dict[str, ParamType]
     Param = t.Tuple[str, ParamType]
 
 
 class ParamsHolder:
     
-    def __init__(self, args: T.Args, kwargs: T.Kwargs, **references) -> None:
+    def __init__(self, args: T.Args, kwargs: T.KwArgs, **references) -> None:
         self._cnames = references.get('cnames', ('[i]...[/]',))
         
         self._args = [(k, v) for k, v in args.items() if k != '*']
@@ -37,7 +37,7 @@ class ParamsHolder:
     def __bool__(self) -> bool:
         return bool(self._args)
     
-    def get_param(self, index: int, name: str = None) -> T.Param:
+    def get_and_pop_param(self, index: int, name: str = None) -> T.Param:
         if name:
             # let's check kwargs first.
             for i, (k, _) in enumerate(self._kwargs):

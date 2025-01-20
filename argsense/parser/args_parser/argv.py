@@ -1,87 +1,74 @@
 import os
 import sys
 import typing as t
-from functools import cache
 from textwrap import dedent
 
 import rich
 import rich.panel
 
+# print(sys.argv, ':v')
+
 _DEBUG = os.getenv('ARGSENSE_DEBUG') == '1'
 
 
-class OrigSysArgvInfo:
-    """ wrapper for `sys.org_argv`. """
-    argv: t.Tuple[str, ...]
-    command: str
-    exec_path: str
-    main_args: t.Tuple[str, ...]
-    target: str
-    _is_package_mode: bool
+class T:
+    ArgvArgs = t.Tuple[str, ...]
+    ArgvTarget = t.Union[t.Tuple[str], t.Tuple[t.Literal['-m'], str]]
+    ArgvLauncher = t.Tuple[str]
+
+
+class Argv:
+    launcher: T.ArgvLauncher
+    target: T.ArgvTarget
+    args: T.ArgvArgs
     
-    def __init__(self) -> None:
-        # note: python 3.8 has no `sys.orig_argv`
-        # FIXME
-        # if hasattr(sys, 'orig_argv') and not _DEBUG:
-        #     self._is_package_mode = sys.orig_argv[1] == '-m'
-        # else:
-        if _DEBUG:
-            print(':lv', {
-                '__main__'   : (x := sys.modules.get('__main__')),
-                '__package__': x.__package__ if x else None,
-                'sys.argv'   : sys.argv,
-            })
-        self._is_package_mode = sys.argv[0] == '-m'
+    @property
+    def possible_function(self) -> t.Optional[str]:  # FIXME: not reliable
+        for x in self.args:
+            if not x.startswith(('_', '-')):
+                return x.replace('_', '-')
     
-    @cache
-    def defer_init(self) -> None:
-        # FIXME
-        # if hasattr(sys, 'orig_argv') and not _DEBUG:
-        #     argv = tuple(sys.orig_argv)
-        # else:
-        if _DEBUG:
-            print(':lv', {
-                '__main__'   : (x := sys.modules.get('__main__')),
-                '__package__': x.__package__ if x else None,
-                'sys.argv'   : sys.argv,
-                #   caution: this is changed that is different from the -
-                #   one in `def __init__` stage.
-            })
-        if self._is_package_mode:
-            main_module = sys.modules['__main__']
-            package_name = main_module.__package__
-            argv = (sys.executable, '-m', package_name, *sys.argv[1:])
-        else:
-            argv = (sys.executable, *sys.argv)
+    @classmethod
+    def from_sys_argv(cls, argv: t.Sequence[str]) -> 'Argv':
+        """
+        note: this method should be called after main modules loaded. i.e. you -
+        can not call this in global scope.
         
-        self.argv = argv
-        self.main_args = (argv[3:] if self._is_package_mode else argv[2:])
-        self.exec_path = argv[0]
-        self.target = argv[2] if self._is_package_mode else argv[1]
-        for x in self.main_args:
-            if not x.startswith('-'):
-                self.command = x.replace('_', '-')  # FIXME: not reliable
-                break
+        params:
+            argv: by default use `sys.orig_argv`
+                it looks like:
+                    ['python', 'test.py', 'foo', '--bar', 'baz']
+                    ['python', '-m', 'test', 'foo', '--bar', 'baz']
+        """
+        print(argv, ':pv')
+        if argv[1] == '-m':
+            return Argv((sys.executable,), ('-m', argv[2]), tuple(argv[3:]))
         else:
-            self.command = ''
+            return Argv((sys.executable,), (argv[1],), tuple(argv[2:]))
+    
+    def __init__(
+        self,
+        launcher: T.ArgvLauncher,
+        target: T.ArgvTarget,
+        args: T.ArgvArgs
+    ) -> None:
+        self.launcher = launcher
+        self.target = target
+        self.args = args
+        self.argx = len(launcher) + len(target)
     
     def __iter__(self) -> t.Iterator[t.Tuple[int, str, int]]:
         """
         yields:
             ((index, arg, type_code), ...)
         """
-        for i, arg in enumerate(self.argv):
-            t = 1
-            if self._is_package_mode:
-                if i in (0, 1, 2):
-                    t = 0
-            else:
-                if i in (0, 1):
-                    t = 0
-            yield i, arg, t
-
-
-argv_info = OrigSysArgvInfo()
+        i = -1
+        for x in self.launcher + self.target:
+            i += 1
+            yield i, x, 0
+        for x in self.args:
+            i += 1
+            yield i, x, 1
 
 
 def report(err_idx: int, err_msg: str, err_type: str = None) -> None:
@@ -98,8 +85,7 @@ def report(err_idx: int, err_msg: str, err_type: str = None) -> None:
     see also:
         ./exceptions.py
     """
-    xlist = list(argv_info.argv)
-    xlist[0] = 'python'
+    xlist = ['python'] + sys.argv
     if 0 <= err_idx < len(xlist):
         xlist[err_idx] = '[red u]{}[/]'.format(xlist[err_idx])
     else:

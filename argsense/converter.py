@@ -183,9 +183,13 @@ PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(
 SPECIAL_ARGS = {
     ':cwd'  : os.getcwd(),
     ':empty': '',
+    ':f'    : False,
     ':false': False,
+    ':h'    : True,
+    ':help' : True,
     ':none' : None,
     ':true' : True,
+    ':t'    : True,
 }
 
 

@@ -2,126 +2,111 @@ import os
 import sys
 from textwrap import dedent
 
-from rich import print as rprint
-from rich.markdown import Markdown
-
 from .cli import CommandLineInterface
+from .parser import Argv
+from .converter import val_2_cval, name_2_cname
 
 _cli = CommandLineInterface('argsense-launcher')
 
 
-@_cli.cmd()
-def help() -> None:
+def cli(target: str, func: str = None, *args, **kwargs) -> None:
     """
-    show full instructions about using argsense cli.
-    :point_right: [magenta]`py -m argsense help`[/]
+    run target module in command line.
+    
+    params:
+        target:
+            a ".py" file path, or a directory that contains "__main__.py".
+        func:
+            function name in target module.
+            `*args` and `**kwargs` will be passed to this function.
     """
-    rprint(Markdown(dedent('''
-        # Argsense Help
+    if target.endswith('.py'):
+        subcli = CommandLineInterface('argsense-subcli')
         
-        ## Usage
-        
-        Run argsense in CLI mode:
-        
-        ```shell
-        py -m argsense cli hello.py ...
-        ```
-        
-        Run argsense in GUI mode:
-        
-        ```shell
-        py -m argsense gui hello.py ...
-        ```
-        
-        Run argsense in TUI mode:
-        
-        ```shell
-        py -m argsense tui hello.py ...
-        ```
-        
-        We've also provided a shortcut for GUI & TUI mode:
-        
-        ```shell
-        argsense-gui hello.py ...
-        argsense-tui hello.py ...
-        ```
-        
-        But in more general cases, you can simply use `python3` to start your
-        target script:
-        
-        ```shell
-        python3 hello.py ...
-        ```
-        
-        The mode of argsense depends on what the script author has defined:
-        
-        ```python
-        # hello.py
-        ...
-        if __name__ == '__main__':
-            cli.run_tui()   # force run in TUI mode
-            cli.run_cli()   # force run in CLI mode
-            cli.run()       # auto detect mode
-        ```
-        
-        For auto detection, it depends on what user's command is:
-        
-        ```shell
-        # the only way to run in TUI mode
-        python3 hello.py
-        
-        # otherwise, always run in CLI mode
-        python3 hello.py -h
-        python3 hello.py --name abc
-        python3 hello.py --name abc -h
-        python3 hello.py ...
-        ```
-        
-        ## Practical Suggestions
-        
-        Run argsense in CLI mode:
-        
-        ```shell
-        python3 hello.py ...
-        ```
-        
-        Run argsense in TUI mode:
-        
-        ```shell
-        argsense hello.py ...
-        ```
-    ''')))
+        with open(target, 'r', encoding='utf-8') as f:
+            if func:
+                assert not func.startswith(('_', '-'))
+                func_name = func.replace('-', '_')
+                
+                # init subcli commands
+                exec(
+                    '{}\n{}'.format(
+                        f.read(),
+                        dedent(
+                            '''
+                            # print(__name__)
+                            # print(__file__)
+                            
+                            # from types import FunctionType
+                            # locals()['__hook__'].update(
+                            #     {
+                            #         k: v
+                            #         for k, v in locals().items()
+                            #         if not k.startswith('_')
+                            #         and type(v) is FunctionType
+                            #     }
+                            # )
+                            
+                            from types import FunctionType
+                            public_funcs = (
+                                v
+                                for k, v in locals().items()
+                                if not k.startswith('_')
+                                and type(v) is FunctionType
+                            )
+                            for f in public_funcs:
+                                __cli__.add_cmd(f)
+                            
+                            '''
+                        )
+                    ),
+                    {
+                        '__name__': '__main__',
+                        '__file__': os.path.abspath(target),
+                    },
+                    {
+                        '__cli__': subcli,
+                    }
+                )
+                print(subcli.commands, ':vl')
+                
+                cargs = map(val_2_cval, args)
+                ckwargs = []
+                for k, v in kwargs.items():
+                    ckwargs.append(name_2_cname(k, style='opt'))
+                    ckwargs.append(val_2_cval(v))
+                subcli.exec_argv(
+                    argv=Argv.from_sys_argv(
+                        (sys.executable, target, func, *cargs, *ckwargs)
+                    ),
+                    func=func_name,
+                )
+            else:
+                exec(f.read(), {'__name__': '__main__'})
+    else:
+        raise NotImplementedError
 
 
-@_cli.cmd()
-def cli(*_) -> None:
+def tui(*_) -> None:
     """
-    run argsense in CLI mode.
-    :point_right: [magenta]`py -m argsense cli [yellow i]target[/] -
-    [default dim i]params[/]`[/]
+    run target module in textual interface.
     """
-    os.environ['ARGSENSE_UI_MODE'] = 'CLI'
+    os.environ['ARGSENSE_UI_MODE'] = 'TUI'
     _run()
 
 
-@_cli.cmd()
 def gui(*_) -> None:
     """
-    run argsense in GUI mode.
-    :point_right: [magenta]`py -m argsense gui [yellow dim i]target[/]`[/]
+    run target module in graphical interface.
     """
     os.environ['ARGSENSE_UI_MODE'] = 'GUI'
     _run()
 
 
-@_cli.cmd()
-def tui(*_) -> None:
-    """
-    run argsense in TUI mode.
-    :point_right: [magenta]`py -m argsense tui [yellow i]target[/]`[/]
-    """
-    os.environ['ARGSENSE_UI_MODE'] = 'TUI'
-    _run()
+_cli.add_cmd(cli, name='cli', transfer_help=True)
+_cli.add_cmd(cli, name='run', transfer_help=True)
+_cli.add_cmd(tui, name='tui', transfer_help=True)
+_cli.add_cmd(gui, name='gui', transfer_help=True)
 
 
 def _run() -> None:
@@ -139,8 +124,6 @@ def _run() -> None:
 
 
 if __name__ == '__main__':
-    # py -m argsense help
+    # py -m argsense -h
     # py -m argsense cli <target.py>
-    # py -m argsense tui <target.py>
-    # argsense <target.py>
-    _cli.run_cli()
+    _cli.run()

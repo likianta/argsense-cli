@@ -1,5 +1,6 @@
 import math
 import os
+import sys
 import typing as t
 from random import randint
 
@@ -14,7 +15,6 @@ from .style import color
 from ... import config
 from ...converter import val_2_cval
 from ...parser import FuncInfo
-from ...parser import argv_info
 
 console = get_console()
 
@@ -216,8 +216,7 @@ def _detect_program_name(func_cname: str = None) -> str:
         - 'python3 -m example'
         - 'example.exe'
     """
-    argv = argv_info.argv + ('',) * 10
-    #                     ~~~~~~~~~~~~ in case of IndexError
+    argv = sys.argv + ['']  # `+['']`: in case of index overflows
     parts = []  # noqa
     parts.append(
         'python' if config.TITLE_HEAD_STYLE == 'fixed' else
@@ -225,14 +224,14 @@ def _detect_program_name(func_cname: str = None) -> str:
         'python3'
     )
     
-    if argv[1] == '-m':
+    if argv[0] == '-m':
+        parts.append(argv[0])
         parts.append(argv[1])
-        parts.append(argv[2])
-        if func_cname and argv[3] == func_cname:
+        if func_cname and argv[2] == func_cname:
             parts.append(func_cname)
     else:
-        parts.append(os.path.basename(argv[1]))
-        if func_cname and argv[2] == func_cname:
+        parts.append(os.path.basename(argv[0]))
+        if func_cname and argv[1] == func_cname:
             parts.append(func_cname)
     
     return ' '.join(parts)

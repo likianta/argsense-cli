@@ -85,18 +85,13 @@ class FuncInfo:
     desc: str
     name: str
     target: t.Callable
-    transport_help: bool  # FIXME: temp solution
+    transfer_help: bool  # FIXME: temp solution
     
     GLOBAL_CNAME_2_NAME: t.Dict[str, str] = {
-        '--help'  : ':help',
-        '--helpx' : ':helpx',
-        '-h'      : ':help',
-        '-hh'     : ':helpx',
-        # DELETE: below are deprecated
-        '--:help' : ':help',
-        '--:helpx': ':helpx',
-        '-:h'     : ':help',
-        '-:hh'    : ':helpx',
+        ':h'    : ':help',
+        ':help' : ':help',
+        '-h'    : ':help',
+        '--help': ':help',
     }
     
     GLOBAL_KWARGS: T.ArgsTypeB = {  # noqa
@@ -108,12 +103,6 @@ class FuncInfo:
             #   for example, when user inputs in command line:
             #       `argsense xxx.py -h`  # -> True
             #       `argsense xxx.py`     # -> False
-        },
-        ':helpx': {
-            'cname'  : '--helpx',
-            'ctype'  : ParamType.FLAG,
-            'desc'   : 'expand all command helps',
-            'default': False,
         },
     }
     
@@ -127,7 +116,7 @@ class FuncInfo:
         self.desc = ''
         # self.return_type = info['return']
         self.cname_2_name = FuncInfo.GLOBAL_CNAME_2_NAME.copy()
-        self.transport_help = False
+        self.transfer_help = False
         
         self.args0 = {}
         for name, type in info['args'][0]:

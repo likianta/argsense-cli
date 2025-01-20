@@ -4,10 +4,8 @@ import shlex
 import typing as t
 
 from . import exceptions as e
-from .argv import argv_info
+from .argv import Argv
 from .argv import report
-from .context import Context
-from .context import Token
 from .params import ParamType
 from .params import ParamsHolder
 
@@ -34,12 +32,13 @@ def parse_argstring(argstring: str) -> t.List[str]:
     return shlex.split(argstring)
 
 
-def parse_sys_argv(
-    mode: t.Literal['group', 'command'],
+def parse_argv(
+    argv: Argv,
+    mode: t.Literal['command', 'group'],
     front_matter: T.ParamsInfo,
 ) -> T.ParsedResult:
     try:
-        return _walking_through_argv(mode, front_matter)
+        return _walking_through_argv(argv, mode, front_matter)
     except e.ArgvParsingFailed as err:
         if os.getenv('ARGSENSE_DEBUG') == '1':
             raise err
@@ -48,37 +47,141 @@ def parse_sys_argv(
 
 
 def _walking_through_argv(
-    mode: t.Literal['group', 'command'],
+    argv: Argv,
+    mode: t.Literal['command', 'group'],
     front_matter: T.ParamsInfo
 ) -> T.ParsedResult:
-    """
-    all possible cases (examples):
-        python main.py
-        python main.py -h
-        python main.py --help
-        python main.py "'--this-is-a-value'"
-        python main.py true
-        python main.py "'true'"
-    """
-    # print(':vl', front_matter)
+    from ...converter import SPECIAL_ARGS, cval_2_val
     
-    params = ParamsHolder(
-        front_matter['args'],
-        front_matter['kwargs'],
-        cnames=tuple(front_matter['index'].keys())
-    )
-    ctx = Context()
+    flag = 'INIT'
     out = {
         'command': '',
         'args'   : {},  # dict[str name, any value]
         'kwargs' : {},  # dict[str name, any value]
     }
+    params = ParamsHolder(
+        front_matter['args'],
+        front_matter['kwargs'],
+        cnames=tuple(front_matter['index'].keys())
+    )
+    temp_store = {}
     
-    param_name: str
-    param_type: ParamType
-    param_value: t.Any
+    # -------------------------------------------------------------------------
     
-    def get_option_name(cname: str) -> str:
+    def feed_anonymous_arg() -> None:
+        implicit_name, param_type = params.get_and_pop_param(index)
+        param_value = _eval_param_value(arg, param_type)
+        out['args'][implicit_name] = param_value
+    
+    def feed_help() -> None:
+        try:
+            assert arg in (':h', ':help', '-h', '--help')
+        except AssertionError:
+            raise e.ParamAheadOfCommand(index)
+        out['kwargs'][':help'] = True
+    
+    def feed_implicit_help() -> None:
+        out['kwargs'][':help'] = False  # False means "implicit".
+    
+    def feed_option_name() -> bool:
+        """
+        returns: True means "resolved".
+        """
+        try:
+            assert arg == arg.lower()
+        except AssertionError:
+            raise e.MixinCase(index)
+        if arg.startswith(('--not-', '--no-')):
+            option_name = re.sub(r'--not?-', '--', arg, 1)
+            param_name = _get_option_name(option_name)
+            param_type = params.get_and_pop_param(index, param_name)[1]
+            try:
+                assert param_type in (ParamType.FLAG, ParamType.ANY)
+            except AssertionError:
+                raise e.TypeNotCorrect(index, expected_type='bool')
+            out['kwargs'][param_name] = False
+            return True
+        else:
+            option_name = arg
+            param_name = _get_option_name(option_name)
+            param_type = params.get_and_pop_param(index, param_name)[1]
+            if param_type == ParamType.FLAG:
+                out['kwargs'][param_name] = True
+                return True
+            else:
+                temp_store['param_name'] = param_name
+                temp_store['param_type'] = param_type
+                return False
+    
+    def feed_option_value() -> None:
+        param_name = temp_store['param_name']
+        param_type = temp_store['param_type']
+        param_value = _eval_param_value(arg, param_type)
+        out['kwargs'][param_name] = param_value
+        temp_store.clear()
+    
+    def feed_possible_func_name() -> None:
+        try:
+            assert re.match(r'^[a-zA-Z][-\w]*$', arg)
+        except AssertionError:
+            raise e.ParamAheadOfCommand(index)
+        out['command'] = arg.replace('_', '-')
+    
+    def feed_short_option_name() -> bool:
+        try:
+            assert arg.count('-') == 1
+        except AssertionError:
+            raise e.ShortOptionFormat(index, arg)
+        try:
+            assert arg == arg.lower() or arg == arg.upper()
+        except AssertionError:
+            raise e.MixinCase(index)
+        
+        if arg[1:].isupper():
+            option_name = arg.lower()
+            param_name = _get_option_name(option_name)
+            param_type = params.get_and_pop_param(index, param_name)[1]
+            try:
+                assert param_type in (ParamType.FLAG, ParamType.ANY)
+            except AssertionError:
+                raise e.TypeNotCorrect(index, expected_type='bool')
+            out['kwargs'][param_name] = False
+            return True
+        else:
+            option_name = arg
+            param_name = _get_option_name(option_name)
+            param_type = params.get_and_pop_param(index, param_name)[1]
+            if param_type == ParamType.FLAG:
+                out['kwargs'][param_name] = True
+                return True
+            else:
+                temp_store['param_name'] = param_name
+                temp_store['param_type'] = param_type
+                return False
+    
+    def feed_special_arg() -> None:
+        assert arg in SPECIAL_ARGS
+        if arg in (':h', ':help'):
+            assert ':help' not in out['kwargs']
+            out['kwargs'][':help'] = True
+        else:
+            implicit_name, param_type = params.get_and_pop_param(index)
+            param_value = SPECIAL_ARGS[arg]
+            out['kwargs'][implicit_name] = param_value
+    
+    # -------------------------------------------------------------------------
+    
+    def _eval_param_value(x: str, possible_type: ParamType) -> t.Any:
+        try:
+            return cval_2_val(x, possible_type)
+        except AssertionError:
+            raise e.TypeConversionError(
+                index,
+                expected_type=possible_type.name,
+                given_type=str(arg)
+            )
+    
+    def _get_option_name(cname: str) -> str:
         """ convert cname to name. """
         if cname in front_matter['index']:
             return front_matter['index'][cname]
@@ -87,129 +190,63 @@ def _walking_through_argv(
         else:
             raise e.ParamNotFound(index, cname, front_matter['index'].keys())
     
-    def eval_arg(arg: str, possible_type: ParamType) -> t.Any:
-        # print(':pv', arg, possible_type)
-        from ...converter import cval_2_val
-        try:
-            return cval_2_val(arg, possible_type)
-        except AssertionError:
-            raise e.TypeConversionError(
-                index,
-                expected_type=possible_type.name,
-                given_type=str(arg)
-            )
+    # -------------------------------------------------------------------------
     
-    for index, arg, type_code in tuple(iter(argv_info)):
-        # print(':vi2', index, arg)
-        if type_code == 0:
-            continue
-            
-        if ctx.token in (Token.START, Token.READY):
-            if arg.startswith('-'):
-                if (
-                        ctx.token == Token.START
-                        and mode == 'group'
-                        and out['command'] == ''
-                        and front_matter['index'].get(arg)
-                        not in (':help', ':helpx')
-                ):
-                    raise e.ParamAheadOfCommand(index)
-                
-                if arg.startswith('--'):
-                    try:
-                        assert arg == arg.lower()
-                    except AssertionError:
-                        raise e.MixinCase(index)
-                    
-                    if arg.startswith(('--not-', '--no-')):
-                        # option_name = arg.replace('--not-', '--', 1)
-                        option_name = re.sub(r'--not?-', '--', arg, 1)
-                        param_name = get_option_name(option_name)
-                        param_type = params.get_param(index, param_name)[1]
-                        try:
-                            assert param_type in (ParamType.FLAG, ParamType.ANY)
-                        except AssertionError:
-                            raise e.TypeNotCorrect(index, expected_type='bool')
-                        out['kwargs'][param_name] = False
-                        ctx.update(Token.READY)
-                        continue
-                    else:
-                        option_name = arg
-                        param_name = get_option_name(option_name)
-                        param_type = params.get_param(index, param_name)[1]
-                        if param_type == ParamType.FLAG:
-                            out['kwargs'][param_name] = True
-                            ctx.update(Token.READY)
-                            continue
-                else:
-                    try:
-                        assert arg.count('-') == 1
-                    except AssertionError:
-                        raise e.ShortOptionFormat(index, arg)
-                    try:
-                        assert arg == arg.lower() or arg == arg.upper()
-                    except AssertionError:
-                        raise e.MixinCase(index)
-                    
-                    if arg[1:].isupper():
-                        option_name = arg.lower()
-                        param_name = get_option_name(option_name)
-                        param_type = params.get_param(index, param_name)[1]
-                        try:
-                            assert param_type in (ParamType.FLAG, ParamType.ANY)
-                        except AssertionError:
-                            raise e.TypeNotCorrect(index, expected_type='bool')
-                        out['kwargs'][param_name] = False
-                        ctx.update(Token.READY)
-                        continue
-                    else:
-                        option_name = arg
-                        param_name = get_option_name(option_name)
-                        param_type = params.get_param(index, param_name)[1]
-                        if param_type == ParamType.FLAG:
-                            out['kwargs'][param_name] = True
-                            ctx.update(ctx.token)
-                            continue
-                ctx.update(Token.OPTION_NAME)
-                ctx.store_param_info(param_name, param_type)
-                continue
-        
-        if ctx.token == Token.START:
+    for index, arg in enumerate(argv.args, argv.argx):
+        # print(':v', index, arg)
+        if flag == 'INIT':
             if mode == 'group':
-                out['command'] = arg.replace('_', '-')
-                ctx.update(Token.READY)
-                continue
+                if arg.startswith((':', '-')):
+                    feed_help()
+                    flag = 'FUNC_NAME'
+                else:
+                    feed_possible_func_name()
+                    flag = 'IDLE'
             else:
-                ctx.update(Token.READY)
-        
-        assert not arg.startswith('-')
-        
-        if ctx.token == Token.READY:
-            param_name, param_type = params.get_param(index)
-            param_value = eval_arg(arg, param_type)
-            out['args'][param_name] = param_value
-            ctx.update(Token.READY)
-            continue
-        
-        if ctx.token == Token.OPTION_NAME:
-            param_name = ctx.param_name
-            param_type = ctx.param_type
-            param_value = eval_arg(arg, param_type)
-            out['kwargs'][param_name] = param_value
-            ctx.update(Token.READY)
-            continue
+                if arg.startswith(':'):
+                    feed_special_arg()
+                    flag = 'IDLE'
+                elif arg.startswith('--'):
+                    resolved = feed_option_name()
+                    flag = 'IDLE' if resolved else 'OPTION_VALUE'
+                elif arg.startswith('-'):
+                    resolved = feed_short_option_name()
+                    flag = 'IDLE' if resolved else 'OPTION_VALUE'
+                else:
+                    feed_possible_func_name()
+                    flag = 'IDLE'
+        elif flag == 'FUNC_NAME':
+            feed_possible_func_name()
+            flag = 'WHATEVER'
+        elif flag == 'IDLE':
+            if arg.startswith(':'):
+                feed_special_arg()
+            elif arg.startswith('--'):
+                resolved = feed_option_name()
+                flag = 'IDLE' if resolved else 'OPTION_VALUE'
+            elif arg.startswith('-'):
+                resolved = feed_short_option_name()
+                flag = 'IDLE' if resolved else 'OPTION_VALUE'
+            else:
+                feed_anonymous_arg()
+        elif flag == 'OPTION_VALUE':
+            feed_option_value()
+            flag = 'IDLE'
+        elif flag == 'WHATEVER':
+            flag = 'OVER'
+            break
+    else:
+        if flag == 'INIT':
+            feed_implicit_help()
+            flag = 'OVER'
+        elif flag in ('FUNC_NAME', 'IDLE'):
+            flag = 'OVER'
+    assert flag == 'OVER', flag
     
     # post check
     if bool(params):
-        # if true, there are still arguments not resolved yet.
-        if not out['args'] and not out['kwargs']:
-            # it means user does not provide any argument to the command.
-            # instead of rasing an exception, we guide user to see the help
-            # message.
-            out['kwargs'][':help'] = True
-        elif ':help' not in out['kwargs'] and ':helpx' not in out['kwargs']:
+        if ':help' not in out['kwargs']:
             raise e.InsufficientArguments(
                 -1, tuple(front_matter['args'].keys())[len(out['args']):]
             )
-    
     return out
