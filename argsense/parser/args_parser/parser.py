@@ -213,7 +213,7 @@ def _walking_through_argv(
                     resolved = feed_short_option_name()
                     flag = 'IDLE' if resolved else 'OPTION_VALUE'
                 else:
-                    feed_possible_func_name()
+                    feed_anonymous_arg()
                     flag = 'IDLE'
         elif flag == 'FUNC_NAME':
             feed_possible_func_name()

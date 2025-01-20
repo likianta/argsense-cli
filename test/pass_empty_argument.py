@@ -3,7 +3,10 @@ from argsense import cli
 
 @cli.cmd()
 def main(x: str) -> None:
-    print(x, x == '')
+    if x == '':
+        print('`x` is an empty string', ':v4')
+    else:
+        print('incorrct value for `x`: {}'.format(x), ':v8')
 
 
 if __name__ == '__main__':
