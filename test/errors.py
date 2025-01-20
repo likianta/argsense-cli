@@ -44,7 +44,7 @@ def test() -> None:
         'auto-type-conversion :true bbb ccc',
         'auto-type-conversion 111 :true ccc',
     ):
-        print(':di')
+        print(':di', args)
         run_cmd_args(
             sys.executable, this_file, *shlex.split(args),
             force_term_color=True,

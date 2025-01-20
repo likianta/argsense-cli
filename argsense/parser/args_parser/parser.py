@@ -167,7 +167,7 @@ def _walking_through_argv(
         else:
             implicit_name, param_type = params.get_and_pop_param(index)
             param_value = SPECIAL_ARGS[arg]
-            out['kwargs'][implicit_name] = param_value
+            out['args'][implicit_name] = param_value
     
     # -------------------------------------------------------------------------
     
