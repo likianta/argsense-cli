@@ -21,7 +21,32 @@ class T:
     TitleHeadStyle = t.Literal['system_dependent', 'fixed']
 
 
-# appearance style
+# -----------------------------------------------------------------------------
+# v0.7.0+
+
+# help interface
+HIDE_UNSTATED_VARIABLE_KWARGS = True
+'''
+    for example:
+        def foo(aaa, **kwargs):
+            """
+            params:
+                **kwargs:
+                    bbb: ...
+                    ccc: ...
+            """
+    if `HIDE_UNSTATED_VARIABLE_KWARGS` is disabled, an ellipsis ('...') will -
+    be added in the next line of `ccc` in the option entries.
+    if enabled (by default), no ellipsis after `ccc`, i.e. `ccc` will be the -
+    last entry of the options.
+    see also: `./renderer/rich/render2.py : [def] render_function_parameters : -
+    [code] "if func_info.args4: ..."`
+'''
+
+# -----------------------------------------------------------------------------
+# TODO: need refactoring
+
+# DELETE: appearance style
 ALIGN_ARGS_AND_OPTS_FIELD_WIDTH = False
 ARG_NAME_STYLE: T.ArgNameStyle = 'aaa-bbb'
 PRETTY_ERROR = True

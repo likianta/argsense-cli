@@ -182,16 +182,17 @@ def render_function_parameters(
             '   ' + 'default = {}'.format(val_2_cval(arg['default'])),
         )
     if func_info.args4:
-        table.add_row(
-            ' ',
-            '-   ',
-            # func_info.args4['**']['cname'],
-            '...',
-            '',
-            func_info.args4['**']['ctype'].name + '   ',
-            '[dim](this function may accept more keyword arguments as implicit '
-            'vars...)[/]',
-        )
+        if not config.HIDE_UNSTATED_VARIABLE_KWARGS:
+            table.add_row(
+                ' ',
+                '-   ',
+                # func_info.args4['**']['cname'],
+                '...',
+                '',
+                func_info.args4['**']['ctype'].name + '   ',
+                '[dim](this function may accept more keyword arguments as '
+                'implicit vars...)[/]',
+            )
     console.print(
         rich.panel.Panel(
             table,
