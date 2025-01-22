@@ -24,7 +24,7 @@ class T:
 # v0.7.0+
 
 # help interface
-HIDE_UNSTATED_VARIABLE_KWARGS = True
+HIDE_UNSTATED_VARIABLE_KWARGS = False
 '''
     for example:
         def foo(aaa, **kwargs):
@@ -36,8 +36,8 @@ HIDE_UNSTATED_VARIABLE_KWARGS = True
             """
     if `HIDE_UNSTATED_VARIABLE_KWARGS` is disabled, an ellipsis ('...') will -
     be added in the next line of `ccc` in the option entries.
-    if enabled (by default), no ellipsis after `ccc`, i.e. `ccc` will be the -
-    last entry of the options.
+    if enabled, no ellipsis after `ccc`, i.e. `ccc` will be the last entry of -
+    the options.
     see also: `./renderer/rich/render2.py : [def] render_function_parameters : -
     [code] "if func_info.args4: ..."`
 '''

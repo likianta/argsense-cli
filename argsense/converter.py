@@ -73,6 +73,9 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
     if name.startswith('*'):
         i = name.rindex('*')
         return name[:i + 1] + name_2_cname(name[i + 1:], style='arg')
+    elif name.startswith(':'):
+        assert name in (':h', ':help')
+        return ':h'
     
     name = name.lower().strip('_')
     if style == 'arg':

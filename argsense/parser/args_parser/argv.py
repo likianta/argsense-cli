@@ -13,8 +13,8 @@ _DEBUG = os.getenv('ARGSENSE_DEBUG') == '1'
 
 class T:
     ArgvArgs = t.Tuple[str, ...]
-    ArgvTarget = t.Union[t.Tuple[str], t.Tuple[t.Literal['-m'], str]]
-    ArgvLauncher = t.Tuple[str]
+    ArgvTarget = t.Tuple[str]
+    ArgvLauncher = t.Tuple[str, ...]
 
 
 class Argv:
@@ -42,7 +42,7 @@ class Argv:
         """
         print(argv, ':pv')
         if argv[1] == '-m':
-            return Argv((sys.executable,), ('-m', argv[2]), tuple(argv[3:]))
+            return Argv((sys.executable, '-m'), (argv[2],), tuple(argv[3:]))
         else:
             return Argv((sys.executable,), (argv[1],), tuple(argv[2:]))
     

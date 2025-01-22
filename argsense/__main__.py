@@ -20,69 +20,71 @@ def cli(target: str, func: str = None, *args, **kwargs) -> None:
             function name in target module.
             `*args` and `**kwargs` will be passed to this function.
     """
+    print(target, func, args, kwargs, ':vl')
+    
     if target.endswith('.py'):
         subcli = CommandLineInterface('argsense-subcli')
         
         with open(target, 'r', encoding='utf-8') as f:
+            # init subcli commands
+            exec(
+                '{}\n{}'.format(
+                    f.read(),
+                    dedent(
+                        '''
+                        # print(__name__)
+                        # print(__file__)
+
+                        # from types import FunctionType
+                        # locals()['__hook__'].update(
+                        #     {
+                        #         k: v
+                        #         for k, v in locals().items()
+                        #         if not k.startswith('_')
+                        #         and type(v) is FunctionType
+                        #     }
+                        # )
+
+                        from types import FunctionType
+                        public_funcs = tuple(
+                            v
+                            for k, v in locals().items()
+                            if not k.startswith('_')
+                            and type(v) is FunctionType
+                        )
+                        # print(':l', public_funcs)
+                        for f in public_funcs:
+                            __cli__.add_cmd(f)
+                        '''
+                    )
+                ),
+                {
+                    '__name__': '__main__',
+                    '__file__': os.path.abspath(target),
+                    '__cli__': subcli,
+                },
+                # {
+                #     '__cli__': subcli,
+                # }
+            )
+            print(subcli.commands, ':vl')
+            
+            cargs = []
             if func:
                 assert not func.startswith(('_', '-'))
-                func_name = func.replace('-', '_')
-                
-                # init subcli commands
-                exec(
-                    '{}\n{}'.format(
-                        f.read(),
-                        dedent(
-                            '''
-                            # print(__name__)
-                            # print(__file__)
-                            
-                            # from types import FunctionType
-                            # locals()['__hook__'].update(
-                            #     {
-                            #         k: v
-                            #         for k, v in locals().items()
-                            #         if not k.startswith('_')
-                            #         and type(v) is FunctionType
-                            #     }
-                            # )
-                            
-                            from types import FunctionType
-                            public_funcs = (
-                                v
-                                for k, v in locals().items()
-                                if not k.startswith('_')
-                                and type(v) is FunctionType
-                            )
-                            for f in public_funcs:
-                                __cli__.add_cmd(f)
-                            
-                            '''
-                        )
-                    ),
-                    {
-                        '__name__': '__main__',
-                        '__file__': os.path.abspath(target),
-                    },
-                    {
-                        '__cli__': subcli,
-                    }
+                # cargv.append(name_2_cname(func, style='cmd'))
+                cargs.append(func.replace('-', '_'))
+            cargs.extend(map(val_2_cval, args))
+            for k, v in kwargs.items():
+                cargs.append(name_2_cname(k, style='opt'))
+                cargs.append(val_2_cval(v))
+            subcli.exec_argv(
+                argv=Argv(
+                    launcher=('argsense', 'run'),
+                    target=(target,),
+                    args=cargs,
                 )
-                print(subcli.commands, ':vl')
-                
-                cargs = map(val_2_cval, args)
-                ckwargs = []
-                for k, v in kwargs.items():
-                    ckwargs.append(name_2_cname(k, style='opt'))
-                    ckwargs.append(val_2_cval(v))
-                subcli.exec_argv(
-                    argv=Argv.from_sys_argv(
-                        (sys.executable, target, func, *cargs, *ckwargs)
-                    ),
-                    func=func_name,
-                )
-            else:
-                exec(f.read(), {'__name__': '__main__'})
+            )
     else:
         raise NotImplementedError
 
@@ -126,4 +128,4 @@ def _run() -> None:
 if __name__ == '__main__':
     # py -m argsense -h
     # py -m argsense cli <target.py>
-    _cli.run()
+    _cli.run(transport_help=True)

@@ -212,17 +212,24 @@ def _detect_program_name(argv: Argv) -> str:
     code reference:
         `[third_lib] click : [path] /utils.py : [def] _detect_program_name()`
     """
-    parts = []  # noqa
+    parts = []
     
-    parts.append(
-        'python' if config.PROGRAM_NAME_STYLE == 'fixed'
-        else 'py' if os.name == 'nt'
-        else 'python3'
-    )
+    if argv.launcher[0].endswith(
+        ('py', 'py.exe', 'python', 'python.exe', 'python3')
+    ):
+        parts.append(
+            'python' if config.PROGRAM_NAME_STYLE == 'fixed'
+            else 'py' if os.name == 'nt'
+            else 'python3'
+        )
+        if len(argv.launcher) > 1:
+            assert len(argv.launcher) == 2 and argv.launcher[1] == '-m'
+            parts.append('-m')
+    else:
+        parts.extend(argv.launcher)
     
-    if argv.target[0] == '-m':
-        parts.append('-m')
-        parts.append(argv.target[1])
+    if parts[-1] == '-m':
+        parts.append(argv.target[0])
     else:
         parts.append(os.path.basename(argv.target[0]))
     

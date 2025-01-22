@@ -99,29 +99,37 @@ class CommandLineInterface:
     # -------------------------------------------------------------------------
     # run
     
-    def run(self, func: T.Func = None) -> t.Any:
+    def run(self, func: T.Func = None, transport_help: bool = False) -> t.Any:
         config.apply_changes()
         return self.exec_argv(
             argv=Argv.from_sys_argv(
                 sys.orig_argv if hasattr(sys, 'orig_argv') else
                 (sys.executable, *sys.argv)
             ),
-            func=func
+            preset_func=func,
+            transport_help=transport_help,
         )
         
     def exec_argv(
-        self, argv: Argv, func: t.Optional[T.Func] = None
+        self,
+        argv: Argv,
+        preset_func: t.Optional[T.Func] = None,
+        transport_help: bool = False,
     ) -> t.Optional[t.Any]:
         cli_help_form: T.CommandType
         # func_info: T.FuncInfo
         func_info: t.Optional[T.FuncInfo]
         
-        single_func_entrance = bool(func)
-        cli_help_form = 'command' if func else 'group'  # noqa
+        single_func_entrance = bool(preset_func)
+        cli_help_form = 'command' if preset_func else 'group'  # noqa
         
-        if not func:
+        if preset_func:
+            func = preset_func
+        else:
             if argv.possible_function:
                 func = self._cname_2_func[argv.possible_function]
+            else:
+                func = None
         
         func_info = func and self.commands[id(func)]
         result = parse_argv(
@@ -148,12 +156,13 @@ class CommandLineInterface:
                 )
             }
         )
-        print(result, ':vl')
         
         if result['command']:
             func = self._cname_2_func[result['command']]
             if func:
                 func_info = self.commands[id(func)]  # noqa
+        
+        print(result, func, ':vl')
         
         def get_help_option(
             consider_transport_action: bool = False
@@ -184,14 +193,24 @@ class CommandLineInterface:
                 #     and func_info.transfer_help
                 # )
             )
-            if has_help:
+            if has_help and not transport_help:
                 renderer.render_function_parameters(
                     argv,
                     self.commands[id(func)],
                     show_func_name_in_title=not single_func_entrance
                 )
             else:
-                return func(*result['args'].values(), **result['kwargs'])
+                try:
+                    return func(*result['args'].values(), **result['kwargs'])
+                except Exception as e:
+                    if has_help and transport_help:
+                        renderer.render_function_parameters(
+                            argv,
+                            self.commands[id(func)],
+                            show_func_name_in_title=not single_func_entrance
+                        )
+                    else:
+                        raise e
         else:
             has_help, is_explicit = get_help_option()
             assert has_help
