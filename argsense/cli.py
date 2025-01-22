@@ -153,7 +153,7 @@ class CommandLineInterface:
         if result['command']:
             func = self._cname_2_func[result['command']]
             if func:
-                func_info = self.commands[id(func)]
+                func_info = self.commands[id(func)]  # noqa
         
         def get_help_option(
             consider_transport_action: bool = False
@@ -178,13 +178,15 @@ class CommandLineInterface:
         from . import renderer
         if func:
             has_help, is_explicit = get_help_option(
-                consider_transport_action=(
-                    '**' in func_info.kwargs
-                    and func_info.transfer_help
-                )
+                # FIXME: `consider_transport_action` need redesign.
+                # consider_transport_action=(
+                #     '**' in func_info.kwargs
+                #     and func_info.transfer_help
+                # )
             )
             if has_help:
                 renderer.render_function_parameters(
+                    argv,
                     self.commands[id(func)],
                     show_func_name_in_title=not single_func_entrance
                 )
@@ -193,7 +195,7 @@ class CommandLineInterface:
         else:
             has_help, is_explicit = get_help_option()
             assert has_help
-            renderer.render_functions(self.commands.values())
+            renderer.render_functions(argv, self.commands.values())
 
 
 cli = CommandLineInterface(name='argsense-cli')

@@ -18,7 +18,6 @@ class T:
     ]
     FallbackType = t.Literal['any', 'str']
     OverwrittenScheme = t.Literal['first', 'last']
-    TitleHeadStyle = t.Literal['system_dependent', 'fixed']
 
 
 # -----------------------------------------------------------------------------
@@ -42,6 +41,19 @@ HIDE_UNSTATED_VARIABLE_KWARGS = True
     see also: `./renderer/rich/render2.py : [def] render_function_parameters : -
     [code] "if func_info.args4: ..."`
 '''
+PROGRAM_NAME_STYLE = 'fixed'
+'''
+    type: 'fixed' | 'system_dependent'
+    illustration:
+        system      style='fixed'   style='system_dependent'
+        -------     -------------   ------------------------
+        unix        python          python3
+        unix        python -m       python3 -m
+        windows     python          py
+        windows     python -m       py -m
+        windows     xxx.exe         xxx.exe
+    see also: `./renderer/rich/render2.py : [def] _detect_program_name`
+'''
 
 # -----------------------------------------------------------------------------
 # TODO: need refactoring
@@ -50,16 +62,6 @@ HIDE_UNSTATED_VARIABLE_KWARGS = True
 ALIGN_ARGS_AND_OPTS_FIELD_WIDTH = False
 ARG_NAME_STYLE: T.ArgNameStyle = 'aaa-bbb'
 PRETTY_ERROR = True
-TITLE_HEAD_STYLE: T.TitleHeadStyle = 'system_dependent'
-''' the difference:
-        system      system_dependent    fixed
-        ------      ----------------    -----
-        unix        python3             python
-        unix        python3 -m          python -m
-        windows     py                  python
-        windows     py -m               python -m
-        windows     xxx.exe             xxx.exe
-'''
 USE_RICH_MARKUP = True
 
 # fallback

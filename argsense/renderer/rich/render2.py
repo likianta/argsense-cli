@@ -1,6 +1,5 @@
 import math
 import os
-import sys
 import typing as t
 from random import randint
 
@@ -14,15 +13,16 @@ from rich import get_console
 from .style import color
 from ... import config
 from ...converter import val_2_cval
+from ...parser import Argv
 from ...parser import FuncInfo
 
 console = get_console()
 
 
-def render_functions(funcs: t.Iterable[FuncInfo]) -> None:
+def render_functions(argv: Argv, funcs: t.Iterable[FuncInfo]) -> None:
     console.print(
         _simple_gradient(
-            _detect_program_name() + ' ...',
+            _detect_program_name(argv) + ' ...',
             (0xFF0000, 0xFFFF00)  # red -> yellow
         ),
         justify='center',
@@ -51,6 +51,7 @@ def render_functions(funcs: t.Iterable[FuncInfo]) -> None:
 
 
 def render_function_parameters(
+    argv: Argv,
     func_info: FuncInfo,
     *,
     show_func_name_in_title: bool = True,
@@ -59,7 +60,7 @@ def render_function_parameters(
     has_var_args = func_info.has_var_args
     # has_var_kwargs = func_info.has_var_kwargs
     
-    title_parts = [_detect_program_name()]
+    title_parts = [_detect_program_name(argv)]
     if show_func_name_in_title:
         title_parts.append(func_info.name)
     if has_any_args:
@@ -206,34 +207,27 @@ def render_function_parameters(
     _post_logo(color_seed='blue')
 
 
-def _detect_program_name(func_cname: str = None) -> str:
+def _detect_program_name(argv: Argv) -> str:
     """
-    code reference: `lib click : /utils.py : def _detect_program_name()`
-    
-    returns e.g.:
-        - 'python example.py'
-        - 'python -m example'
-        - 'python3 example.py'
-        - 'python3 -m example'
-        - 'example.exe'
+    code reference:
+        `[third_lib] click : [path] /utils.py : [def] _detect_program_name()`
     """
-    argv = sys.argv + ['']  # `+['']`: in case of index overflows
     parts = []  # noqa
+    
     parts.append(
-        'python' if config.TITLE_HEAD_STYLE == 'fixed' else
-        'python' if os.name == 'nt' else
-        'python3'
+        'python' if config.PROGRAM_NAME_STYLE == 'fixed'
+        else 'py' if os.name == 'nt'
+        else 'python3'
     )
     
-    if argv[0] == '-m':
-        parts.append(argv[0])
-        parts.append(argv[1])
-        if func_cname and argv[2] == func_cname:
-            parts.append(func_cname)
+    if argv.target[0] == '-m':
+        parts.append('-m')
+        parts.append(argv.target[1])
     else:
-        parts.append(os.path.basename(argv[0]))
-        if func_cname and argv[1] == func_cname:
-            parts.append(func_cname)
+        parts.append(os.path.basename(argv.target[0]))
+    
+    # if argv.possible_function:
+    #     parts.append(argv.possible_function)
     
     return ' '.join(parts)
 
