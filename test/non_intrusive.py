@@ -12,8 +12,14 @@ def _func2():
 
 
 print(':d')
-print(':l', __name__, __file__, globals().get('__cli__'))
+print(':lv2', {
+    '__file__': __file__,
+    '__name__': __name__,
+    '__cli__': globals().get('__cli__'),
+})
 
 # pox -m argsense -h
-# pox -m argsense run -h
-# pox -m argsense run test/non_intrusive.py -h
+# pox -m argsense test/non_intrusive.py -h
+# pox -m argsense test/non_intrusive.py func1 -h
+# pox -m argsense test/non_intrusive.py func1 \
+#   alpha beta xyz 123 0xFFFF --ddd eee --fff ggg --hhh :true

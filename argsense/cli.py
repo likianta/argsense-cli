@@ -162,7 +162,7 @@ class CommandLineInterface:
             if func:
                 func_info = self.commands[id(func)]  # noqa
         
-        print(result, func, ':vl')
+        # print(result, func, ':vl')
         
         def get_help_option(
             consider_transport_action: bool = False

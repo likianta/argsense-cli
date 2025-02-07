@@ -39,8 +39,23 @@ class Argv:
                 it looks like:
                     ['python', 'test.py', 'foo', '--bar', 'baz']
                     ['python', '-m', 'test', 'foo', '--bar', 'baz']
+        
+        returns:
+            e.g.
+                Argv(
+                    launcher=('python',),
+                    target=('test.py',),
+                    args=('foo', '--bar', 'baz'),
+                    argx=2
+                )
+                Argv(
+                    launcher=('python', '-m'),
+                    target=('test',),
+                    args=('foo', '--bar', 'baz'),
+                    argx=3
+                )
         """
-        print(argv, ':pv')
+        # print(argv, ':pv')
         if argv[1] == '-m':
             return Argv((sys.executable, '-m'), (argv[2],), tuple(argv[3:]))
         else:

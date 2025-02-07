@@ -1,15 +1,27 @@
-[tool.poetry]
+[project]
 name = "argsense"
-version = "0.7.0b0"
+version = "0.7.0b12"
 homepage = "https://github.com/likianta/argsense-cli"
 description = "New command line interface based on Rich library."
 readme = "README.md"
-authors = ["Likianta <likianta@foxmail.com>"]
+authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
+requires-python = ">=3.8"
+dynamic = ["dependencies"]
 license = "MIT"
+
+[project.optional-dependencies]
+gui = ["pysimplegui"]  # pip install argsense[gui]
+
+[project.scripts]
+argsense = "argsense.__main__:cli"
+argsense-cli = "argsense.__main__:cli"
+argsense-gui = "argsense.__main__:gui"
+argsense-tui = "argsense.__main__:tui"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-lk-logger = "^6.0.3"
+# lk-logger = "^6.0.3"
+lk-logger = { version = "^6.0.4a0", source = "likianta" }
 rich = "^13.9.0"
 # rich-gradient = { version = "^0.1.7", python = "^3.10" }
 
@@ -20,9 +32,6 @@ pysimplegui = { version = "^5.0.0", optional = true }
 #   streamlit = "*"
 #   textual = "*"
 #   trogon = "*"
-
-[tool.poetry.extras]
-gui = ["pysimplegui"]  # pip install argsense[gui]
 
 [tool.poetry.group.dev.dependencies]
 lk-utils = { version = "^3.1.3a3", source = "likianta" }
@@ -38,12 +47,6 @@ priority = "primary"
 name = "likianta"
 url = "http://likianta.pro:2131/"
 priority = "supplemental"
-
-[tool.poetry.scripts]
-argsense = 'argsense.__main__:cli'
-argsense-cli = 'argsense.__main__:cli'
-argsense-gui = 'argsense.__main__:gui'
-argsense-tui = 'argsense.__main__:tui'
 
 [build-system]
 requires = ["poetry"]
