@@ -417,13 +417,13 @@ reference = "tsinghua"
 
 [[package]]
 name = "lk-logger"
-version = "6.0.4a0"
+version = "6.0.4"
 description = "Python print with source map and varnames."
 optional = false
 python-versions = ">=3.8,<4.0"
 groups = ["main", "dev"]
 files = [
-    {file = "lk_logger-6.0.4a0-py3-none-any.whl", hash = "sha256:6f5aed9669ac1b5308fc7d6d47ec2ece83f5645b1e2d9484d0fec656c6196114"},
+    {file = "lk_logger-6.0.4-py3-none-any.whl", hash = "sha256:10adf041a2ceb0bd5bef6b7d47b476b448197e43a4411f45e3e6a1c3281d5c74"},
 ]
 
 [package.dependencies]
@@ -1685,4 +1685,4 @@ gui = ["pysimplegui"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.8"
-content-hash = "6e9e19fe23d4f0f20ad026eb028457d2b74a050d7e6363019b671293c2306032"
+content-hash = "8f2d3aedaaf65885ea518f2aff60bb2984622f804886ec4a845b2b170f264def"

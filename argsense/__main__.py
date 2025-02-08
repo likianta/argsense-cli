@@ -5,7 +5,7 @@ from textwrap import dedent
 from .cli import CommandLineInterface
 from .parser import Argv
 
-print(':vl', sys.argv)
+# print(':vl', sys.argv)
 
 
 def cli() -> None:
@@ -95,19 +95,6 @@ def _execfile(target: str, *c_args: str) -> None:
                 f.read(),
                 dedent(
                     '''
-                    # print(__name__)
-                    # print(__file__)
-
-                    # from types import FunctionType
-                    # locals()['__hook__'].update(
-                    #     {
-                    #         k: v
-                    #         for k, v in locals().items()
-                    #         if not k.startswith('_')
-                    #         and type(v) is FunctionType
-                    #     }
-                    # )
-
                     from types import FunctionType
                     public_funcs = tuple(
                         v
@@ -125,12 +112,8 @@ def _execfile(target: str, *c_args: str) -> None:
                 '__name__': '__main__',
                 '__file__': os.path.abspath(target),
                 '__cli__' : subcli,
-            },
-            # {
-            #     '__cli__': subcli,
-            # }
+            }
         )
-        print(subcli.commands, ':vl')
         
         subcli.exec_argv(
             argv=Argv(
