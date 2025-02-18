@@ -6,9 +6,9 @@ from textwrap import dedent
 import rich
 import rich.panel
 
-# print(sys.argv, ':v')
-
 _DEBUG = os.getenv('ARGSENSE_DEBUG') == '1'
+if _DEBUG:
+    print(sys.orig_argv, sys.argv, ':lv')
 
 
 class T:
@@ -39,6 +39,8 @@ class Argv:
                 it looks like:
                     ['python', 'test.py', 'foo', '--bar', 'baz']
                     ['python', '-m', 'test', 'foo', '--bar', 'baz']
+        
+        FIXME: don't use `sys.orig_argv`, use `sys.argv`.
         
         returns:
             e.g.
