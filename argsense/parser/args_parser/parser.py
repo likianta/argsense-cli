@@ -36,7 +36,7 @@ def parse_argv(
     argv: Argv,
     mode: t.Literal['command', 'group'],
     front_matter: T.ParamsInfo,
-) -> T.ParsedResult:
+) -> t.Optional[T.ParsedResult]:
     try:
         return _walking_through_argv(argv, mode, front_matter)
     except e.ArgvParsingFailed as err:
@@ -237,7 +237,8 @@ def _walking_through_argv(
             break
     else:
         if flag == 'INIT':
-            feed_implicit_help()
+            if bool(params):
+                feed_implicit_help()
             flag = 'OVER'
         elif flag in ('FUNC_NAME', 'IDLE'):
             flag = 'OVER'

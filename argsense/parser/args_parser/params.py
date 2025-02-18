@@ -35,6 +35,9 @@ class ParamsHolder:
         self._has_kwargs = '**' in kwargs
         
     def __bool__(self) -> bool:
+        """
+        returning True means that there are still parameters to be resolved.
+        """
         return bool(self._args)
     
     def get_and_pop_param(self, index: int, name: str = None) -> T.Param:
