@@ -1,4 +1,3 @@
-import sys
 import typing as t
 
 from . import config
@@ -102,7 +101,7 @@ class CommandLineInterface:
     def run(self, func: T.Func = None, transport_help: bool = False) -> t.Any:
         config.apply_changes()
         return self.exec_argv(
-            argv=Argv.from_sys_argv((sys.executable, *sys.argv)),
+            argv=Argv.from_sys_argv(),
             preset_func=func,
             transport_help=transport_help,
         )

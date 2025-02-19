@@ -29,39 +29,39 @@ class Argv:
                 return x.replace('_', '-')
     
     @classmethod
-    def from_sys_argv(cls, argv: t.Sequence[str]) -> 'Argv':
+    def from_sys_argv(cls) -> 'Argv':
         """
         note: this method should be called after main modules loaded. i.e. you -
         can not call this in global scope.
         
-        params:
-            argv: by default use `sys.orig_argv`
-                it looks like:
-                    ['python', 'test.py', 'foo', '--bar', 'baz']
-                    ['python', '-m', 'test', 'foo', '--bar', 'baz']
-        
-        FIXME: don't use `sys.orig_argv`, use `sys.argv`.
-        
         returns:
             e.g.
-                Argv(
-                    launcher=('python',),
-                    target=('test.py',),
-                    args=('foo', '--bar', 'baz'),
-                    argx=2
-                )
                 Argv(
                     launcher=('python', '-m'),
                     target=('test',),
                     args=('foo', '--bar', 'baz'),
                     argx=3
                 )
+                Argv(
+                    launcher=('python',),
+                    target=('test.py',),
+                    args=('foo', '--bar', 'baz'),
+                    argx=2
+                )
         """
-        # print(argv, ':pv')
-        if argv[1] == '-m':
-            return Argv((sys.executable, '-m'), (argv[2],), tuple(argv[3:]))
+        argv = tuple(sys.argv)
+        if _DEBUG:
+            print(argv, ':plv')
+        if argv[0] == '-m':
+            return Argv((sys.executable, '-m'), (argv[1],), argv[2:])
+        elif argv[0].endswith(('\\__main__.py', '/__main__.py')):
+            return Argv(
+                (sys.executable, '-m'),
+                (argv[0].replace('\\', '/').split('/')[-2],),
+                argv[1:]
+            )
         else:
-            return Argv((sys.executable,), (argv[1],), tuple(argv[2:]))
+            return Argv((sys.executable,), (argv[0],), argv[1:])
     
     def __init__(
         self,
