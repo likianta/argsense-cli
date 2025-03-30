@@ -24,14 +24,27 @@ class T:
 
 
 class CommandLineInterface:
-    """
-    TODO: we will add group feature in future version.
-    """
     
     def __init__(self, name: str = None) -> None:
         self.name = name
         self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
+        
+    def __call__(self, func: T.Func) -> T.Func:
+        """
+        use this as decorator, to add a command.
+        this is simpler than `@cli.cmd()`:
+            A:
+                @cli
+                def foo():
+                    ...
+            B:
+                @cli.cmd()
+                def foo():
+                    ...
+        """
+        self.add_cmd(func)
+        return func
     
     # -------------------------------------------------------------------------
     

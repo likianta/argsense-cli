@@ -1,6 +1,6 @@
 [project]
 name = "argsense"
-version = "0.7.1"
+version = "0.7.2"
 homepage = "https://github.com/likianta/argsense-cli"
 description = "New command line interface based on Rich library."
 readme = "README.md"
@@ -33,11 +33,11 @@ pysimplegui = { version = "^5.0.0", optional = true }
 #   trogon = "*"
 
 [tool.poetry.group.dev.dependencies]
-lk-logger = { version = "^6.0.4", source = "likianta" }
-lk-utils = { version = "^3.1.3a3", source = "likianta" }
-pyapp-window = { version = "^2.2.0a12", source = "likianta" }
+lk-logger = { version = "^6.0.6a0", source = "likianta" }
+lk-utils = { version = "^3.2.0a4", source = "likianta" }
+pyapp-window = { version = "^2.2.0b2", source = "likianta" }
 pyinstrument = "^5.0.0"
-streamlit = { version = "^1.42.0", python = "^3.12" }
+streamlit = { version = "^1.43.0", python = "^3.12" }
 
 [[tool.poetry.source]]
 name = "tsinghua"
@@ -46,7 +46,7 @@ priority = "primary"
 
 [[tool.poetry.source]]
 name = "likianta"
-url = "http://likianta.pro:2131/"
+url = "http://47.102.108.149:2131/"
 priority = "supplemental"
 
 [build-system]
