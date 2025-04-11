@@ -173,13 +173,15 @@ def render_function_parameters(
         name = name.lstrip('-')  # FIXME: is this good?
         # name = pretty_cname(name)
         is_var_kwargs = arg['default'] is ...  # WORKAROUND
+        is_required = arg['default'] == ':required'  # WORKAROUND
         table.add_row(
-            ' ',
+            '*' if is_required else ' ',
             '-   ' if has_var_args or is_var_kwargs else '{:<4}'.format(i),
             name,
             short + '   ',
             arg['ctype'].name + '   ',
             arg['desc'],
+            '' if is_required else
             '   ' + 'default = {}'.format(val_2_cval(arg['default'])),
         )
     if func_info.args4:

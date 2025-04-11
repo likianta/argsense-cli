@@ -256,7 +256,7 @@ def parse_function(
 ) -> FuncInfo:
     spec = getfullargspec(func)
     annotations = Annotations(spec.annotations, fallback_type)
-    # print(':v', func.__name__, spec.annotations)
+    # print(':lv', func.__name__, spec)
     ''' ^
     example:
         def foo(a: str, b: int, c=123, *args, d: bool = False, **kwargs):
@@ -305,10 +305,29 @@ def parse_function(
         args2.append(('*' + spec.varargs, 'any'))
     
     if spec.kwonlyargs:
-        for name, default in spec.kwonlydefaults.items():
-            type_ = annotations.get_kwarg_type(name, default)
+        # --- a
+        # for name, default in spec.kwonlydefaults.items():
+        #     type_ = annotations.get_kwarg_type(name, default)
+        #     args3.append((name, type_, default))
+        # --- b
+        # for name in spec.kwonlyargs:
+        #     if spec.kwonlydefaults and name in spec.kwonlydefaults:
+        #         default = spec.kwonlydefaults[name]
+        #         type_ = annotations.get_kwarg_type(name, default)
+        #         args3.append((name, type_, default))
+        #     else:  # workaround
+        #         type_ = annotations.get_arg_type(name)
+        #         args0.append((name, type_))
+        # --- c
+        for name in spec.kwonlyargs:
+            if spec.kwonlydefaults and name in spec.kwonlydefaults:
+                default = spec.kwonlydefaults[name]
+                type_ = annotations.get_kwarg_type(name, default)
+            else:
+                default = ':required'
+                type_ = annotations.get_arg_type(name)
             args3.append((name, type_, default))
-    
+        
     if spec.varkw:
         args4.append(('**' + spec.varkw, 'any'))
     

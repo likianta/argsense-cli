@@ -1,2 +1,2 @@
-from .render2 import render_function_parameters
-from .render2 import render_functions
+from .render import render_function_parameters
+from .render import render_functions
