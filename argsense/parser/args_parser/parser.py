@@ -242,6 +242,44 @@ def _walking_through_argv(
             flag = 'OVER'
         elif flag in ('FUNC_NAME', 'IDLE'):
             flag = 'OVER'
+        elif flag == 'OPTION_VALUE':
+            # assume the author had modified "-h" definition and user didn't -
+            # know, when user tried to use "-h" in the tail of argv to find -
+            # out the help interface, an error would be raised since "-h" -
+            # doesn't point to ":help" definition.
+            # in this case, we don't want this error happens. instead we -
+            # restore "-h" definition to ":help" so that it guides user to the -
+            # help interface.
+            from ...config import ALLOW_HSHORT_TO_BE_REDEFINED
+            try:
+                assert (
+                    (
+                        # 1. assert author had modified "-h" definition.
+                        ALLOW_HSHORT_TO_BE_REDEFINED and
+                        front_matter['index']['-h'] != ':help'
+                    ) and
+                    (
+                        # 2. user must give "-h" in the end of argv.
+                        (
+                            mode == 'group' and
+                            len(argv.args) == 2 and
+                            argv.args[1] == '-h'
+                        ) or
+                        (
+                            mode == 'command' and
+                            len(argv.args) == 1 and
+                            argv.args[0] == '-h'
+                        )
+                    )
+                )
+            except AssertionError:
+                raise e.InsufficientArguments(
+                    -1, tuple(front_matter['args'].keys())[len(out['args']):]
+                )
+            # 3. cancel the incoming error, and redirect "-h" to ":help" -
+            # definition.
+            out['kwargs'][':help'] = True
+            flag = 'OVER'
     assert flag == 'OVER', flag
     
     # post check

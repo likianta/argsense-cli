@@ -23,7 +23,8 @@ class T:
 # -----------------------------------------------------------------------------
 # v1.0.0+
 
-# help interface
+ALLOW_HSHORT_TO_BE_REDEFINED = True
+#   related: /test/hshort_is_occupied_by_normal_param.py
 HIDE_UNSTATED_VARIABLE_KWARGS = True
 '''
     for example:

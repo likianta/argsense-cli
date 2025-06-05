@@ -242,12 +242,21 @@ class FuncInfo:
                     }
     
     def _register_cname(self, cname: str, for_name: str) -> None:
-        assert cname not in self.cname_2_name, (
-            'duplicate cname: "{}" (for "{}")! make sure you have not defined '
-            'parameters like `xxx`, `_xxx` or `xxx_` in the function.'
-            .format(cname, for_name)
-        )
-        self.cname_2_name[cname] = for_name
+        if cname in self.cname_2_name:
+            if (
+                cname == '-h' and
+                config.ALLOW_HSHORT_TO_BE_REDEFINED and
+                self.cname_2_name[cname] == ':help'
+            ):
+                self.cname_2_name[cname] = for_name
+            else:
+                raise Exception(
+                    'duplicate cname: "{}" (for "{}")! make sure you have not '
+                    'defined parameters like `xxx`, `_xxx` or `xxx_` in the '
+                    'same function.'.format(cname, for_name)
+                )
+        else:
+            self.cname_2_name[cname] = for_name
 
 
 def parse_function(
