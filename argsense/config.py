@@ -42,6 +42,7 @@ HIDE_UNSTATED_VARIABLE_KWARGS = True
     see also: "./renderer/rich/render.py : [def] render_function_parameters : -
     [code] 'if func_info.args4: ...'"
 '''
+POST_LOGO_IN_HELP_INTERFACE = True
 PROGRAM_NAME_STYLE = 'fixed'
 '''
     type: 'fixed' | 'system_dependent'

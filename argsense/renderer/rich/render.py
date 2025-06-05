@@ -46,8 +46,8 @@ def render_functions(argv: Argv, funcs: t.Iterable[FuncInfo]) -> None:
             title_align='right',
         )
     )
-    
-    _post_logo(color_seed='magenta')
+    if config.POST_LOGO_IN_HELP_INTERFACE:
+        _post_logo(color_seed='magenta')
 
 
 def render_function_parameters(
@@ -207,7 +207,8 @@ def render_function_parameters(
                 title_align='right',
             )
         )
-        _post_logo(color_seed='blue')
+        if config.POST_LOGO_IN_HELP_INTERFACE:
+            _post_logo(color_seed='blue')
 
 
 def _detect_program_name(argv: Argv) -> str:
