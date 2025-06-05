@@ -117,7 +117,7 @@ def _get_arg_entry(name: T.ParamName, info: dict) -> t.Iterable[psg.Element]:
     assert info['ctype'] not in (ParamType.FLAG, ParamType.NONE), \
         ('unexpected type', info)
     
-    if info['ctype'] == ParamType.BOOL:
+    if info['ctype'] == ParamType.FLAG:
         yield psg.Checkbox(name)
         if info['desc']:
             yield psg.Text(info['desc'], text_color='grey')
@@ -134,7 +134,7 @@ def _get_kwarg_entry(name: T.ParamName, info: dict) -> t.Iterable[psg.Element]:
     
     assert info['ctype'] not in (ParamType.DICT, ParamType.LIST), \
         ('unsupported type', info)
-    assert info['ctype'] not in (ParamType.BOOL, ParamType.NONE), \
+    assert info['ctype'] not in (ParamType.FLAG, ParamType.NONE), \
         ('unexpected type', info)
     
     if info['ctype'] == ParamType.FLAG:

@@ -2,7 +2,7 @@ from argsense import cli
 
 
 @cli
-def main(greet: bool = True) -> None:
+def main(greet: bool) -> None:
     """
     params:
         greet (-g):

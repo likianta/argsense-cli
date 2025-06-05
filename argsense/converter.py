@@ -101,12 +101,12 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
 def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
     """
     related:
-        from: [./parser/func_parser.py : def parse_function()]
-        to: [./argparse/parser.py : def parse_sys_argv()]
+        from: `./parser/func_parser.py : def parse_function()`
+        to: `./argparse/parser.py : def parse_sys_argv()`
     """
     return {
         'any'  : ParamType.ANY,
-        'bool' : ParamType.BOOL,
+        # 'bool' : ParamType.BOOL,
         'dict' : ParamType.DICT,
         'flag' : ParamType.FLAG,
         'float': ParamType.NUMBER,
@@ -143,7 +143,7 @@ def val_2_cval(value: t.Any, type_: ParamType = ParamType.ANY) -> str:
         if type_ in (ParamType.ANY, ParamType.NUMBER):
             assert isinstance(value, (int, float))
             return str(value)
-        elif type_ in (ParamType.BOOL,):
+        elif type_ in (ParamType.FLAG,):
             return ':true' if bool(value) else ':false'
         else:
             raise NotImplementedError(value, type_)
@@ -158,8 +158,8 @@ def cname_2_name(name: str) -> str:
 def ctype_2_type(t: T.ParamType2, v: t.Any = None) -> T.ParamType3:
     if t == ParamType.ANY:
         return str
-    elif t == ParamType.BOOL:
-        return bool
+    # elif t == ParamType.BOOL:
+    #     return bool
     elif t == ParamType.FLAG:
         return bool
     elif t == ParamType.NONE:
@@ -206,13 +206,12 @@ def cval_2_val(value: str, type_: ParamType) -> t.Any:
             return eval(value)
         else:
             return value
-    elif type_ == ParamType.BOOL:
-        assert value in (
-            ':true', ':false', 'true', 'false', 'TRUE', 'FALSE', '1', '0'
-        )
-        return True if value in (':true', 'true', 'TRUE', '1') else False
+    # elif type_ == ParamType.BOOL:
+    #     assert value in (
+    #         ':true', ':false', 'true', 'false', 'TRUE', 'FALSE', '1', '0'
+    #     )
+    #     return True if value in (':true', 'true', 'TRUE', '1') else False
     elif type_ == ParamType.FLAG:
-        # raise Exception('unreachable code', value, type_)
         assert value in (
             ':true', ':false', 'true', 'false', 'TRUE', 'FALSE', '1', '0'
         ), ('incorrect value for flag type', value, type_)

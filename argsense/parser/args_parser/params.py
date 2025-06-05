@@ -7,7 +7,7 @@ from . import exceptions as e
 
 class ParamType(Enum):
     ANY = auto()
-    BOOL = auto()
+    # BOOL = auto()  # this is totally replaced by `FLAG`.
     DICT = auto()
     FLAG = auto()
     LIST = auto()

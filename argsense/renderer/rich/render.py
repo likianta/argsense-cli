@@ -196,6 +196,7 @@ def render_function_parameters(
                 '[dim](this function may accept more keyword arguments as '
                 'implicit vars...)[/]',
             )
+    
     if table.rows:
         console.print(
             rich.panel.Panel(

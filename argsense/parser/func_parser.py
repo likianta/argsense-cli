@@ -352,7 +352,7 @@ class Annotations:
         self._type_2_str = {
             'any'    : 'any',
             'anystr' : 'str',
-            'bool'   : 'bool',
+            'bool'   : 'flag',
             'dict'   : 'dict',
             'float'  : 'float',
             'int'    : 'int',
@@ -423,8 +423,6 @@ class Annotations:
             out = self._normalize_type(self.annotations[name])
         else:
             out = self.deduce_type_by_value(value)
-        if out == 'bool':
-            out = 'flag'
         # noinspection PyTypeChecker
         return out
     
@@ -437,7 +435,7 @@ class Annotations:
     @staticmethod
     def deduce_type_by_value(default: t.Any) -> T.PlainParamType:
         dict_ = {
-            bool : 'bool',
+            bool : 'flag',
             dict : 'dict',
             float: 'float',
             int  : 'int',
