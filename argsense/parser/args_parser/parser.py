@@ -91,8 +91,8 @@ def _walking_through_argv(
             assert arg == arg.lower()
         except AssertionError:
             raise e.MixinCase(index)
-        if arg.startswith(('--not-', '--no-')):
-            option_name = re.sub(r'--not?-', '--', arg, 1)
+        if arg.startswith(('--not-', '--no-', '--!')):
+            option_name = re.sub(r'--(?:not?-|!)', '--', arg, 1)
             param_name = _get_option_name(option_name)
             param_type = params.get_and_pop_param(index, param_name)[1]
             try:
@@ -250,4 +250,4 @@ def _walking_through_argv(
             raise e.InsufficientArguments(
                 -1, tuple(front_matter['args'].keys())[len(out['args']):]
             )
-    return out
+    return t.cast(T.ParsedResult, out)
