@@ -1,7 +1,6 @@
 [project]
 name = "argsense"
-version = "1.0.0"
-homepage = "https://github.com/likianta/argsense-cli"
+version = "1.0.1a0"
 description = "New command line interface based on Rich library."
 readme = "README.md"
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
@@ -17,6 +16,9 @@ argsense = "argsense.__main__:cli"
 argsense-cli = "argsense.__main__:cli"
 argsense-gui = "argsense.__main__:gui"
 argsense-tui = "argsense.__main__:tui"
+
+[project.urls]
+homepage = "https://github.com/likianta/argsense-cli"
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -34,9 +36,10 @@ pysimplegui = { version = "^5.0.0", optional = true }
 [tool.poetry.group.dev.dependencies]
 lk-logger = { version = "^6.0.6a0", source = "likianta" }
 lk-utils = { version = "^3.3.0a12", source = "likianta" }
-pyapp-window = { version = "^2.2.0b2", source = "likianta" }
+# pyapp-window = { version = "^2.2.0b2", source = "likianta" }
 pyinstrument = "^5.0.0"
 streamlit = { version = "^1.45.0", python = "^3.12" }
+streamlit-canary = { version = "^0.1.0b5", source = "likianta" }
 
 [[tool.poetry.source]]
 name = "tsinghua"

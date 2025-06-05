@@ -2,6 +2,16 @@ from argsense import cli
 
 
 @cli
+def varkw(**kwargs):
+    """
+    related:
+        - /argsense/config.py : HIDE_UNSTATED_VARIABLE_KWARGS
+        - /argsense/renderer/rich/render.py : render_function_parameters()
+    """
+    print(kwargs)
+
+
+@cli
 def func1(aaa: bool = None, *, bbb: int):
     print(aaa, bbb)
 

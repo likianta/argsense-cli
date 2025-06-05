@@ -196,17 +196,17 @@ def render_function_parameters(
                 '[dim](this function may accept more keyword arguments as '
                 'implicit vars...)[/]',
             )
-    console.print(
-        rich.panel.Panel(
-            table,
-            border_style=color.blue,
-            padding=(0, 2),
-            title='PARAMETERS',
-            title_align='right',
+    if table.rows:
+        console.print(
+            rich.panel.Panel(
+                table,
+                border_style=color.blue,
+                padding=(0, 2),
+                title='PARAMETERS',
+                title_align='right',
+            )
         )
-    )
-    
-    _post_logo(color_seed='blue')
+        _post_logo(color_seed='blue')
 
 
 def _detect_program_name(argv: Argv) -> str:
