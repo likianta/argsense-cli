@@ -769,53 +769,53 @@ reference = "tsinghua"
 
 [[package]]
 name = "lk-logger"
-version = "6.0.6a0"
+version = "6.0.7a1"
 description = "Python print with source map and varnames."
 optional = false
 python-versions = ">=3.8,<4.0"
 groups = ["main", "dev"]
 files = [
-    {file = "lk_logger-6.0.6a0-py3-none-any.whl", hash = "sha256:5339f76bf30220f6075911db61f0756f856fa3c5dedf93ea27bdf1dcd35e0f4c"},
+    {file = "lk_logger-6.0.7a1-py3-none-any.whl", hash = "sha256:6ee223f5092cd80d679452e22dd54a6428504b4d851d92d664ae4ff552ceb3a5"},
 ]
 
 [package.dependencies]
-rich = ">=13.8,<14.0"
+rich = ">=13.9.0"
 
 [package.extras]
 ext = ["svg-ultralight (>=0.34.0,<0.35.0) ; python_version >= \"3.9\" and python_version < \"4.0\""]
 
 [package.source]
 type = "legacy"
-url = "http://47.102.108.149:2131"
+url = "http://localhost:2131"
 reference = "likianta"
 
 [[package]]
 name = "lk-utils"
-version = "3.3.0a12"
+version = "3.3.0a17"
 description = "LK Utils is a set of utility wrappers made for data processing."
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">=3.8"
 groups = ["dev"]
 files = [
-    {file = "lk_utils-3.3.0a12-py3-none-any.whl", hash = "sha256:73fb658160995b2503d1d23a928fc845ee405ec7334c581e96bf9c1cb83e7fea"},
+    {file = "lk_utils-3.3.0a17-py3-none-any.whl", hash = "sha256:99757ec3df5174bd3166dd00156d2170c41df5000b5c78f95f5d930872101f1a"},
 ]
 
 [package.dependencies]
-argsense = ">=0.7.2"
-lk-logger = ">=6.0.5,<7.0.0"
+argsense = ">=1.0.0,<2.0.0"
+lk-logger = ">=6.0.6,<7.0.0"
 psutil = ">=6.0.0"
 pyyaml = ">=6.0.0,<7.0.0"
-rich = ">=13.9.0,<14.0.0"
+rich = ">=13.9.0"
 typing-extensions = ">=4.0.0,<5.0.0"
 
 [package.extras]
-all = ["ipython (<9.0.0) ; python_version >= \"3.8\" and python_version < \"3.11\"", "ipython (>=9.0.0,<10.0.0) ; python_version >= \"3.11\" and python_version < \"4.0\"", "toml (>=0.10.0,<0.11.0) ; python_version < \"3.11\"", "xlrd (==1.2.0)", "xlsxwriter (>=3.2.0,<4.0.0)"]
-dbg = ["ipython (<9.0.0) ; python_version >= \"3.8\" and python_version < \"3.11\"", "ipython (>=9.0.0,<10.0.0) ; python_version >= \"3.11\" and python_version < \"4.0\""]
-exl = ["xlrd (==1.2.0)", "xlsxwriter (>=3.2.0,<4.0.0)"]
+all = ["ipython", "toml", "xlrd", "xlsxwriter"]
+dbg = ["ipython"]
+exl = ["xlrd", "xlsxwriter"]
 
 [package.source]
 type = "legacy"
-url = "http://47.102.108.149:2131"
+url = "http://localhost:2131"
 reference = "likianta"
 
 [[package]]
@@ -1704,7 +1704,7 @@ webui2 = {version = ">=2.5.4,<3.0.0", markers = "sys_platform != \"win32\""}
 
 [package.source]
 type = "legacy"
-url = "http://47.102.108.149:2131"
+url = "http://localhost:2131"
 reference = "likianta"
 
 [[package]]
@@ -2710,28 +2710,28 @@ reference = "tsinghua"
 
 [[package]]
 name = "streamlit-canary"
-version = "0.1.0b5"
+version = "0.1.0b14"
 description = "LK-flavored Streamlit enhancements."
 optional = false
 python-versions = ">=3.8,<4.0"
 groups = ["dev"]
 files = [
-    {file = "streamlit_canary-0.1.0b5-py3-none-any.whl", hash = "sha256:e221f2cdeb05f56edd4a5f6cbadaa72ceb9d3dd5559740f878c536ea977de8bc"},
+    {file = "streamlit_canary-0.1.0b14-py3-none-any.whl", hash = "sha256:80f2f0caa7ebdfa0500e34a0041bd07f347bed3d9df75aed6c7c462798d78e81"},
 ]
 
 [package.dependencies]
-argsense = ">=1.0.0a1,<2.0.0"
-lk-utils = ">=3.3.0a7,<4.0.0"
+argsense = ">=1.0.1b2,<2.0.0"
+lk-utils = ">=3.3.0a17,<4.0.0"
 psutil = ">=7.0.0,<8.0.0"
 pyapp-window = ">=2.2.0b4,<3.0.0"
 streamlit = [
     {version = ">=1.40.0,<2.0.0", markers = "python_version >= \"3.8\" and python_full_version != \"3.9.7\" and python_version < \"3.10\""},
-    {version = ">=1.44.0,<2.0.0", markers = "python_version >= \"3.10\" and python_version < \"4.0\""},
+    {version = ">=1.45.0,<2.0.0", markers = "python_version >= \"3.10\" and python_version < \"4.0\""},
 ]
 
 [package.source]
 type = "legacy"
-url = "http://47.102.108.149:2131"
+url = "http://localhost:2131"
 reference = "likianta"
 
 [[package]]
@@ -3454,4 +3454,4 @@ gui = ["pysimplegui"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.8"
-content-hash = "1567939d986f89a55e46d1109a7385f2892ec64d8f9b8c67bffbeb20471c3d84"
+content-hash = "93f1a0f8c7d2f40121e94f251cf4f760000c47efa88c9becebfe971da9eac5e3"
