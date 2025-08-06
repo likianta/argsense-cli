@@ -32,6 +32,7 @@ def args_2_cargs(*args, **kwargs) -> t.List[str]:
     for name, value in kwargs.items():
         out.append(name_2_cname(name, style='opt'))
         if isinstance(value, bool):
+            # noinspection PySimplifyBooleanCheck
             if value is False:
                 out[-1] = '--no-' + out[-1][2:]
         else:
@@ -39,7 +40,7 @@ def args_2_cargs(*args, **kwargs) -> t.List[str]:
     return out
 
 
-def name_2_cname(name: str, style: T.Style = None) -> str:
+def name_2_cname(name: str, style: t.Optional[T.Style] = None) -> str:
     """
     convert param name from python style to cli style.
     
@@ -98,7 +99,7 @@ def name_2_cname(name: str, style: T.Style = None) -> str:
         return name.replace('_', '-')
 
 
-def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
+def type_2_ctype(type_: T.ParamType1) -> T.ParamType2:
     """
     related:
         from: `./parser/func_parser.py : def parse_function()`
@@ -116,7 +117,7 @@ def type_2_ctype(t: T.ParamType1) -> T.ParamType2:
         'set'  : ParamType.LIST,
         'str'  : ParamType.TEXT,
         'tuple': ParamType.LIST,
-    }.get(t, ParamType.ANY)
+    }.get(type_, ParamType.ANY)
 
 
 def val_2_cval(value: t.Any, type_: ParamType = ParamType.ANY) -> str:
@@ -184,15 +185,18 @@ PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(
 )
 
 SPECIAL_ARGS = {
-    ':cwd'  : os.getcwd(),
-    ':empty': '',
-    ':f'    : False,
-    ':false': False,
-    ':h'    : True,
-    ':help' : True,
-    ':none' : None,
-    ':true' : True,
-    ':t'    : True,
+    ':cwd'        : os.getcwd(),
+    ':empty'      : '',
+    ':f'          : False,  # alias of ':false'
+    ':false'      : False,
+    ':h'          : True,  # alias of ':help'
+    ':help'       : True,
+    ':i'          : True,  # alias of ':interactive'
+    ':interactive': True,
+    ':loop'       : True,  # alias of ':interactive'
+    ':none'       : None,
+    ':t'          : True,  # alias of ':true'
+    ':true'       : True,
 }
 
 
@@ -213,9 +217,13 @@ def cval_2_val(value: str, type_: ParamType) -> t.Any:
     #     return True if value in (':true', 'true', 'TRUE', '1') else False
     elif type_ == ParamType.FLAG:
         assert value in (
-            ':true', ':false', 'true', 'false', 'TRUE', 'FALSE', '1', '0'
+            ':true', ':false',
+            'true', 'false',
+            '1', '0',
+            ':t', ':f',
+            'TRUE', 'FALSE',
         ), ('incorrect value for flag type', value, type_)
-        return True if value in (':true', 'true', 'TRUE', '1') else False
+        return value in (':true', 'true', '1', ':t', 'TRUE')
     elif type_ == ParamType.NONE:
         assert value in (':none', 'none', 'null', '')
         return None

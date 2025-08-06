@@ -28,8 +28,8 @@ class T:  # Typehint
     })
 
 
-def parse_argstring(argstring: str) -> t.List[str]:
-    return shlex.split(argstring)
+def parse_argstring(args: str) -> t.List[str]:
+    return shlex.split(args)
 
 
 def parse_argv(
@@ -164,6 +164,11 @@ def _walking_through_argv(
         if arg in (':h', ':help'):
             assert ':help' not in out['kwargs']
             out['kwargs'][':help'] = True
+        elif arg in (':i', ':interactive', ':loop'):
+            if mode == 'command' or out['command']:
+                out['kwargs'][':interactive'] = True
+            else:
+                raise e.FunctionIsRequired(index)
         else:
             implicit_name, param_type = params.get_and_pop_param(index)
             param_value = SPECIAL_ARGS[arg]

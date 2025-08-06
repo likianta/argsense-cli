@@ -4,8 +4,12 @@ import typing as t
 
 
 class ArgvParsingFailed(Exception):
-    def __init__(self, index: int):
+    def __init__(self, index: int) -> None:
         self.index = index
+
+
+class FunctionIsRequired(ArgvParsingFailed):
+    pass
 
 
 class InsufficientArguments(ArgvParsingFailed):

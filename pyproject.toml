@@ -1,12 +1,12 @@
 [project]
 name = "argsense"
-version = "1.0.1"
-description = "New command line interface based on Rich library."
-readme = "README.md"
+version = "1.1.0a0"
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
-requires-python = ">=3.8"
+description = "New command line interface based on Rich library."
 dynamic = ["dependencies"]
 license = "MIT"
+readme = "README.md"
+requires-python = ">=3.8"
 
 [project.optional-dependencies]
 gui = ["pysimplegui"]  # pip install argsense[gui]
@@ -38,9 +38,9 @@ pysimplegui = { version = "^5.0.0", optional = true }
 lk-logger = { version = "^6.0.7a1", source = "likianta" }
 lk-utils = { version = "^3.3.0a17", source = "likianta" }
 # pyapp-window = { version = "^2.2.0b2", source = "likianta" }
-pyinstrument = "^5.0.0"
-streamlit = { version = "^1.45.0", python = "^3.12" }
-streamlit-canary = { version = "^0.1.0b14", source = "likianta" }
+# pyinstrument = "^5.0.0"
+streamlit = { version = "^1.48.0", python = "^3.12" }
+streamlit-canary = { version = "^0.1.0", source = "likianta" }
 
 [[tool.poetry.source]]
 name = "tsinghua"

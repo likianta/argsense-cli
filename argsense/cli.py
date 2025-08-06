@@ -1,10 +1,12 @@
 import typing as t
+from textwrap import dedent
 
 from . import config
 from .parser import Argv
 from .parser import FuncInfo
 from .parser import ParamType
 from .parser import parse_argv
+from .parser import parse_argstring
 from .parser import parse_docstring
 from .parser import parse_function
 
@@ -124,6 +126,7 @@ class CommandLineInterface:
         argv: Argv,
         preset_func: t.Optional[T.Func] = None,
         transport_help: bool = False,
+        _interactive_verbose: bool = True,
     ) -> t.Optional[t.Any]:
         cli_help_form: T.CommandType
         # func_info: T.FuncInfo
@@ -132,6 +135,7 @@ class CommandLineInterface:
         single_func_entrance = bool(preset_func)
         cli_help_form = 'command' if preset_func else 'group'  # noqa
         
+        func: t.Optional[t.Callable]
         if preset_func:
             func = preset_func
         else:
@@ -209,8 +213,11 @@ class CommandLineInterface:
                     show_func_name_in_title=not single_func_entrance
                 )
             else:
+                is_interactive = result['kwargs'].pop(':interactive', False)
+                _args, _kwargs = result['args'].values(), result['kwargs']
                 try:
-                    return func(*result['args'].values(), **result['kwargs'])
+                    # noinspection PyCallingNonCallable
+                    out = func(*_args, **_kwargs)
                 except Exception as e:
                     if has_help and transport_help:
                         renderer.render_function_parameters(
@@ -218,8 +225,51 @@ class CommandLineInterface:
                             self.commands[id(func)],
                             show_func_name_in_title=not single_func_entrance
                         )
+                        return
                     else:
                         raise e
+                if is_interactive:
+                    flag = _interactive_verbose
+                    while True:
+                        if flag:
+                            print(dedent(
+                                '''
+                                argsense interactive mode:
+                                    1) input new args to rerun the function;
+                                    2) input "exit" to quit the loop;
+                                    3) press enter to rerun with original args.
+                                '''
+                            ).rstrip(), ':v1')
+                            flag = False
+                        # print('\\[argsense]', ':v', end=' ')
+                        cmd = input('[argsense] input command here: ')
+                        
+                        if cmd == 'exit':
+                            break
+                        elif cmd == '':
+                            try:
+                                # noinspection PyCallingNonCallable
+                                out = func(*_args, **_kwargs)
+                            except Exception as e:
+                                print(':e', e)
+                        else:
+                            try:
+                                new_args = parse_argstring(cmd)
+                            except Exception as e:
+                                print(':e', e)
+                                continue
+                            else:
+                                new_args.append(':interactive')
+                            return self.exec_argv(
+                                argv=Argv(
+                                    argv.launcher,
+                                    argv.target,
+                                    args=new_args,
+                                ),
+                                preset_func=func,
+                                _interactive_verbose=False,
+                            )
+                return out
         else:
             has_help, is_explicit = get_help_option()
             assert has_help
