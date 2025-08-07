@@ -164,9 +164,9 @@ def _walking_through_argv(
         if arg in (':h', ':help'):
             assert ':help' not in out['kwargs']
             out['kwargs'][':help'] = True
-        elif arg in (':i', ':interactive', ':loop'):
+        elif arg == ':loop':
             if mode == 'command' or out['command']:
-                out['kwargs'][':interactive'] = True
+                out['kwargs'][':loop'] = True
             else:
                 raise e.FunctionIsRequired(index)
         else:

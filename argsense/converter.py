@@ -191,9 +191,9 @@ SPECIAL_ARGS = {
     ':false'      : False,
     ':h'          : True,  # alias of ':help'
     ':help'       : True,
-    ':i'          : True,  # alias of ':interactive'
-    ':interactive': True,
-    ':loop'       : True,  # alias of ':interactive'
+    # ':i'          : True,  # alias of ':interactive'
+    # ':interactive': True,
+    ':loop'       : True,
     ':none'       : None,
     ':t'          : True,  # alias of ':true'
     ':true'       : True,

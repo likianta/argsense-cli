@@ -126,7 +126,7 @@ class CommandLineInterface:
         argv: Argv,
         preset_func: t.Optional[T.Func] = None,
         transport_help: bool = False,
-        _interactive_verbose: bool = True,
+        _loop_verbose: bool = True,
     ) -> t.Optional[t.Any]:
         cli_help_form: T.CommandType
         # func_info: T.FuncInfo
@@ -213,7 +213,7 @@ class CommandLineInterface:
                     show_func_name_in_title=not single_func_entrance
                 )
             else:
-                is_interactive = result['kwargs'].pop(':interactive', False)
+                enter_func_loop = result['kwargs'].pop(':loop', False)
                 _args, _kwargs = result['args'].values(), result['kwargs']
                 try:
                     # noinspection PyCallingNonCallable
@@ -228,13 +228,13 @@ class CommandLineInterface:
                         return
                     else:
                         raise e
-                if is_interactive:
-                    flag = _interactive_verbose
+                if enter_func_loop:
+                    flag = _loop_verbose
                     while True:
                         if flag:
                             print(dedent(
                                 '''
-                                argsense interactive mode:
+                                argsense func-loop mode:
                                     1) input new args to rerun the function;
                                     2) input empty (just press enter) to rerun -
                                     function with last-time args;
@@ -258,9 +258,7 @@ class CommandLineInterface:
                         else:
                             if cmd == '_':
                                 new_argv = Argv.from_sys_argv()
-                                # assert any(x in new_argv.args for x in (
-                                #   ':i', ':interactive', ':loop'
-                                # ))
+                                assert ':loop' in new_argv.args
                             else:
                                 try:
                                     new_args = parse_argstring(cmd)
@@ -268,14 +266,14 @@ class CommandLineInterface:
                                     print(':e', e)
                                     continue
                                 else:
-                                    new_args.append(':interactive')
+                                    new_args.append(':loop')
                                 new_argv = Argv(
                                     argv.launcher, argv.target, new_args
                                 )
                             return self.exec_argv(
                                 argv=new_argv,
                                 preset_func=func,
-                                _interactive_verbose=False,
+                                _loop_verbose=False,
                             )
                 return out
         else:
