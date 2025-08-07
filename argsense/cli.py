@@ -236,15 +236,18 @@ class CommandLineInterface:
                                 '''
                                 argsense interactive mode:
                                     1) input new args to rerun the function;
-                                    2) input "exit" to quit the loop;
-                                    3) press enter to rerun with original args.
+                                    2) input empty (just press enter) to rerun -
+                                    function with last-time args;
+                                    3) input underscore ("_") to rerun -
+                                    function with original args (i.e. read -
+                                    from `sys.argv`);
+                                    4) input "exit" or ":q" to quit the loop;
                                 '''
-                            ).rstrip(), ':v1')
+                            ).replace(' -\n    ', ' ').rstrip(), ':v1')
                             flag = False
-                        # print('\\[argsense]', ':v', end=' ')
-                        cmd = input('[argsense] input command here: ')
+                        cmd = input('[argsense] input command here: ').strip()
                         
-                        if cmd == 'exit':
+                        if cmd == 'exit' or cmd == ':q':
                             break
                         elif cmd == '':
                             try:
@@ -253,19 +256,24 @@ class CommandLineInterface:
                             except Exception as e:
                                 print(':e', e)
                         else:
-                            try:
-                                new_args = parse_argstring(cmd)
-                            except Exception as e:
-                                print(':e', e)
-                                continue
+                            if cmd == '_':
+                                new_argv = Argv.from_sys_argv()
+                                # assert any(x in new_argv.args for x in (
+                                #   ':i', ':interactive', ':loop'
+                                # ))
                             else:
-                                new_args.append(':interactive')
+                                try:
+                                    new_args = parse_argstring(cmd)
+                                except Exception as e:
+                                    print(':e', e)
+                                    continue
+                                else:
+                                    new_args.append(':interactive')
+                                new_argv = Argv(
+                                    argv.launcher, argv.target, new_args
+                                )
                             return self.exec_argv(
-                                argv=Argv(
-                                    argv.launcher,
-                                    argv.target,
-                                    args=new_args,
-                                ),
+                                argv=new_argv,
                                 preset_func=func,
                                 _interactive_verbose=False,
                             )
