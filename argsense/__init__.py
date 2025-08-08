@@ -18,6 +18,7 @@ if 1:
 from . import config
 from . import converter
 from . import parser
+from .api import run_func
 from .cli import CommandLineInterface
 from .cli import cli
 from .converter import args_2_cargs
