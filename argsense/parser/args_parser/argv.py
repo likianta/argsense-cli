@@ -131,4 +131,4 @@ def report(err_idx: int, err_msg: str, err_type: str = None) -> None:
         )
     )
     
-    exit(1)
+    sys.exit(1)
