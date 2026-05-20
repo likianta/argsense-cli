@@ -1,15 +1,31 @@
 [project]
 name = "argsense"
-version = "1.1.1"
-authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
+version = "1.2.0a4"
 description = "New command line interface based on Rich library."
-dynamic = ["dependencies"]
+authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.8"
+dependencies = [
+    # "lk-logger>=6.0.7",
+    "neoprint>=0.1.0a14",
+    "rich>=14.0.0",
+]
 
-[project.urls]
-homepage = "https://github.com/likianta/argsense-cli"
+[build-system]
+requires = ["hatchling>=1.29.0"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    # "lk-utils>=3.6.0b10",
+    "pyapp-window>=2.2.2",
+    "streamlit>=1.56.0; python_version >= '3.12'",
+    "streamlit-canary>=0.3.0a15; python_version >= '3.12'",
+]
+
+# [project.optional-dependencies]
+# TODO: GUI
 
 [project.scripts]
 argsense = "argsense.__main__:cli"
@@ -17,46 +33,44 @@ argsense-cli = "argsense.__main__:cli"
 argsense-gui = "argsense.__main__:gui"
 argsense-tui = "argsense.__main__:tui"
 
-[tool.poetry.dependencies]
-python = "^3.8"
-lk-logger = "^6.0.7"
-rich = "^14.0.0"
+[project.urls]
+homepage = "https://github.com/likianta/argsense-cli"
 
-# --- TODO: GUI
-# pysimplegui = { version = "^5.0.0", optional = true }
-#   freesimplegui = "*"
-#   pyapp-window = "*"
-#   streamlit = "*"
-#   textual = "*"
-#   trogon = "*"
+[tool.hatch.build.targets.wheel]
+packages = ["argsense"]
 
-# [project.optional-dependencies]
-# gui = ["pysimplegui"]  # pip install argsense[gui]
+[tool.ruff]
+line-length = 80
 
-[tool.poetry.group.dev.dependencies]
-lk-logger = { version = ">=6.0.7,<6.1.0", source = "likianta" }
-lk-utils = { version = "^3.5.2", source = "likianta" }
-pyapp-window = { version = "^2.2.1a6", source = "likianta" }
-# pyinstrument = "^5.0.0"
-streamlit = { version = "^1.56.0", python = "^3.12" }
-streamlit-canary = { version = "^0.2.1", source = "likianta", python = "^3.12" }
+[tool.ruff.format]
+quote-style = "single"
 
-numpy = { version = "^2.4.4", python = "^3.12" }  # <- streamlit, python 3.14
-pandas = { version = "^3.0.2", python = "^3.12" }  # <- streamlit, python 3.14
-pillow = { version = "^12.2.0", python = "^3.12" }  # <- streamlit, python 3.14
-pyarrow = { version = "^23.0.1", python = "^3.12" }  # <- streamlit, python 3.14
-rpds-py = { version = "^0.30.0", python = "^3.12" }  # <- streamlit, python 3.14
+[tool.ruff.lint.isort]
+force-single-line = true
+no-sections = true
 
-[[tool.poetry.source]]
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
+
+# [tool.ty.rules]
+# invalid-type-form = "ignore"
+# unresolved-attribute = "ignore"
+
+[tool.uv]
+prerelease = "allow"
+
+[[tool.uv.index]]
 name = "tsinghua"
 url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
-priority = "primary"
+default = true
 
-[[tool.poetry.source]]
+[[tool.uv.index]]
 name = "likianta"
 url = "http://localhost:2191/"
-priority = "supplemental"
+explicit = true
 
-[build-system]
-requires = ["poetry"]
-build-backend = "poetry.masonry.api"
+[tool.uv.sources]
+# lk-logger = { index = "likianta" }
+lk-utils = { index = "likianta" }
+neoprint = { index = "likianta" }
+streamlit-canary = { index = "likianta" }

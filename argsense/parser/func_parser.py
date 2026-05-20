@@ -16,16 +16,17 @@ class T:
         'any', 'bool', 'dict', 'flag', 'float', 'int',
         'list', 'none', 'set', 'str', 'tuple',
     ]
-    
+
     ArgsTypeA = t.Dict[
-        ParamName, t.TypedDict('ArgsInfo', {
+        ParamName, t.TypedDict('ArgsInfo', {  # type: ignore
             'cname': str,
             'ctype': ParamType,
             'desc' : str,
         })
     ]
     ArgsTypeB = t.Dict[
-        ParamName, t.TypedDict('KwargsInfo', {
+        ParamName,
+        t.TypedDict('KwargsInfo', {  # type: ignore
             'cname'  : str,
             'ctype'  : ParamType,
             'desc'   : str,
