@@ -1,31 +1,28 @@
+import neoprint as np
 import typing as t
 from os.path import normpath
 from sys import platform
-
 from ...parser.args_parser import ParamType
 from ...parser.func_parser import FuncInfo
 from ...parser.func_parser import T as T0
 
+# fmt: off
 try:
-    import PySimpleGUI as psg  # noqa
+    import PySimpleGUI as psg  # type: ignore
 except (ImportError, ModuleNotFoundError):
-    
     class FakeTyping:
-        
         def __bool__(self) -> bool:
             return False
-        
         def __getattr__(self, k) -> t.Any:
             return self
-            
     psg = FakeTyping()
-    
 else:
     psg.theme('SandyBeach')
     psg.set_options(
         icon=open(normpath(f'{__file__}/../launcher.png'), 'rb').read(),
         font=('Helvetica', 13) if platform == 'darwin' else None,
     )
+# fmt: on
 
 
 class T:
@@ -55,7 +52,7 @@ def run(funcs_info: T.FuncsInfo) -> t.Any:
     win = psg.Window('Argsense GUI', layout)
     while True:
         evt, val = win.read()
-        print(evt, val, ':lv')
+        np.show(evt, val, ':lv')
         if evt in (psg.WIN_CLOSED, 'Exit', None):
             break
     win.close()

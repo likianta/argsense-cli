@@ -198,7 +198,6 @@ def _walking_through_argv(
     # -------------------------------------------------------------------------
     
     for index, arg in enumerate(argv.args, argv.argx):
-        # print(':v', index, arg)
         if flag == 'INIT':
             if mode == 'group':
                 if arg.startswith((':', '-')):

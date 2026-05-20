@@ -1,6 +1,6 @@
+import neoprint as np
 import typing as t
 from textwrap import dedent
-
 from . import config
 from .parser import Argv
 from .parser import FuncInfo
@@ -53,7 +53,7 @@ class CommandLineInterface:
     def add_cmd(
         self,
         func: T.Func,
-        name: str = None,
+        name: str = '',
         transfer_help: bool = False,
     ) -> None:
         if name:
@@ -68,7 +68,7 @@ class CommandLineInterface:
             (new := func) is not (old := self._cname_2_func[cmd_name])
         ):
             if config.WARN_IF_DUPLICATE_COMMANDS_OVERRIDDEN:
-                print(
+                np.show(
                     ':v6pr',
                     f'duplicate command name: {cmd_name}',
                     f'the recorded function is: {old}',
@@ -175,8 +175,6 @@ class CommandLineInterface:
             if func:
                 func_info = self.commands[id(func)]  # noqa
         
-        # print(result, func, ':vl')
-        
         def get_help_option(
             consider_transport_action: bool = False
         ) -> t.Tuple[bool, bool]:
@@ -232,7 +230,7 @@ class CommandLineInterface:
                     flag = _loop_verbose
                     while True:
                         if flag:
-                            print(dedent(
+                            np.show(dedent(
                                 '''
                                 argsense func-loop mode:
                                     1) input new args to rerun the function;
@@ -254,7 +252,7 @@ class CommandLineInterface:
                                 # noinspection PyCallingNonCallable
                                 out = func(*_args, **_kwargs)
                             except Exception as e:
-                                print(':e', e)
+                                np.show(':e', e)
                         else:
                             if cmd == '_':
                                 new_argv = Argv.from_sys_argv()
@@ -263,7 +261,7 @@ class CommandLineInterface:
                                 try:
                                     new_args = parse_argstring(cmd)
                                 except Exception as e:
-                                    print(':e', e)
+                                    np.show(':e', e)
                                     continue
                                 else:
                                     new_args.append(':loop')

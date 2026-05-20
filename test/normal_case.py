@@ -1,14 +1,15 @@
 from argsense import cli
+from neoprint import print
 
 
-@cli.cmd()
-def func_0xa24c(aaa, bbb='', ccc=True):
-    print(aaa, bbb, ccc)
+@cli
+def foo(aaa: str, bbb: str = '', ccc: bool = True) -> None:
+    print(aaa, bbb, ccc, ':nv2')
 
 
 if __name__ == '__main__':
-    # pox test/normal_case.py -h
-    # pox test/normal_case.py func_0xa24c -h
-    # pox test/normal_case.py func_0xa24c alpha beta :false
-    # pox test/normal_case.py func_0xa24c alpha beta --not-ccc
+    # python test/normal_case.py -h
+    # python test/normal_case.py foo -h
+    # python test/normal_case.py foo alpha beta :false
+    # python test/normal_case.py foo alpha beta --not-ccc
     cli.run()

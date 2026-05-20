@@ -86,7 +86,6 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
     def add_param(line: str) -> None:
         nonlocal temp_str, temp_dict
         
-        # print(line, ':v')
         m = re.match(r' {4}(\*?)(\w+)(?: \((-\w\d*)\))?:(?: (.*))?', line)
         #                  ~~~~1~~~~2      ~~~~~~~3         ~~~4
         has_asterisk = bool(m.group(1))
@@ -297,7 +296,6 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
             else:
                 accumulate_lines(line)
     
-    # print(flag, ':v1')
     if flag in ('TOP_DESC', 'STANDALONE_DESC'):
         finalize_desc()
     elif flag in ('PARAM_DESC', 'EXTRA_PARAM_DESC'):

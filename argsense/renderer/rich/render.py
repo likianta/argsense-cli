@@ -1,15 +1,14 @@
 import math
+import neoprint as np
 import os
-import typing as t
-from random import randint
-
 import rich.box
 import rich.padding
 import rich.panel
 import rich.table
 import rich.text
+import typing as t
+from random import randint
 from rich import get_console
-
 from .style import color
 from ... import config
 from ...converter import val_2_cval
@@ -283,7 +282,7 @@ def _roll_color_pair() -> t.Tuple[int, int]:
     end = int('{:02x}{:02x}{:02x}'.format(
         randint(0, 127), randint(0, 127), randint(0, 127)
     ), 16)
-    print(
+    np.show(
         ':r',
         '[#{:06x}]#{:06x}[/] -> [#{:06x}]#{:06x}[/]'
         .format(start, start, end, end)
@@ -293,7 +292,7 @@ def _roll_color_pair() -> t.Tuple[int, int]:
 
 def _simple_gradient(text: str, colors: t.Tuple[int, int]) -> rich.text.Text:
     color1, color2 = colors
-    # print('{:06X}, {:06X}'.format(color1, color2), ':pv')
+    # np.show('{:06X}, {:06X}'.format(color1, color2), ':pv')
     text = rich.text.Text(text, style='bold')
     r1, g1, b1 = (color1 >> 16) & 0xFF, (color1 >> 8) & 0xFF, color1 & 0xFF
     r2, g2, b2 = (color2 >> 16) & 0xFF, (color2 >> 8) & 0xFF, color2 & 0xFF

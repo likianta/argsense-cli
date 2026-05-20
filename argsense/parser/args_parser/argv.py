@@ -1,14 +1,14 @@
+import neoprint as np
 import os
+import rich
+import rich.panel
 import sys
 import typing as t
 from textwrap import dedent
 
-import rich
-import rich.panel
-
 _DEBUG = os.getenv('ARGSENSE_DEBUG') == '1'
 if _DEBUG:
-    print(sys.orig_argv, sys.argv, ':lv')
+    np.show(sys.orig_argv, sys.argv, ':lv')  # type: ignore
 
 
 class T:
@@ -51,7 +51,7 @@ class Argv:
         """
         argv = tuple(sys.argv)
         if _DEBUG:
-            print(argv, ':plv')
+            np.show(argv, ':plv')
         if argv[0] == '-m':
             return Argv((sys.executable, '-m'), (argv[1],), argv[2:])
         elif argv[0].endswith(('\\__main__.py', '/__main__.py')):
@@ -88,7 +88,7 @@ class Argv:
             yield i, x, 1
 
 
-def report(err_idx: int, err_msg: str, err_type: str = None) -> None:
+def report(err_idx: int, err_msg: str, err_type: str = '') -> None:
     """
     accurately report which element is parsing failed.
     
@@ -125,7 +125,7 @@ def report(err_idx: int, err_msg: str, err_type: str = None) -> None:
             ),
             border_style='red',
             title='\\[argsense{}] argparsing failed'.format(
-                f'.{err_type}' if err_type else ''
+                err_type and f'.{err_type}'
             ),
             title_align='left',
         )

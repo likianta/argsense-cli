@@ -11,13 +11,11 @@ d88P     888 888    "Y899888i  "Y8888P"   "Y8888  888  888  88888P'  "Y8888
                    Y8b    d8P
                     "Y8888P"
 """
-if 1:
-    import lk_logger
-    lk_logger.setup(quiet=True)
 
 from . import config
 from . import converter
 from . import parser
+from . import regular_types as argtype
 from .api import run_func
 from .cli import CommandLineInterface
 from .cli import cli
@@ -29,4 +27,4 @@ from .parser import parse_argv
 from .parser import parse_docstring
 from .parser import parse_function
 
-__version__ = '1.1.1'
+__version__ = '1.2.0'

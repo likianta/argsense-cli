@@ -1,14 +1,14 @@
 [project]
 name = "argsense"
-version = "1.2.0a4"
+version = "1.2.0a5"
 description = "New command line interface based on Rich library."
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     # "lk-logger>=6.0.7",
-    "neoprint>=0.1.0a14",
+    "neoprint>=0.1.0a28",
     "rich>=14.0.0",
 ]
 

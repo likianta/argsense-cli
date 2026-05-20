@@ -108,7 +108,6 @@ class FuncInfo:
     }
     
     def __init__(self, info: T.RawInfo) -> None:
-        # print(info, ':lv')
         from ..converter import name_2_cname
         from ..converter import type_2_ctype
         
@@ -266,7 +265,6 @@ def parse_function(
 ) -> FuncInfo:
     spec = getfullargspec(func)
     annotations = Annotations(spec.annotations, fallback_type)
-    # print(':lv', func.__name__, spec)
     ''' ^
     example:
         def foo(a: str, b: int, c=123, *args, d: bool = False, **kwargs):
@@ -417,7 +415,6 @@ class Annotations:
             out = out[8:-2]  # "<class 'list'>" -> "list"
         if '[' in out:
             out = out.split('[', 1)[0]
-        # print(':v', type_, out)
         if out in self._type_2_str:
             return self._type_2_str[out]
         return 'any'
