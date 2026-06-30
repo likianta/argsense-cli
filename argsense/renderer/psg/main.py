@@ -52,7 +52,7 @@ def run(funcs_info: T.FuncsInfo) -> t.Any:
     win = psg.Window('Argsense GUI', layout)
     while True:
         evt, val = win.read()
-        np.show(evt, val, ':lv')
+        np.show(evt, val, ':nlv')
         if evt in (psg.WIN_CLOSED, 'Exit', None):
             break
     win.close()

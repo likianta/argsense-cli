@@ -8,18 +8,14 @@ screenshots:
 import shlex
 import sys
 
-import lk_logger
 from lk_utils import run_cmd_args
-from lk_utils.filesniff import relpath
+from neoprint import print
 
 from argsense import cli
 
-lk_logger.setup(quiet=True, show_varnames=True)
 
-
-@cli.cmd()
+@cli
 def test() -> None:
-    this_file = relpath(__file__)
     for args in (
         # typo
         'verison',
@@ -46,14 +42,14 @@ def test() -> None:
     ):
         print(':di', args)
         run_cmd_args(
-            sys.executable, this_file, *shlex.split(args),
+            sys.executable, __file__, *shlex.split(args),
             force_term_color=True,
             ignore_error=True,
             verbose=True,
         )
 
 
-@cli.cmd()
+@cli
 def version(add_v_prefix=False):
     from argsense import __version__
     if add_v_prefix:
@@ -62,16 +58,16 @@ def version(add_v_prefix=False):
         print(__version__)
 
 
-@cli.cmd()
+@cli
 def login(username: str, password: str, remember_me=False):
     print('login', username, password, remember_me)
 
 
-@cli.cmd()
+@cli
 def auto_type_conversion(a: int, b: str, c):
     print(a, b, c)
 
 
 if __name__ == '__main__':
-    # pox test/errors.py test
+    # python test/error_checking.py test
     cli.run()

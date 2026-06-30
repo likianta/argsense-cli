@@ -1,8 +1,3 @@
-import lk_logger
-
-lk_logger.setup(quiet=True, show_varnames=True)
-
-
 def func1(aaa, bbb=None, *ccc, ddd=None, **eee) -> None:
     print(aaa, bbb, ccc, ddd, eee)
 
@@ -12,11 +7,14 @@ def _func2():
 
 
 print(':d')
-print(':lv2', {
-    '__file__': __file__,
-    '__name__': __name__,
-    '__cli__': globals().get('__cli__'),
-})
+print(
+    ':lv2',
+    {
+        '__file__': __file__,
+        '__name__': __name__,
+        '__cli__': globals().get('__cli__'),
+    },
+)
 
 # pox -m argsense -h
 # pox -m argsense test/non_intrusive.py -h

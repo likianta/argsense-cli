@@ -1,18 +1,20 @@
 import sys
-from argsense import cli
+
 from lk_utils import run_cmd_args
+from neoprint import print
+
+from argsense import cli
 
 
-@cli.cmd()
+@cli
 def main() -> None:
     def run(*args) -> None:
         print(':dp', args)
         run_cmd_args(
-            sys.executable, __file__, *args,
-            verbose=True, force_term_color=True
+            sys.executable, __file__, *args, verbose=True, force_term_color=True
         )
-    
-    run()
+
+    # run()
     run('-h')
     run('case1')
     run('case1', '-h')
@@ -20,12 +22,12 @@ def main() -> None:
     run('case2', '-h')
 
 
-@cli.cmd()
+@cli
 def case1() -> None:
     print('hello world')
 
 
-@cli.cmd()
+@cli
 def case2() -> None:
     """
     no param, but has desc.
@@ -34,5 +36,5 @@ def case2() -> None:
 
 
 if __name__ == '__main__':
-    # pox test/func_without_param.py main
+    # python test/func_without_param.py main
     cli.run()

@@ -1,7 +1,9 @@
-import neoprint as np
 import os
 import sys
 from textwrap import dedent
+
+import neoprint as np
+
 from .cli import CommandLineInterface
 from .parser import Argv
 
@@ -18,22 +20,20 @@ def cli() -> None:
             `*args` and `**kwargs` will be passed to this function.
     """
     if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1] == '-h'):
-        np.show(
-            np.Markdown(
-                """
-                ## Argsense CLI Usage
+        np.markdown(
+            """
+            ## Argsense CLI Usage
 
-                ```bash
-                {} <target> ...
-                ```
+            ```sh
+            {} <target> ...
+            ```
 
-                The `<target>` can be a ".py" file path, or a directory that
-                contains "__main__.py".
-                """.format(
-                    'python -m argsense'
-                    if sys.argv[0].endswith('__main__.py')
-                    else os.path.basename(sys.argv[0]).replace('.exe', '')
-                )
+            The `<target>` can be a ".py" file path, or a directory that 
+            contains "__main__.py".
+            """.format(
+                'python -m argsense'
+                if sys.argv[0].endswith('__main__.py')
+                else os.path.basename(sys.argv[0]).replace('.exe', '')
             )
         )
     else:
@@ -81,11 +81,7 @@ def _run() -> None:
     with open(sys.argv[0], 'r') as f:
         code = f.read()
     exec(
-        code,
-        {
-            '__name__': '__main__',
-            '__file__': os.path.abspath(sys.argv[0]),
-        },
+        code, {'__name__': '__main__', '__file__': os.path.abspath(sys.argv[0])}
     )
 
 
@@ -121,21 +117,13 @@ def _execfile(target: str, *c_args: str) -> None:
 
         subcli.exec_argv(
             argv=Argv(
-                launcher=('argsense', 'run'),
-                target=(target,),
-                args=c_args,
+                launcher=('argsense', 'run'), target=(target,), args=c_args
             )
         )
 
 
 if __name__ == '__main__':
-    # pox -m argsense -h
-    # pox -m argsense <target>
-    # por argsense <target>
-    # por argsense-cli <target>
-    # por argsense-gui <target>
-    # por argsense-tui <target>
-
+    # python -m argsense -h
+    # python -m argsense <target>
     # _cli.run(transport_help=True)
-
     cli()

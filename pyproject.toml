@@ -1,27 +1,26 @@
 [project]
 name = "argsense"
-version = "1.2.0a5"
+version = "1.1.2"
 description = "New command line interface based on Rich library."
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    # "lk-logger>=6.0.7",
-    "neoprint>=0.1.0a28",
+    "neoprint>=0.1.4",
     "rich>=14.0.0",
 ]
 
 [build-system]
-requires = ["hatchling>=1.29.0"]
 build-backend = "hatchling.build"
+requires = ["hatchling>=1.29.0"]
 
 [dependency-groups]
 dev = [
-    # "lk-utils>=3.6.0b10",
-    "pyapp-window>=2.2.2",
-    "streamlit>=1.56.0; python_version >= '3.12'",
-    "streamlit-canary>=0.3.0a15; python_version >= '3.12'",
+    # "lk-utils>=3.6.0b21",
+    # "pyapp-window>=2.2.3a0",
+    "streamlit>=1.58.0; python_version >= '3.12'",
+    # "streamlit-canary>=0.3.0b4; python_version >= '3.12'",
 ]
 
 # [project.optional-dependencies]
@@ -44,10 +43,11 @@ line-length = 80
 
 [tool.ruff.format]
 quote-style = "single"
+skip-magic-trailing-comma = true
 
 [tool.ruff.lint.isort]
 force-single-line = true
-no-sections = true
+relative-imports-order = "closest-to-furthest"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
@@ -67,10 +67,10 @@ default = true
 [[tool.uv.index]]
 name = "likianta"
 url = "http://localhost:2191/"
-explicit = true
+# explicit = true
 
 [tool.uv.sources]
-# lk-logger = { index = "likianta" }
 lk-utils = { index = "likianta" }
 neoprint = { index = "likianta" }
+pyapp-window = { index = "likianta" }
 streamlit-canary = { index = "likianta" }
