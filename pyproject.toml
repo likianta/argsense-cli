@@ -1,13 +1,13 @@
 [project]
 name = "argsense"
-version = "1.1.2"
+version = "1.1.3a1"
 description = "New command line interface based on Rich library."
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "neoprint>=0.1.4",
+    "neoprint>=0.1.12b4",
     "rich>=14.0.0",
 ]
 
@@ -17,10 +17,11 @@ requires = ["hatchling>=1.29.0"]
 
 [dependency-groups]
 dev = [
-    # "lk-utils>=3.6.0b21",
-    # "pyapp-window>=2.2.3a0",
-    "streamlit>=1.58.0; python_version >= '3.12'",
-    # "streamlit-canary>=0.3.0b4; python_version >= '3.12'",
+    "faker>=40.39.0; python_version >= '3.10'",
+    # "lk-utils>=3.8.1",
+    # "pyapp-window>=2.2.4",
+    # "streamlit>=1.64.0; python_version >= '3.12'",
+    # "streamlit-canary>=0.4.0a56; python_version >= '3.12'",
 ]
 
 # [project.optional-dependencies]
@@ -52,10 +53,6 @@ relative-imports-order = "closest-to-furthest"
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
 
-# [tool.ty.rules]
-# invalid-type-form = "ignore"
-# unresolved-attribute = "ignore"
-
 [tool.uv]
 prerelease = "allow"
 
@@ -66,11 +63,11 @@ default = true
 
 [[tool.uv.index]]
 name = "likianta"
-url = "http://localhost:2191/"
-# explicit = true
+url = "http://localhost:2131/"
+explicit = true
 
 [tool.uv.sources]
-lk-utils = { index = "likianta" }
+# lk-utils = { index = "likianta" }
 neoprint = { index = "likianta" }
-pyapp-window = { index = "likianta" }
+# pyapp-window = { index = "likianta" }
 streamlit-canary = { index = "likianta" }
