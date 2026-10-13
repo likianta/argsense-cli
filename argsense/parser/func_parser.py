@@ -198,6 +198,13 @@ class FuncInfo:
     def has_var_kwargs(self) -> bool:
         return bool(self.args4)
     
+    def get_param(self, name: str) -> t.Optional[dict]:
+        """ get a parameter's info dict by its python-style name. """
+        for d in (self.args0, self.args1, self.args2, self.args3, self.args4):
+            if name in d:
+                return d[name]
+        return None
+    
     def fill_docs_info(self, info: T.DocsInfo) -> None:
         self.desc = info['desc']
         

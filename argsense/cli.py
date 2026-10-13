@@ -1,3 +1,4 @@
+import re
 import typing as t
 from textwrap import dedent
 
@@ -25,6 +26,12 @@ class T:
     FuncInfo = FuncInfo
 
     CommandsCollect = t.Dict[_FunctionId, FuncInfo]
+
+
+# matches a docstring that reuses another command's parameter description.
+# for example: "see `@foo:name`" (case-insensitive on the leading letter,
+# with an optional trailing period after the closing backtick).
+_ARGDOC_REF_PATTERN = re.compile(r'[Ss]ee\s+`@(\w+):(\w+)`\.?')
 
 
 class CommandLineInterface:
@@ -88,6 +95,77 @@ class CommandLineInterface:
         func_info.fill_docs_info(docs_info)
 
         self.commands[id(func)] = func_info
+
+    # -------------------------------------------------------------------------
+    # doc references
+
+    def resolve_doc_references(self) -> None:
+        """
+        Resolve the parameter (and function) descriptions that reference another
+        command's documentation, so that docstrings can be reused across
+        commands.
+
+        the reference is written as `see `@<cmd>:<param>`` and will be replaced
+        by the target parameter's description. for example:
+            @cli
+            def foo(name: str):
+                '''
+                params:
+                    name: the leader's name.
+                '''
+
+            @cli
+            def bar(name: str):
+                '''
+                params:
+                    name: see `@foo:name`
+                '''
+
+        after resolution, `bar`'s `name` description becomes "the leader's
+        name.".
+
+        note:
+            - references are resolved lazily and only once per command, so the
+              registration order of commands does not matter.
+            - unresolved references (e.g. a non-existent command or parameter)
+              are left as-is.
+        """
+        lookup = {fi.name: fi for fi in self.commands.values()}
+        resolved: t.Set[int] = set()
+
+        def resolve_text(text: str, stack: t.Set[int]) -> str:
+            def replace(m: 're.Match[str]') -> str:
+                target = lookup.get(m.group(1))
+                if target is None:
+                    return m.group(0)
+                resolve_func(target, stack)
+                param = target.get_param(m.group(2))
+                if param is None:
+                    return m.group(0)
+                return param['desc']
+            return _ARGDOC_REF_PATTERN.sub(replace, text)
+
+        def resolve_func(func_info: T.FuncInfo, stack: t.Set[int]) -> None:
+            key = id(func_info)
+            if key in resolved or key in stack:  # avoid cycle and rework
+                return
+            stack.add(key)
+
+            if _ARGDOC_REF_PATTERN.search(func_info.desc):
+                func_info.desc = resolve_text(func_info.desc, stack)
+            for args_info in (
+                func_info.args0, func_info.args1,
+                func_info.args2, func_info.args3, func_info.args4,
+            ):
+                for param in args_info.values():
+                    if _ARGDOC_REF_PATTERN.search(param['desc']):
+                        param['desc'] = resolve_text(param['desc'], stack)
+
+            stack.discard(key)
+            resolved.add(key)
+
+        for func_info in self.commands.values():
+            resolve_func(func_info, set())
 
     # -------------------------------------------------------------------------
     # decorators
@@ -178,6 +256,8 @@ class CommandLineInterface:
         transport_help: bool = False,
         _loop_verbose: bool = True,
     ) -> t.Optional[t.Any]:
+        self.resolve_doc_references()
+
         cli_help_form: T.CommandType
         # func_info: T.FuncInfo
         func_info: t.Optional[T.FuncInfo]

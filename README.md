@@ -58,8 +58,6 @@ ArgSense supports Python 3.9 and above:
 pip install argsense
 ```
 
-The latest version is 1.2+.
-
 ## Quick Start
 
 > Note: some code examples use randomly generated words that have no actual meaning. They are only there to help you understand the overall code structure.
