@@ -15,7 +15,7 @@ d88P     888 888    "Y899888i  "Y8888P"   "Y8888  888  888  88888P'  "Y8888
 from . import config
 from . import converter
 from . import parser
-from . import regular_types as argtype
+from . import types as argtype
 from .api import run_func
 from .cli import CommandLineInterface
 from .cli import cli
@@ -27,4 +27,4 @@ from .parser import parse_argv
 from .parser import parse_docstring
 from .parser import parse_function
 
-__version__ = '1.1.2'
+__version__ = '1.2.0'

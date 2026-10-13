@@ -36,9 +36,10 @@ def parse_argv(
     argv: Argv,
     mode: t.Literal['command', 'group'],
     front_matter: T.ParamsInfo,
+    implicit_help: bool = True,
 ) -> t.Optional[T.ParsedResult]:
     try:
-        return _walking_through_argv(argv, mode, front_matter)
+        return _walking_through_argv(argv, mode, front_matter, implicit_help)
     except e.ArgvParsingFailed as err:
         if os.getenv('ARGSENSE_DEBUG') == '1':
             raise err
@@ -49,7 +50,8 @@ def parse_argv(
 def _walking_through_argv(
     argv: Argv,
     mode: t.Literal['command', 'group'],
-    front_matter: T.ParamsInfo
+    front_matter: T.ParamsInfo,
+    implicit_help: bool = True,
 ) -> T.ParsedResult:
     from ...converter import SPECIAL_ARGS, cval_2_val
     
@@ -241,7 +243,7 @@ def _walking_through_argv(
             break
     else:
         if flag == 'INIT':
-            if bool(params):
+            if bool(params) and implicit_help:
                 feed_implicit_help()
             flag = 'OVER'
         elif flag in ('FUNC_NAME', 'IDLE'):

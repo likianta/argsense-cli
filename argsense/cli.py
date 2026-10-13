@@ -118,6 +118,59 @@ class CommandLineInterface:
             transport_help=transport_help,
         )
 
+    def wrap(self, func: T.Func) -> t.Callable[[], t.Any]:
+        """
+        Wrap a function into a zero-argument callable, which reads parameters 
+        from `sys.argv` when being called.
+
+        Note:
+            - It is a simplified (and composable) version of `cli.run(func)`.
+            - If `-h` / `:help` is given, the help interface is rendered and the
+              target function is NOT called (returns `None`).
+            - Argument parsing errors are reported and cause a `SystemExit`, the
+              same as other argsense entry points.
+        """
+        config.apply_changes()
+
+        func_info = parse_function(func, fallback_type=config.FALLBACK_TYPE)
+        docs_info = parse_docstring(func.__doc__ or '', func_info)
+        func_info.target = func
+        func_info.fill_docs_info(docs_info)
+
+        front_matter = {
+            'args'  : {
+                k: v['ctype'] for k, v in func_info.args.items()
+            },
+            'kwargs': {
+                k: v['ctype'] for k, v in func_info.extended_kwargs.items()
+            },
+            'index' : func_info.cname_2_name,
+        }
+
+        def wrapped() -> t.Any:
+            argv = Argv.from_sys_argv()
+            result = parse_argv(
+                argv,
+                mode='command',
+                front_matter=front_matter,
+                implicit_help=False,  # treat "no arguments" as a real error
+            )
+            assert result is not None
+
+            if result['kwargs'].get(':help'):
+                from . import renderer
+                renderer.render_function_parameters(
+                    argv,
+                    func_info,
+                    show_func_name_in_title=False,
+                )
+                return None
+
+            _args, _kwargs = result['args'].values(), result['kwargs']
+            return func(*_args, **_kwargs)
+
+        return wrapped
+
     def exec_argv(
         self,
         argv: Argv,

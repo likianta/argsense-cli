@@ -264,7 +264,7 @@ def _gradient(text: str, colors: t.Sequence[int]):
 def _post_logo(color_seed: str = 'white') -> None:
     console.print(
         _simple_gradient(
-            '♥ powered by argsense',
+            '🔥 powered by argsense',
             (0x0A87EE, 0x9294F0) if color_seed == 'blue' else
             (0xF38CFD, 0xCE628C) if color_seed == 'magenta' else
             (0xF47FA4, 0xF49364) if color_seed == 'tan' else

@@ -210,7 +210,7 @@ def post_logo(style: t.Literal[
     from rich.color import Color
     color_pair: tuple = getattr(palette.logo, style)
     return blend_text(
-        '♥ powered by argsense',  # TODO: embed a homepage link to the name.
+        '🔥 powered by argsense',  # TODO: embed a homepage link to the name.
         *(Color.parse(x).triplet for x in color_pair)
     )
 

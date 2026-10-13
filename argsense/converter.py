@@ -200,13 +200,13 @@ SPECIAL_ARGS = {
 }
 
 
-def cval_2_val(value: str, type_: ParamType) -> t.Any:
+def cval_2_val(value: str, type_: ParamType = ParamType.ANY) -> t.Any:
     if value in SPECIAL_ARGS:
         return SPECIAL_ARGS[value]
     
     if type_ == ParamType.ANY:
         if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value):
-            return eval(value)
+            return int(value, base=0)
         else:
             return value
     # elif type_ == ParamType.BOOL:
@@ -228,7 +228,7 @@ def cval_2_val(value: str, type_: ParamType) -> t.Any:
         return None
     elif type_ == ParamType.NUMBER:
         assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value)
-        return eval(value)
+        return int(value, base=0)
     elif type_ == ParamType.TEXT:
         return value
     else:

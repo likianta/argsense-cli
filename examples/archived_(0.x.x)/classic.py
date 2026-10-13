@@ -5,17 +5,14 @@ screenshots:
     .assets/examples/classic/20220615143751.jpg
     .assets/examples/classic/20220615143817.jpg
 """
-from typing import Any
 
-import lk_logger
-
+import typing as tp
 from argsense import cli
+from neoprint import print
 
-lk_logger.setup(quiet=True, show_varnames=True)
 
-
-def test():
-    """ see `examples/fixture.py : test : docstring` """
+def test() -> tp.Generator[str, None, None]:
+    """see `examples/fixture.py : test : docstring`"""
     yield '-h'
     yield '-hh'
     yield 'hello-world -h'
@@ -28,19 +25,19 @@ def test():
     yield 'variant-types-2 1 2 3.12 :true foo :none :false'
 
 
-@cli.cmd()
+@cli
 def hello_world() -> None:
-    """ say hello to the world. """
+    """say hello to the world."""
     print('hello world!')
 
 
-@cli.cmd()
-def greet(name: str, formal=False) -> None:
-    """ say hello to the someone.
-    
+@cli
+def greet(name: str, formal: bool = False) -> None:
+    """say hello to the someone.
+
     args:
         name: the name to say hello to.
-    
+
     kwargs:
         formal (-f): if true, say hello formally.
     """
@@ -50,13 +47,15 @@ def greet(name: str, formal=False) -> None:
         print(f'hi, {name}!')
 
 
-@cli.cmd()
-def path_includes_whitespace(path: str, *args) -> None:
+@cli
+def path_includes_whitespace(path: str, *args: tp.Any) -> None:
     print(path, args)
 
 
-@cli.cmd()
-def variant_types_1(a: int, b: bool, c: str, d: float = None):
+@cli
+def variant_types_1(
+    a: int, b: bool, c: str, d: tp.Optional[float] = None
+) -> None:
     """
     argsense supports some basic types more than str.
     (the type-conversion is based on annotations).
@@ -64,8 +63,10 @@ def variant_types_1(a: int, b: bool, c: str, d: float = None):
     print([(x, type(x)) for x in (a, b, c, d)])
 
 
-@cli.cmd()
-def variant_types_2(a: str, b: int, c: float, d: bool, e, f: 'any', g: Any):
+@cli
+def variant_types_2(
+    a: str, b: int, c: float, d: bool, e: tp.Any, f: tp.Any, g: tp.Any
+) -> None:
     print([(x, type(x)) for x in (a, b, c, d, e, f, g)], ':l')
 
 
