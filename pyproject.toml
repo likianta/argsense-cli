@@ -1,6 +1,6 @@
 [project]
 name = "argsense"
-version = "1.3.0b0"
+version = "1.3.0"
 description = "New command line interface based on Rich library."
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"
@@ -18,18 +18,18 @@ requires = ["hatchling>=1.29.0"]
 [dependency-groups]
 dev = [
     "faker>=40.43.0; python_version >= '3.10'",
-    # "streamlit>=1.64.0; python_version >= '3.12'",
-    # "streamlit-canary>=0.4.0a56; python_version >= '3.12'",
+    # "streamlit>=1.65.0; python_version >= '3.12'",
+    # "streamlit-canary>=0.4.0a68; python_version >= '3.12'",
 ]
 
 # [project.optional-dependencies]
 # TODO: GUI
 
-[project.scripts]
-argsense = "argsense.__main__:cli"
-argsense-cli = "argsense.__main__:cli"
-argsense-gui = "argsense.__main__:gui"
-argsense-tui = "argsense.__main__:tui"
+# [project.scripts]
+# argsense = "argsense.__main__:cli"
+# argsense-cli = "argsense.__main__:cli"
+# argsense-gui = "argsense.__main__:gui"
+# argsense-tui = "argsense.__main__:tui"
 
 [project.urls]
 homepage = "https://github.com/likianta/argsense-cli"
