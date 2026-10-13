@@ -1,7 +1,7 @@
 from argsense import cli
 
 
-@cli.cmd()
+@cli
 def func1(aaa: int, *args) -> None:
     """
     whether go avoid player available nothing. it executive box already lose -
@@ -17,7 +17,7 @@ def func1(aaa: int, *args) -> None:
     print(aaa, args)
 
 
-@cli.cmd()
+@cli
 def func2(aaa: int, **kwargs) -> None:
     """
     true identify nor mouth law. process former nothing. left could thought.
@@ -37,8 +37,8 @@ def func2(aaa: int, **kwargs) -> None:
     print(aaa, kwargs)
 
 
-@cli.cmd()
-def func3(aaa: int, *args, bbb: str = 'ccc', **kwargs) -> None:
+@cli
+def func3(aaa: int, *args, bbb: int = 456, **kwargs) -> None:
     """
     i detail appear fire easy international. society hard probably thus act. -
     use head learn central break.
@@ -57,7 +57,7 @@ def func3(aaa: int, *args, bbb: str = 'ccc', **kwargs) -> None:
     print(aaa, bbb, args, kwargs)
 
 
-@cli.cmd()
+@cli
 def func4(aaa, bbb=None, *ccc):
     """
     param `bbb` should be appeared in front of `*ccc`.
@@ -66,8 +66,14 @@ def func4(aaa, bbb=None, *ccc):
 
 
 if __name__ == '__main__':
-    # pox test/variable_args_and_kwargs.py -h
-    # pox test/variable_args_and_kwargs.py func1 -h
-    # pox test/variable_args_and_kwargs.py func2 -h
-    # pox test/variable_args_and_kwargs.py func3 -h
+    # python test/variable_args_and_kwargs.py -h
+    # python test/variable_args_and_kwargs.py func1 -h
+    # python test/variable_args_and_kwargs.py func2 -h
+    # python test/variable_args_and_kwargs.py func3 -h
+    # python test/variable_args_and_kwargs.py func4 -h
+    # ---
+    # python test/variable_args_and_kwargs.py func1 123 456 789
+    # python test/variable_args_and_kwargs.py func2 123 --bbb 456 --ccc 789
+    # python test/variable_args_and_kwargs.py func3 123 --bbb 456 --ccc 789
+    # python test/variable_args_and_kwargs.py func4 123 --bbb 456 --ccc 789
     cli.run()

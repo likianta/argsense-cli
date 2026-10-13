@@ -1,7 +1,7 @@
 /.idea/
 /deleted/
 /dist/
-__pycache__
+/examples/test.py
+__pycache__/
 *.pyc
-
 .DS_Store

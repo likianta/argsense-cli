@@ -206,7 +206,7 @@ def cval_2_val(value: str, type_: ParamType = ParamType.ANY) -> t.Any:
     
     if type_ == ParamType.ANY:
         if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value):
-            return int(value, base=0)
+            return eval(value)
         else:
             return value
     # elif type_ == ParamType.BOOL:
@@ -228,7 +228,7 @@ def cval_2_val(value: str, type_: ParamType = ParamType.ANY) -> t.Any:
         return None
     elif type_ == ParamType.NUMBER:
         assert PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value)
-        return int(value, base=0)
+        return eval(value)
     elif type_ == ParamType.TEXT:
         return value
     else:

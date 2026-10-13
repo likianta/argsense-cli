@@ -1,7 +1,7 @@
 from argsense import cli
 
 
-@cli.cmd()
+@cli
 def main(aaa: int, bbb: str, ccc: bool = True):
     """
     just print the incoming arguments.
