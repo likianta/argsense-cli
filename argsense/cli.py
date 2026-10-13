@@ -1,5 +1,5 @@
 import re
-import typing as t
+import typing as tp
 from textwrap import dedent
 
 import neoprint as np
@@ -20,12 +20,12 @@ class T:
     _ParamType = ParamType
 
     # TODO: use 'grp', 'cmd' instead?
-    CommandType = t.Literal['group', 'command']
-    RenderMode = t.Literal['auto', 'cli', 'gui', 'tui']
-    Func = t.TypeVar('Func', bound=t.Callable)
+    CommandType = tp.Literal['group', 'command']
+    RenderMode = tp.Literal['auto', 'cli', 'gui', 'tui']
+    Func = tp.TypeVar('Func', bound=tp.Callable)
     FuncInfo = FuncInfo
 
-    CommandsCollect = t.Dict[_FunctionId, FuncInfo]
+    CommandsCollect = tp.Dict[_FunctionId, FuncInfo]
 
 
 # matches a docstring that reuses another command's parameter description.
@@ -35,7 +35,7 @@ _ARGDOC_REF_PATTERN = re.compile(r'[Ss]ee\s+`@(\w+):(\w+)`\.?')
 
 
 class CommandLineInterface:
-    def __init__(self, name: str = None) -> None:
+    def __init__(self, name: tp.Optional[str] = None) -> None:
         self.name = name
         self.commands: T.CommandsCollect = {}
         self._cname_2_func = {}
@@ -56,7 +56,7 @@ class CommandLineInterface:
         self.add_cmd(func)
         return func
 
-    # -------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def add_cmd(
         self, func: T.Func, name: str = '', transfer_help: bool = False
@@ -96,7 +96,7 @@ class CommandLineInterface:
 
         self.commands[id(func)] = func_info
 
-    # -------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # doc references
 
     def resolve_doc_references(self) -> None:
@@ -105,35 +105,33 @@ class CommandLineInterface:
         command's documentation, so that docstrings can be reused across
         commands.
 
-        the reference is written as `see `@<cmd>:<param>`` and will be replaced
+        The reference is written as "see `@<cmd>:<param>`" and will be replaced
         by the target parameter's description. for example:
-            @cli
             def foo(name: str):
                 '''
                 params:
                     name: the leader's name.
                 '''
 
-            @cli
             def bar(name: str):
                 '''
                 params:
                     name: see `@foo:name`
                 '''
 
-        after resolution, `bar`'s `name` description becomes "the leader's
+        After resolution, `bar`'s `name` description becomes "the leader's
         name.".
 
-        note:
-            - references are resolved lazily and only once per command, so the
+        Note:
+            - References are resolved lazily and only once per command, so the
               registration order of commands does not matter.
-            - unresolved references (e.g. a non-existent command or parameter)
+            - Unresolved references (e.g. a non-existent command or parameter)
               are left as-is.
         """
         lookup = {fi.name: fi for fi in self.commands.values()}
-        resolved: t.Set[int] = set()
+        resolved: tp.Set[int] = set()
 
-        def resolve_text(text: str, stack: t.Set[int]) -> str:
+        def resolve_text(text: str, stack: tp.Set[int]) -> str:
             def replace(m: 're.Match[str]') -> str:
                 target = lookup.get(m.group(1))
                 if target is None:
@@ -143,9 +141,10 @@ class CommandLineInterface:
                 if param is None:
                     return m.group(0)
                 return param['desc']
+
             return _ARGDOC_REF_PATTERN.sub(replace, text)
 
-        def resolve_func(func_info: T.FuncInfo, stack: t.Set[int]) -> None:
+        def resolve_func(func_info: T.FuncInfo, stack: tp.Set[int]) -> None:
             key = id(func_info)
             if key in resolved or key in stack:  # avoid cycle and rework
                 return
@@ -154,8 +153,11 @@ class CommandLineInterface:
             if _ARGDOC_REF_PATTERN.search(func_info.desc):
                 func_info.desc = resolve_text(func_info.desc, stack)
             for args_info in (
-                func_info.args0, func_info.args1,
-                func_info.args2, func_info.args3, func_info.args4,
+                func_info.args0,
+                func_info.args1,
+                func_info.args2,
+                func_info.args3,
+                func_info.args4,
             ):
                 for param in args_info.values():
                     if _ARGDOC_REF_PATTERN.search(param['desc']):
@@ -167,14 +169,16 @@ class CommandLineInterface:
         for func_info in self.commands.values():
             resolve_func(func_info, set())
 
-    # -------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # decorators
 
-    def cmd(self, name: str = None, transfer_help: bool = False) -> T.Func:
+    def cmd(
+        self, name: str = '', transfer_help: bool = False
+    ) -> tp.Callable[[T.Func], T.Func]:
         """
-        usage:
+        Usage:
             from argsense import cli
-            @cli.cmd()
+            @cli
             def foo(...):
                 ...
         """
@@ -185,10 +189,12 @@ class CommandLineInterface:
 
         return decorator
 
-    # -------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # run
 
-    def run(self, func: T.Func = None, transport_help: bool = False) -> t.Any:
+    def run(
+        self, func: tp.Optional[T.Func] = None, transport_help: bool = False
+    ) -> tp.Any:
         config.apply_changes()
         return self.exec_argv(
             argv=Argv.from_sys_argv(),
@@ -196,9 +202,9 @@ class CommandLineInterface:
             transport_help=transport_help,
         )
 
-    def wrap(self, func: T.Func) -> t.Callable[[], t.Any]:
+    def wrap(self, func: T.Func) -> tp.Callable[[], tp.Any]:
         """
-        Wrap a function into a zero-argument callable, which reads parameters 
+        Wrap a function into a zero-argument callable, which reads parameters
         from `sys.argv` when being called.
 
         Note:
@@ -216,31 +222,28 @@ class CommandLineInterface:
         func_info.fill_docs_info(docs_info)
 
         front_matter = {
-            'args'  : {
-                k: v['ctype'] for k, v in func_info.args.items()
-            },
+            'args': {k: v['ctype'] for k, v in func_info.args.items()},
             'kwargs': {
                 k: v['ctype'] for k, v in func_info.extended_kwargs.items()
             },
-            'index' : func_info.cname_2_name,
+            'index': func_info.cname_2_name,
         }
 
-        def wrapped() -> t.Any:
+        def wrapped() -> tp.Any:
             argv = Argv.from_sys_argv()
             result = parse_argv(
                 argv,
                 mode='command',
-                front_matter=front_matter,
+                front_matter=front_matter,  # type: ignore
                 implicit_help=False,  # treat "no arguments" as a real error
             )
             assert result is not None
 
             if result['kwargs'].get(':help'):
                 from . import renderer
+
                 renderer.render_function_parameters(
-                    argv,
-                    func_info,
-                    show_func_name_in_title=False,
+                    argv, func_info, show_func_name_in_title=False
                 )
                 return None
 
@@ -252,20 +255,20 @@ class CommandLineInterface:
     def exec_argv(
         self,
         argv: Argv,
-        preset_func: t.Optional[T.Func] = None,
+        preset_func: tp.Optional[T.Func] = None,
         transport_help: bool = False,
         _loop_verbose: bool = True,
-    ) -> t.Optional[t.Any]:
+    ) -> tp.Optional[tp.Any]:
         self.resolve_doc_references()
 
         cli_help_form: T.CommandType
         # func_info: T.FuncInfo
-        func_info: t.Optional[T.FuncInfo]
+        func_info: tp.Optional[T.FuncInfo]
 
         single_func_entrance = bool(preset_func)
         cli_help_form = 'command' if preset_func else 'group'  # noqa
 
-        func: t.Optional[t.Callable]
+        func: tp.Optional[tp.Callable]
         if preset_func:
             func = preset_func
         else:
@@ -274,7 +277,7 @@ class CommandLineInterface:
             else:
                 func = None
 
-        func_info = func and self.commands[id(func)]
+        func_info = tp.cast(T.FuncInfo, func and self.commands[id(func)])
         result = parse_argv(
             argv,
             mode=cli_help_form,
@@ -300,15 +303,16 @@ class CommandLineInterface:
                 ),
             },
         )
+        assert result
 
         if result['command']:
             func = self._cname_2_func[result['command']]
             if func:
-                func_info = self.commands[id(func)]  # noqa
+                func_info = self.commands[id(func)]
 
         def get_help_option(
             consider_transport_action: bool = False,
-        ) -> t.Tuple[bool, bool]:
+        ) -> tp.Tuple[bool, bool]:
             """
             return: (has_help, is_explicit)
             """

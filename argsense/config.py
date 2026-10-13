@@ -7,20 +7,20 @@ TODO:
         PRETTY_ERROR
         USE_RICH_MARKUP
 """
-import typing as t
+import typing as tp
 
 from rich import get_console
 
 
 class T:
-    ArgNameStyle = t.Literal[
+    ArgNameStyle = tp.Literal[
         'AAA_BBB', 'AAA-BBB', 'aaa_bbb', 'aaa-bbb', 'AaaBbb'
     ]
-    FallbackType = t.Literal['any', 'str']
-    OverwrittenScheme = t.Literal['first', 'last']
+    FallbackType = tp.Literal['any', 'str']
+    OverwrittenScheme = tp.Literal['first', 'last']
 
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # v1.0.0+
 
 ALLOW_HSHORT_TO_BE_REDEFINED = True
@@ -57,7 +57,7 @@ PROGRAM_NAME_STYLE = 'fixed'
     see also: `./renderer/rich/render2.py : [def] _detect_program_name`
 '''
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # TODO: need refactoring
 
 # DELETE: appearance style

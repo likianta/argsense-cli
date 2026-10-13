@@ -1,6 +1,6 @@
 import os
 import re
-import typing as t
+import typing as tp
 
 from . import config
 from .parser.args_parser import ParamType
@@ -10,11 +10,11 @@ from .parser.func_parser import T as T0
 class T:
     ParamType1 = T0.PlainParamType  # literal
     ParamType2 = ParamType  # enum
-    ParamType3 = t.Type  # type
-    Style = t.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
+    ParamType3 = tp.Type  # type
+    Style = tp.Literal['grp', 'cmd', 'arg', 'opt', 'ext']
 
 
-def args_2_cargs(*args, **kwargs) -> t.List[str]:
+def args_2_cargs(*args, **kwargs) -> tp.List[str]:
     """
     example:
         args_2_cargs(
@@ -40,7 +40,7 @@ def args_2_cargs(*args, **kwargs) -> t.List[str]:
     return out
 
 
-def name_2_cname(name: str, style: t.Optional[T.Style] = None) -> str:
+def name_2_cname(name: str, style: tp.Optional[T.Style] = None) -> str:
     """
     convert param name from python style to cli style.
     
@@ -80,19 +80,19 @@ def name_2_cname(name: str, style: t.Optional[T.Style] = None) -> str:
     
     name = name.lower().strip('_')
     if style == 'arg':
-        style = config.ARG_NAME_STYLE
-        if style == 'AAA_BBB':
+        arg_style = config.ARG_NAME_STYLE
+        if arg_style == 'AAA_BBB':
             return name.upper()
-        elif style == 'AAA-BBB':
+        elif arg_style == 'AAA-BBB':
             return name.upper().replace('_', '-')
-        elif style == 'aaa_bbb':
+        elif arg_style == 'aaa_bbb':
             return name
-        elif style == 'aaa-bbb':  # the default
+        elif arg_style == 'aaa-bbb':  # the default
             return name.replace('_', '-')
-        elif style == 'AaaBbb':
+        elif arg_style == 'AaaBbb':
             return name.replace('_', ' ').title().replace(' ', '')
         else:
-            raise ValueError(f'unknown style: {style}')
+            raise ValueError(f'unknown style: {arg_style}')
     elif style == 'opt':
         return '--' + name.replace('_', '-')
     else:  # follow 'aaa-bbb' style
@@ -120,7 +120,7 @@ def type_2_ctype(type_: T.ParamType1) -> T.ParamType2:
     }.get(type_, ParamType.ANY)
 
 
-def val_2_cval(value: t.Any, type_: ParamType = ParamType.ANY) -> str:
+def val_2_cval(value: tp.Any, type_: ParamType = ParamType.ANY) -> str:
     """
     FIXME:
         - this function is not stable.
@@ -156,7 +156,7 @@ def cname_2_name(name: str) -> str:
     return name.replace('-', '_')
 
 
-def ctype_2_type(t: T.ParamType2, v: t.Any = None) -> T.ParamType3:
+def ctype_2_type(t: T.ParamType2, v: tp.Any = None) -> T.ParamType3:
     if t == ParamType.ANY:
         return str
     # elif t == ParamType.BOOL:
@@ -200,7 +200,7 @@ SPECIAL_ARGS = {
 }
 
 
-def cval_2_val(value: str, type_: ParamType = ParamType.ANY) -> t.Any:
+def cval_2_val(value: str, type_: ParamType = ParamType.ANY) -> tp.Any:
     if value in SPECIAL_ARGS:
         return SPECIAL_ARGS[value]
     

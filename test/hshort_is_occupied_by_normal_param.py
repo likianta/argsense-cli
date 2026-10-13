@@ -22,23 +22,23 @@ def f2(host: str = '127.0.0.1', port: int = 3000) -> None:
 
 
 if __name__ == '__main__':
-    # pox test/hshort_is_occupied_by_normal_param.py
-    # pox test/hshort_is_occupied_by_normal_param.py -h
+    # python test/hshort_is_occupied_by_normal_param.py
+    # python test/hshort_is_occupied_by_normal_param.py -h
     
-    # pox test/hshort_is_occupied_by_normal_param.py f1
-    # pox test/hshort_is_occupied_by_normal_param.py f1 :h
-    # pox test/hshort_is_occupied_by_normal_param.py f1 :help
-    # pox test/hshort_is_occupied_by_normal_param.py f1 --help
-    # pox test/hshort_is_occupied_by_normal_param.py f1 -h
-    # pox test/hshort_is_occupied_by_normal_param.py f1 -p  # error
-    # pox test/hshort_is_occupied_by_normal_param.py f1 -h 127.0.0.1  # error
-    # pox test/hshort_is_occupied_by_normal_param.py f1 -h 127.0.0.1 -p 3000
+    # python test/hshort_is_occupied_by_normal_param.py f1
+    # python test/hshort_is_occupied_by_normal_param.py f1 :h
+    # python test/hshort_is_occupied_by_normal_param.py f1 :help
+    # python test/hshort_is_occupied_by_normal_param.py f1 --help
+    # python test/hshort_is_occupied_by_normal_param.py f1 -h
+    # python test/hshort_is_occupied_by_normal_param.py f1 -p  # error
+    # python test/hshort_is_occupied_by_normal_param.py f1 -h 127.0.0.1  # error
+    # python test/hshort_is_occupied_by_normal_param.py f1 -h 127.0.0.1 -p 3000
     
-    # pox test/hshort_is_occupied_by_normal_param.py f2
-    # pox test/hshort_is_occupied_by_normal_param.py f2 :h
-    # pox test/hshort_is_occupied_by_normal_param.py f2 :help
-    # pox test/hshort_is_occupied_by_normal_param.py f2 --help
-    # pox test/hshort_is_occupied_by_normal_param.py f2 -h
-    # pox test/hshort_is_occupied_by_normal_param.py f2 -p  # error
-    # pox test/hshort_is_occupied_by_normal_param.py f2 -h 127.0.0.1 -p 3000
+    # python test/hshort_is_occupied_by_normal_param.py f2
+    # python test/hshort_is_occupied_by_normal_param.py f2 :h
+    # python test/hshort_is_occupied_by_normal_param.py f2 :help
+    # python test/hshort_is_occupied_by_normal_param.py f2 --help
+    # python test/hshort_is_occupied_by_normal_param.py f2 -h
+    # python test/hshort_is_occupied_by_normal_param.py f2 -p  # error
+    # python test/hshort_is_occupied_by_normal_param.py f2 -h 127.0.0.1 -p 3000
     cli.run()
