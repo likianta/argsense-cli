@@ -72,5 +72,5 @@ url = "http://localhost:2131/"
 explicit = true
 
 [tool.uv.sources]
-neoprint = { index = "likianta" }
+# neoprint = { index = "likianta" }
 streamlit-canary = { index = "likianta" }

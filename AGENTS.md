@@ -28,7 +28,7 @@ argsense-cli/
 │   └── renderer/             # 渲染层 (rich 帮助界面; psg 为 PySimpleGUI 图形界面后端)
 ├── test/                     # 手工运行的测试脚本 (非 pytest), 部分测试可能过时, 注意甄别
 ├── docs/                     # 补充文档 (部分可能已过时)
-├── .assets/                  # 文档资源所使用到的插图保存在这里
+│   └── images/               # 文档所使用到的插图
 ├── README.md                 # 自述文档
 └── CHANGELOG.zh.md           # 更新日志
 ```

@@ -1,8 +1,8 @@
 """
 screenshots:
-    .assets/examples/errors/20221120012143.png
-    .assets/examples/errors/20221120012257.png
-    .assets/examples/errors/20221120012346.png
+    docs/images/221120-012143.png
+    docs/images/221120-012257.png
+    docs/images/221120-012346.png
 """
 
 import shlex

@@ -10,11 +10,11 @@ It is much lighter than [argparse](#argparse-standard-library), [Click](#click) 
 
 Screenshots:
 
-![](.assets/241219-110708.png)
+![](docs/images/241219-110708.png)
 
-![](.assets/241218-163439.png)
+![](docs/images/241218-163439.png)
 
-![](.assets/241218-163458.png)
+![](docs/images/241218-163458.png)
 
 ## Highlights
 
@@ -212,7 +212,7 @@ if __name__ == '__main__':
 
 Screenshot (`python temp.py -h`):
 
-![](.assets/261013-171259.png)
+![](docs/images/261013-171259.png)
 
 #### Click
 
@@ -519,7 +519,7 @@ python main.py --count 5 --addr 0xFFFF --rate 0.25 --tag :empty --verbose  # emp
 python main.py --count 5 --addr 0xFFFF --rate 0.25 --tag :none --verbose  # None type
 ```
 
-![](.assets/261013-172346.png)
+![](docs/images/261013-172346.png)
 
 | User input | Recognized as       |
 | ---------- | ------------------- |
@@ -570,7 +570,7 @@ python main.py -h
 python main.py 111 222 333 --ccc 444 --ddd 555 --eee :true
 ```
 
-![](.assets/261013-174058.png)
+![](docs/images/261013-174058.png)
 
 #### Click
 
@@ -702,7 +702,7 @@ python main.py 123 456
 python main.py 0xFFFF 0b1111
 ```
 
-![](.assets/261013-172905.png)
+![](docs/images/261013-172905.png)
 
 That is all you need: decorate the function with `@cli`, then call `cli.run()`. The parameter list, the help text and the type conversion are all derived from the signature and the docstring. See [Comparison with Other Libraries](#comparison-with-other-libraries) for the big picture, and [In-Depth Reading](#in-depth-reading) for the details.
 
@@ -738,9 +738,9 @@ That is all you need: decorate the function with `@cli`, then call `cli.run()`. 
       cli.run(main)
   ```
 
-  ![](.assets/241219-101538.png)
+  ![](docs/images/241219-101538.png)
 
-  ![](.assets/241219-101628.png)
+  ![](docs/images/241219-101628.png)
 - Parameter annotations must start with the `params:` field.
 - The format of a parameter annotation is:
 
@@ -778,7 +778,7 @@ That is all you need: decorate the function with `@cli`, then call `cli.run()`. 
         """
     ```
 
-    ![](.assets/241219-102629.png)
+    ![](docs/images/241219-102629.png)
 
     If the text is long and there is not enough space on the `first_line_of_description`, write it in `more_description_lines` instead:
 
@@ -834,7 +834,7 @@ if __name__ == '__main__':
     cli.run(main)
 ```
 
-![](.assets/241219-100049.png)
+![](docs/images/241219-100049.png)
 
 #### `int`, `float`
 
@@ -932,7 +932,7 @@ if __name__ == '__main__':
     cli.run(main)
 ```
 
-![](.assets/241218-181643.png)
+![](docs/images/241218-181643.png)
 
 ## Frequently Asked Questions
 

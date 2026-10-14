@@ -165,7 +165,7 @@ python3 login.py username 123456
 
 "did-you-mean" 功能:
 
-![](.assets/20220617104151.jpg)
+![](docs/images/220617-104151.jpg)
 
 ### 0.2.0
 
@@ -173,9 +173,9 @@ python3 login.py username 123456
 
 现在, 当发生报错时, 将提供参数位置, 报错原因等信息, 如下图所示:
 
-![](.assets/20220616131105.jpg)
+![](docs/images/220616-131105.jpg)
 
-![](.assets/20220616131304.jpg)
+![](docs/images/220616-131304.jpg)
 
 ---
 
