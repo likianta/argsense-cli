@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ArgSense — Help Interface Concepts</title>
+<style>
+  :root{
+    --font-mono: ui-monospace,'SFMono-Regular',Menlo,Consolas,'Cascadia Mono',monospace;
+    --font-sans: system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+    --page-bg:#0e0f16;
+    --page-text:#c7cbe0;
+    --page-muted:#7c839b;
+    --radius:8px;
+    --radius-card:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--page-bg);
+    color:var(--page-text);
+    font-family:var(--font-sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:880px;margin:0 auto;padding:44px 24px 72px}
+  h1{
+    font-size:20px;line-height:28px;font-weight:600;
+    margin:0 0 8px;color:#e8eaed;letter-spacing:.01em;
+  }
+  .lead{font-size:14px;line-height:22px;color:var(--page-muted);margin:0}
+  .concept{margin-top:40px}
+  .cap{
+    font-family:var(--font-mono);
+    font-size:12px;line-height:18px;color:var(--page-muted);
+    margin:0 0 10px;letter-spacing:.02em;
+  }
+  .cap b{color:#e8eaed;font-weight:600}
+
+  /* ------- shared terminal chrome ------- */
+  .term{
+    background:var(--t-bg);
+    border:1px solid var(--t-line);
+    border-radius:var(--radius-card);
+    overflow:hidden;
+  }
+  .term-bar{
+    display:flex;align-items:center;gap:8px;
+    padding:8px 12px;
+    background:var(--t-chrome);
+    border-bottom:1px solid var(--t-line);
+  }
+  .dot{width:11px;height:11px;border-radius:999px;display:inline-block}
+  .dot.r{background:#f7768e}
+  .dot.y{background:#e0af68}
+  .dot.g{background:#9ece6a}
+  .term-bar .name{font-family:var(--font-mono);font-size:12px;color:#8b90a8;margin-left:4px}
+  .term-body{
+    padding:14px 16px 16px;
+    font-family:var(--font-mono);
+    font-size:13px;line-height:20px;
+    color:var(--t-text);
+  }
+  .center{text-align:center;font-weight:700}
+  .desc{margin:6px 0 12px}
+  .panel{border-radius:var(--radius);padding:12px 0 8px;position:relative}
+  .panel-title{
+    position:absolute;top:-10px;right:12px;
+    background:var(--t-bg);padding:0 6px;
+    font-size:12px;letter-spacing:.04em;
+  }
+
+  /* ------- Concept B · command groups ------- */
+  .term--groups{
+    --t-bg:#13141c; --t-chrome:#1d1f2a; --t-line:#2a2d3a; --t-text:#a9b1d6;
+    --g-panel:#b48ead; --g-name:#c39ad8; --g-cmd:#8fd6c0;
+    --g-focus:#e0af68; --g-dim:#5b6076;
+  }
+  .term--groups .center{color:var(--g-focus)}
+  .term--groups .panel{border:1px solid var(--g-panel)}
+  .term--groups .panel-title{color:var(--g-panel)}
+  .grow{display:grid;grid-template-columns:96px 1fr;padding:3px 14px}
+  .grow .badge{color:var(--g-name);font-weight:700}
+  .leaf{display:grid;grid-template-columns:20px 92px 1fr;padding:1px 14px 1px 26px}
+  .leaf .pfx{color:var(--g-dim)}
+  .leaf .cmd{color:var(--g-cmd);font-weight:700}
+  .leaf .cdesc{color:var(--g-dim)}
+  .grow.focus{
+    background:rgba(224,175,104,.08);
+    border-left:2px solid var(--g-focus);
+    border-radius:4px;
+  }
+  .hint{margin-top:12px;color:var(--g-dim)}
+  .hint b{color:var(--g-cmd);font-weight:700}
+
+  /* ------- Concept C · ASCII banner ------- */
+  .term--banner{
+    --t-bg:#0c0d14; --t-chrome:#161826; --t-line:#272a3d; --t-text:#c7cbe0;
+    --n-cyan:#7ee7ff; --n-mag:#f07ad0; --n-dim:#6b7391; --n-accent:#e0af68;
+  }
+  .term--banner .term-body{padding:18px 16px 16px}
+  .banner{margin:0;text-align:center;font-size:13px;line-height:1.25;white-space:pre}
+  .banner .r1{color:var(--n-cyan)}
+  .banner .r2{color:var(--n-mag)}
+  .tag{text-align:center;color:var(--n-dim);margin:10px 0 16px}
+  .rule{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+  .rule .ln{flex:1;height:1px;background:var(--t-line)}
+  .rule .lbl{color:var(--n-cyan);font-size:12px;letter-spacing:.14em}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{
+    border:1px solid var(--t-line);border-radius:999px;
+    padding:2px 10px;color:var(--t-text);font-size:12px;
+  }
+  .chip.hi{border-color:var(--n-mag);color:var(--n-mag)}
+  .tip{margin-top:14px;color:var(--n-dim)}
+  .tip .arw{color:var(--n-accent)}
+  .tip b{color:var(--n-cyan);font-weight:700}
+</style>
+</head>
+<body>
+  <div class="page">
+    <h1>ArgSense — Help Interface Concepts</h1>
+    <p class="lead">Two design directions explored for the help screen: command groups, and an ASCII-art banner.</p>
+
+    <!-- ================= Concept B · Command Groups ================= -->
+    <section class="concept">
+      <p class="cap"><b>Concept B</b> · Command Groups (planned) — named groups hold their sub-commands</p>
+      <div class="term term--groups">
+        <div class="term-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="name">bash</span>
+        </div>
+        <div class="term-body">
+          <div class="center">python -m depsland ...</div>
+          <div class="desc">a package manager for python applications.</div>
+          <div class="panel">
+            <span class="panel-title">COMMAND GROUPS</span>
+            <div class="grow focus">
+              <span class="badge">app</span><span class="gdesc">manage applications</span>
+            </div>
+            <div class="leaf"><span class="pfx">├</span><span class="cmd">install</span><span class="cdesc">install an app</span></div>
+            <div class="leaf"><span class="pfx">├</span><span class="cmd">upgrade</span><span class="cdesc">upgrade to the newest version</span></div>
+            <div class="leaf" style="padding-bottom:8px"><span class="pfx">└</span><span class="cmd">run</span><span class="cdesc">run an installed app</span></div>
+            <div class="grow"><span class="badge">env</span><span class="gdesc">manage the python environment</span></div>
+            <div class="grow"><span class="badge">config</span><span class="gdesc">inspect and edit configuration</span></div>
+            <div class="grow"><span class="badge">dev</span><span class="gdesc">utilities for developers</span></div>
+          </div>
+          <div class="hint">run <b>depsland app install -h</b> to see the options of a single command.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Concept C · ASCII Banner ================= -->
+    <section class="concept">
+      <p class="cap"><b>Concept C</b> · ASCII Banner — block letters plus a neon palette</p>
+      <div class="term term--banner">
+        <div class="term-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="name">bash</span>
+        </div>
+        <div class="term-body">
+          <pre class="banner"><span class="r1"> ▄▀█ █▀█ █▀▀ █▀ █▀▀ █▄░█ █▀ █▀▀</span>
+<span class="r2"> █▀█ █▀▄ █▄█ ▄█ ██▄ █░▀█ ▄█ ██▄</span></pre>
+          <div class="tag">the tasteful command line toolkit for python</div>
+          <div class="rule"><span class="ln"></span><span class="lbl">COMMANDS</span><span class="ln"></span></div>
+          <div class="chips">
+            <span class="chip hi">install</span>
+            <span class="chip">upgrade</span>
+            <span class="chip">uninstall</span>
+            <span class="chip">run</span>
+            <span class="chip">build</span>
+            <span class="chip">publish</span>
+            <span class="chip">lint</span>
+            <span class="chip">doctor</span>
+          </div>
+          <div class="tip"><span class="arw">›</span> type <b>-h</b> after any command for its options</div>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
