@@ -183,6 +183,44 @@ def _plain(text: str) -> str:
     return re.sub(r'\[/?[^\[\]]*\]', '', text)
 
 
+def _default_repr(info: dict) -> t.Optional[str]:
+    """
+    A readable form of the default value, or `None` when the parameter has no
+    default. It follows the cli help panel: `:true` / `:false` for flags,
+    `""` for an empty string.
+    """
+    value = info.get('default', ...)
+    if value is ...:
+        return None
+    if isinstance(value, bool):
+        return ':true' if value else ':false'
+    if value is None:
+        return ':none'
+    if value == '':
+        return '""'
+    return str(value)
+
+
+def _tooltip(info: dict) -> Text:
+    """
+    The parameter's full help: its (possibly multi-line) description, plus its
+    type and default value. It complements the input's placeholder, which can
+    only show a single line.
+    """
+    text = Text()
+    desc = info.get('desc') or ''
+    if desc:
+        text.append(desc)
+        text.append('\n\n')
+    text.append('type: ', style='dim')
+    text.append(info['ctype'].name)
+    default = _default_repr(info)
+    if default is not None:
+        text.append('\ndefault: ', style='dim')
+        text.append(default)
+    return text
+
+
 class ArgsenseTuiApp(App[t.Any]):
     CSS = """
     #form {
@@ -272,6 +310,7 @@ class ArgsenseTuiApp(App[t.Any]):
             if len(self.func_infos) > 1:
                 yield Tabs(
                     *(Tab(x.name, id=tab_id(x.name)) for x in self.func_infos),
+                    active=tab_id(self.active),
                     id='tabs',
                 )
             with VerticalScroll(id='params'):
@@ -308,6 +347,14 @@ class ArgsenseTuiApp(App[t.Any]):
 
     def on_mount(self) -> None:
         self.query_one('#log', RichLog).border_title = 'log'
+        for func_info in self.func_infos:
+            for name, info in collect_rows(func_info):
+                if not info.get('desc'):
+                    continue
+                widget = self.query_one(
+                    '#{}'.format(widget_id(func_info.name, name))
+                )
+                widget.tooltip = _tooltip(info)
         if self.inline:
             # inline mode: the form is a fixed-height block, so nothing
             # scrolls and the log panel gets 5 lines of content (plus the two

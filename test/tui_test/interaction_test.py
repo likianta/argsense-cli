@@ -79,6 +79,12 @@ def main(name: str, age: int):
     print(name, age)
 
 
+def bare(alpha: str) -> None:
+    """
+    a command whose parameter has no description.
+    """
+
+
 def many_params(
     project_name: str,
     version: str = '0.1.0',
@@ -726,6 +732,72 @@ def test_mode_tokens() -> None:
         sys.argv = original_argv
 
 
+async def test_initial_tab_and_prefill() -> None:
+    print('[20] the command line opens the right tab, prefilled')
+    func_infos = [func_info_of(install), func_info_of(uninstall)]
+    initials, active = resolve_initials(
+        func_infos,
+        Argv(('python',), ('demo.py',), ('uninstall', '--appid', 'alpha')),
+    )
+    app = ArgsenseTuiApp(func_infos, initials=initials, active=active)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        check(
+            'the named tab is active',
+            app.query_one('#tabs', Tabs).active,
+            'tab-uninstall',
+        )
+        check('the app follows it', app.active, 'uninstall')
+        check(
+            'the matching pane is shown',
+            app.query_one('#panes', ContentSwitcher).current,
+            'pane-uninstall',
+        )
+        check(
+            'its argument is prefilled',
+            app.query_one('#param-uninstall-appid', Input).value,
+            'alpha',
+        )
+
+
+async def test_tooltips() -> None:
+    print('[21] parameters with a description get a help tooltip')
+    app = build_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        appid = app.query_one('#param-install-appid', Input)
+        check('the input has a tooltip', appid.tooltip is not None, True)
+        text = str(appid.tooltip)
+        check('it shows the description', 'the app id.' in text, True)
+        check('it shows the type', 'type: TEXT' in text, True)
+        check('a required param has no default line', 'default:' in text, False)
+
+        count = app.query_one('#param-install-count', Input)
+        check(
+            'a defaulted param shows its default',
+            'default: 1' in str(count.tooltip),
+            True,
+        )
+
+        flag = app.query_one('#param-install-use_exist', Switch)
+        check('flags get a tooltip too', flag.tooltip is not None, True)
+        check(
+            'the flag tooltip shows its type and default',
+            'type: FLAG' in str(flag.tooltip)
+            and 'default: :true' in str(flag.tooltip),
+            True,
+        )
+
+    app = build_app(bare)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        check(
+            'no description -> no tooltip',
+            app.query_one('#param-bare-alpha', Input).tooltip,
+            None,
+        )
+
+
 # -----------------------------------------------------------------------------
 
 
@@ -749,6 +821,8 @@ async def run_all() -> None:
     test_run_delegates_to_the_form()
     test_run_and_exit_goes_through_cli()
     test_mode_tokens()
+    await test_initial_tab_and_prefill()
+    await test_tooltips()
 
     print()
     if FAILURES:
