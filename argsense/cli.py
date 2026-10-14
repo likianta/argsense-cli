@@ -33,11 +33,23 @@ class T:
     # the argument accepted by `cli.run(...)`.
     Entrance = tp.Union[Func, tp.Dict[str, Func], tp.Iterable[Func], None]
 
+    Mode = tp.Literal['cli', 'gui', 'tui']
+
 
 # matches a docstring that reuses another command's parameter description.
 # for example: "see `@foo:name`" (case-insensitive on the leading letter,
 # with an optional trailing period after the closing backtick).
 _ARGDOC_REF_PATTERN = re.compile(r'[Ss]ee\s+`@(\w+):(\w+)`\.?')
+
+# special values that select the interface at run time; they are read from
+# `sys.argv`, and they win over the `mode` argument of `cli.run(...)`.
+#   ':itui' means an inline tui.
+_MODE_TOKENS: tp.Dict[str, T.Mode] = {
+    ':cli': 'cli',
+    ':gui': 'gui',
+    ':itui': 'tui',
+    ':tui': 'tui',
+}
 
 
 class CommandLineInterface:
@@ -213,10 +225,13 @@ class CommandLineInterface:
     # run
 
     def run(
-        self, entrance: T.Entrance = None, transport_help: bool = False
+        self,
+        entrance: T.Entrance = None,
+        mode: T.Mode = 'cli',
+        **kwargs: tp.Any,
     ) -> tp.Any:
         """
-        Run the CLI.
+        Run the interface.
 
         Usage:
             cli.run()             # scan the caller's module and expose every
@@ -225,18 +240,77 @@ class CommandLineInterface:
             cli.run((foo, bar))   # expose `foo` and `bar` as commands.
             cli.run({'foo': foo, 'baring': bar})  # dict form, custom names.
 
+        params:
+            mode:
+                'cli' (default), 'gui' or 'tui'.
+            **kwargs:
+                options for the given mode.
+                    - cli: `transport_help`
+                    - tui: `inline`
+
         Note:
             Using `@cli` / `cli.add_cmd(...)` is optional: any function passed
             here is registered on the fly, and a bare `cli.run()` scans the
             caller's module (only when nothing was registered explicitly).
+
+            The command line can override the mode: `:cli`, `:gui`, `:tui` or
+            `:itui` (an inline tui) in `sys.argv` wins over the `mode`
+            argument. The token is removed from the arguments.
         """
         config.apply_changes()
-        preset_func = self.prepare_entrance(entrance, sys._getframe(1))
-        return self.exec_argv(
-            argv=Argv.from_sys_argv(),
-            preset_func=preset_func,
-            transport_help=transport_help,
+
+        argv = Argv.from_sys_argv()
+        token = next((x for x in argv.args if x in _MODE_TOKENS), None)
+        if token is not None:
+            argv = Argv(
+                argv.launcher,
+                argv.target,
+                tuple(x for x in argv.args if x != token),
+            )
+            mode = _MODE_TOKENS[token]
+            if token == ':itui':
+                kwargs['inline'] = True
+
+        if mode == 'cli':
+            preset_func = self.prepare_entrance(entrance, sys._getframe(1))
+            return self.exec_argv(
+                argv=argv,
+                preset_func=preset_func,
+                transport_help=kwargs.get('transport_help', False),
+            )
+
+        if mode == 'tui':
+            func_info = self.resolve_single_command(entrance, sys._getframe(1))
+            from .renderer.tui import run_form
+
+            return run_form(func_info, inline=kwargs.get('inline', False))
+
+        raise NotImplementedError(
+            'the [{}] mode is not implemented yet.'.format(mode)
         )
+
+    def resolve_single_command(
+        self, entrance: T.Entrance, caller_frame: types.FrameType
+    ) -> T.FuncInfo:
+        """
+        Resolve `entrance` into the info of exactly one command. The tui / gui
+        interfaces use it, since they can only present a single command.
+        """
+        preset_func = self.prepare_entrance(entrance, caller_frame)
+        self.resolve_doc_references()
+
+        if preset_func is not None:
+            return self.commands[id(preset_func)]
+
+        funcs = list(self.commands.values())
+        if len(funcs) != 1:
+            raise RuntimeError(
+                'this interface works on exactly one command, but '
+                '{} were given: {}'.format(
+                    len(funcs), ', '.join(f.name for f in funcs)
+                )
+            )
+        return funcs[0]
 
     def prepare_entrance(
         self, entrance: T.Entrance, caller_frame: types.FrameType

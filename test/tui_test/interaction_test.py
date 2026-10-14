@@ -8,7 +8,10 @@ Usage (run from the project root):
 """
 
 import asyncio
+import io
+import sys
 import typing as t
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from argsense.cli import CommandLineInterface
@@ -16,6 +19,7 @@ from argsense.renderer.tui import ArgsenseTuiApp
 from argsense.tui import TuiInterface
 from textual.widgets import Button
 from textual.widgets import Input
+from textual.widgets import RichLog
 from textual.widgets import Static
 from textual.widgets import Switch
 
@@ -35,6 +39,7 @@ def install(
         use_exist: reuse the already installed copy.
         count: how many times to retry.
     """
+    print('installing {} {}'.format(appid, version or '(latest)'))
     CALLS.append((appid, version, use_exist, count))
     return 'ok:{}'.format(appid)
 
@@ -54,8 +59,9 @@ def check(label: str, actual: t.Any, expected: t.Any) -> None:
         print('   FAIL  {:<44} {} != {}'.format(label, actual, expected))
 
 
-def status_of(app: ArgsenseTuiApp) -> str:
-    return str(app.query_one('#status', Static).content)
+def log_of(app: ArgsenseTuiApp) -> str:
+    lines = app.query_one('#log', RichLog).lines
+    return '\n'.join(strip.text for strip in lines)
 
 
 # -----------------------------------------------------------------------------
@@ -96,6 +102,23 @@ async def test_structure() -> None:
             app.query_one('#run-exit', Button).variant,
             'default',
         )
+        check(
+            'the log panel exists',
+            isinstance(app.query_one('#log'), RichLog),
+            True,
+        )
+        check(
+            'Run sits on the left of Run and exit',
+            app.query_one('#run', Button).region.x
+            < app.query_one('#run-exit', Button).region.x,
+            True,
+        )
+        check(
+            'the two buttons resolve to different colours',
+            app.query_one('#run', Button).styles.color
+            != app.query_one('#run-exit', Button).styles.color,
+            True,
+        )
 
 
 async def test_equal_button_width() -> None:
@@ -132,8 +155,21 @@ async def test_run() -> None:
         check('the function was called once', len(CALLS), 1)
         check('args/kwargs are resolved', CALLS[0], ('Alice', '', True, 1))
         check('Run keeps the app open', app.is_running, True)
-        check('status reports success', 'done' in status_of(app), True)
 
+        content = log_of(app)
+        check('captures the print output', 'installing Alice' in content, True)
+        check('appends the done marker', 'done' in content, True)
+        check(
+            'the log panel sits below the buttons',
+            app.query_one('#log').region.y > app.query_one('#run').region.y,
+            True,
+        )
+
+        # let the button's "active" tint settle, and force a repaint, so that
+        # the exported screenshot shows the settled state.
+        await asyncio.sleep(0.4)
+        app.screen.refresh(repaint=True, layout=True)
+        await pilot.pause()
         svg = app.export_screenshot()
         path = Path('test/temp/tui_form.svg')
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -175,7 +211,7 @@ async def test_errors() -> None:
         await pilot.click('#run')
         await pilot.pause()
         check('missing required arg -> not called', len(CALLS), 0)
-        message = status_of(app)
+        message = log_of(app)
         check(
             'reports the missing argument',
             'insufficient' in message.lower(),
@@ -196,7 +232,7 @@ async def test_errors() -> None:
         check('bad number -> not called', len(CALLS), 0)
         check(
             'reports an incompatible type',
-            'not compatible' in status_of(app).lower(),
+            'not compatible' in log_of(app).lower(),
             True,
         )
 
@@ -273,6 +309,56 @@ def test_run_delegates_to_the_form() -> None:
     check('returns the form result', result, 'stub-result')
 
 
+def test_mode_tokens() -> None:
+    print('[9] the mode tokens on the command line')
+    import argsense.renderer.tui as renderer
+
+    captured: t.Dict[str, t.Any] = {}
+    original_form = renderer.run_form
+
+    def fake_run_form(func_info, inline: bool = False):
+        captured['name'] = func_info.name
+        captured['inline'] = inline
+        return 'stub-result'
+
+    renderer.run_form = fake_run_form
+    original_argv = sys.argv
+    try:
+        sys.argv = ['prog', ':tui']
+        CommandLineInterface().run(install, mode='cli')
+        check(':tui overrides mode="cli"', captured.get('inline'), False)
+
+        captured.clear()
+        sys.argv = ['prog', ':itui']
+        CommandLineInterface().run(install, mode='cli')
+        check(':itui means an inline tui', captured.get('inline'), True)
+
+        captured.clear()
+        CALLS.clear()
+        sys.argv = ['prog', ':cli', 'Zoe']
+        with redirect_stdout(io.StringIO()):
+            CommandLineInterface().run(install, mode='tui')
+        check(':cli overrides mode="tui"', captured, {})
+        check('  ... and the cli path ran', CALLS[0], ('Zoe', '', True, 1))
+
+        try:
+            sys.argv = ['prog']
+            CommandLineInterface().run(install, mode='gui')
+        except NotImplementedError as exc:
+            check(
+                'mode="gui" raises NotImplementedError', 'gui' in str(exc), True
+            )
+        else:
+            check(
+                'mode="gui" raises NotImplementedError',
+                'nothing raised',
+                'NotImplementedError',
+            )
+    finally:
+        renderer.run_form = original_form
+        sys.argv = original_argv
+
+
 # -----------------------------------------------------------------------------
 
 
@@ -285,6 +371,7 @@ async def main() -> None:
     await test_narrow_terminal()
     test_multi_command_is_rejected()
     test_run_delegates_to_the_form()
+    test_mode_tokens()
 
     print()
     if FAILURES:

@@ -46,22 +46,9 @@ class TuiInterface:
             raises a `RuntimeError`.
         """
         config.apply_changes()
-        interface = self._interface
-        preset_func = interface.prepare_entrance(entrance, sys._getframe(1))
-        interface.resolve_doc_references()
-
-        if preset_func is not None:
-            func_info = interface.commands[id(preset_func)]
-        else:
-            funcs = list(interface.commands.values())
-            if len(funcs) != 1:
-                raise RuntimeError(
-                    'the tui interface works on exactly one command, but '
-                    '{} were given: {}'.format(
-                        len(funcs), ', '.join(f.name for f in funcs)
-                    )
-                )
-            func_info = funcs[0]
+        func_info = self._interface.resolve_single_command(
+            entrance, sys._getframe(1)
+        )
 
         from .renderer.tui import run_form
 

@@ -1,5 +1,7 @@
+import io
 import re
 import typing as t
+from contextlib import redirect_stdout
 
 from rich.text import Text
 from textual.app import App
@@ -9,6 +11,7 @@ from textual.containers import Vertical
 from textual.widgets import Button
 from textual.widgets import Input
 from textual.widgets import Label
+from textual.widgets import RichLog
 from textual.widgets import Static
 from textual.widgets import Switch
 
@@ -69,7 +72,7 @@ class ArgsenseTuiApp(App[t.Any]):
     #form {
         width: 100%;
         height: auto;
-        padding: 1 2;
+        padding: 0 2;
     }
     #desc {
         color: $text-muted;
@@ -89,7 +92,6 @@ class ArgsenseTuiApp(App[t.Any]):
     }
     .row > Switch {
         width: auto;
-        margin-top: 1;
     }
     #actions {
         height: auto;
@@ -98,9 +100,11 @@ class ArgsenseTuiApp(App[t.Any]):
     #actions > Button {
         width: 50%;
     }
-    #status {
-        height: auto;
+    #log {
+        height: 5;
         margin-top: 1;
+        border: round $primary;
+        padding: 0 1;
     }
     """
 
@@ -131,9 +135,12 @@ class ArgsenseTuiApp(App[t.Any]):
                             id=widget_id(name),
                         )
             with Horizontal(id='actions'):
-                yield Button('Run and exit', id='run-exit')
                 yield Button('Run', id='run', variant='primary')
-            yield Static('', id='status')
+                yield Button('Run and exit', id='run-exit')
+            yield RichLog(id='log', max_lines=1000, markup=False)
+
+    def on_mount(self) -> None:
+        self.query_one('#log', RichLog).border_title = 'log'
 
     # --------------------------------------------------------------------------
 
@@ -144,26 +151,42 @@ class ArgsenseTuiApp(App[t.Any]):
             self.execute(exit_on_success=True)
 
     def execute(self, exit_on_success: bool) -> None:
-        status = self.query_one('#status', Static)
         try:
             args, kwargs = self.parse_form()
-            result = self.func_info.target(*args, **kwargs)
         except e.ArgvParsingFailed as exc:
-            status.update(Text(_plain(str(exc)), style='red'))
+            self.write_log(Text(_plain(str(exc)), style='red'))
             return
+
+        # everything the target function prints is collected and shown in the
+        # log panel, rather than being mixed into the tui rendering.
+        capture = io.StringIO()
+        try:
+            with redirect_stdout(capture):
+                result = self.func_info.target(*args, **kwargs)
         except Exception as exc:  # noqa: BLE001
-            status.update(
+            self.flush_capture(capture)
+            self.write_log(
                 Text('{}: {}'.format(type(exc).__name__, exc), style='red')
             )
             return
 
+        self.flush_capture(capture)
         if result is None:
-            status.update(Text('done', style='green'))
+            self.write_log(Text('done', style='green'))
         else:
-            status.update(Text('done -> {!r}'.format(result), style='green'))
+            self.write_log(Text('done -> {!r}'.format(result), style='green'))
 
         if exit_on_success:
             self.exit(result)
+
+    def write_log(self, content: t.Any) -> None:
+        # note: don't name this `log` - `App.log` is textual's own logger.
+        self.query_one('#log', RichLog).write(content)
+
+    def flush_capture(self, capture: io.StringIO) -> None:
+        text = capture.getvalue()
+        if text.strip():
+            self.write_log(Text(text.rstrip('\n')))
 
     def parse_form(self) -> t.Tuple[t.Sequence[t.Any], t.Dict[str, t.Any]]:
         """
