@@ -1,5 +1,5 @@
 from argsense import cli
-# from neoprint import print
+from neoprint import print
 
 
 def main(name: str, age: int):
@@ -10,7 +10,7 @@ def main(name: str, age: int):
         name: Your name.
         age: Your age.
     """
-    print(name, age)
+    print(name, age, ':v2n')
 
 
 if __name__ == '__main__':

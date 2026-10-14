@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "neoprint>=0.1.12",
+    "neoprint>=0.1.13a3",
     "rich>=14.0.0",
 ]
 
@@ -80,5 +80,5 @@ url = "http://localhost:2131/"
 explicit = true
 
 [tool.uv.sources]
-# neoprint = { index = "likianta" }
+neoprint = { index = "likianta" }
 streamlit-canary = { index = "likianta" }

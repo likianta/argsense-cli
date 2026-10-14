@@ -8,12 +8,16 @@ from textual.app import App
 from textual.app import ComposeResult
 from textual.containers import Horizontal
 from textual.containers import Vertical
+from textual.containers import VerticalScroll
 from textual.widgets import Button
+from textual.widgets import ContentSwitcher
 from textual.widgets import Input
 from textual.widgets import Label
 from textual.widgets import RichLog
 from textual.widgets import Static
 from textual.widgets import Switch
+from textual.widgets import Tab
+from textual.widgets import Tabs
 
 from ...converter import args_2_cargs
 from ...converter import val_2_cval
@@ -28,6 +32,9 @@ class T:
     Row = t.Tuple[str, dict]
     #   (python param name, param info dict)
     InitialValues = t.Dict[str, t.Any]
+    #   form values of one command, keyed by the python param name
+    InitialsMap = t.Dict[str, InitialValues]
+    #   form values of every command, keyed by the command name
 
 
 class CliRunRequest:
@@ -35,12 +42,13 @@ class CliRunRequest:
     The value the form returns when the user pressed "Run and exit".
 
     By then the tui has already closed, so the caller is expected to rebuild the
-    command line from `tokens` and run it through the cli path. That way the
-    target function's prints land on the real console, instead of being captured
-    by the (now gone) log panel.
+    command line from `command` + `tokens` and run it through the cli path. That
+    way the target function's prints land on the real console, instead of being
+    captured by the (now gone) log panel.
     """
 
-    def __init__(self, tokens: t.Tuple[str, ...]) -> None:
+    def __init__(self, command: str, tokens: t.Tuple[str, ...]) -> None:
+        self.command = command
         self.tokens = tokens
 
 
@@ -59,8 +67,16 @@ def collect_rows(func_info: FuncInfo) -> t.List[T.Row]:
     ]
 
 
-def widget_id(name: str) -> str:
-    return 'param-{}'.format(name)
+def tab_id(command_name: str) -> str:
+    return 'tab-{}'.format(command_name)
+
+
+def pane_id(command_name: str) -> str:
+    return 'pane-{}'.format(command_name)
+
+
+def widget_id(command_name: str, param_name: str) -> str:
+    return 'param-{}-{}'.format(command_name, param_name)
 
 
 def front_matter(func_info: FuncInfo) -> dict:
@@ -107,6 +123,42 @@ def collect_initial_values(func_info: FuncInfo, argv: Argv) -> T.InitialValues:
     return values
 
 
+def resolve_initials(
+    func_infos: t.Sequence[FuncInfo], argv: t.Optional[Argv]
+) -> t.Tuple[T.InitialsMap, str]:
+    """
+    Work out the form values of every command from a command line, and tell
+    which command the command line refers to (its tab is opened first).
+
+    Returns `(initials, active_command_name)`.
+    """
+    func_infos = list(func_infos)
+    initials: T.InitialsMap = {fi.name: {} for fi in func_infos}
+    active = func_infos[0].name
+    if argv is None:
+        return initials, active
+
+    if len(func_infos) == 1:
+        initials[func_infos[0].name] = collect_initial_values(
+            func_infos[0], argv
+        )
+        return initials, active
+
+    # multi-command: the first positional token is the command name, and the
+    # tokens that follow it are that command's arguments.
+    tokens = list(argv.args)
+    for i, token in enumerate(tokens):
+        if token.startswith(('-', '_')):
+            continue
+        target = next((x for x in func_infos if x.name == token), None)
+        if target is not None:
+            active = target.name
+            sub_argv = Argv(argv.launcher, argv.target, tuple(tokens[i + 1 :]))
+            initials[target.name] = collect_initial_values(target, sub_argv)
+        break
+    return initials, active
+
+
 def _label(info: dict) -> str:
     # e.g. '--use-exist, -u' -> 'use-exist'
     return info['cname'].split(',')[0].strip().lstrip('-')
@@ -138,7 +190,16 @@ class ArgsenseTuiApp(App[t.Any]):
         height: 100%;
         padding: 0 2;
     }
-    #desc {
+    #params {
+        height: 1fr;
+    }
+    #panes {
+        height: auto;
+    }
+    .pane {
+        height: auto;
+    }
+    .desc {
         color: $text-muted;
         margin-bottom: 1;
     }
@@ -175,6 +236,7 @@ class ArgsenseTuiApp(App[t.Any]):
     }
     #log {
         height: 1fr;
+        min-height: 7;
         margin-top: 1;
         border: round $primary;
         padding: 0 1;
@@ -185,53 +247,80 @@ class ArgsenseTuiApp(App[t.Any]):
 
     def __init__(
         self,
-        func_info: FuncInfo,
+        func_infos: t.Sequence[FuncInfo],
         inline: bool = False,
-        initial: t.Optional[T.InitialValues] = None,
+        initials: t.Optional[T.InitialsMap] = None,
+        active: str = '',
     ) -> None:
         super().__init__()
-        self.func_info = func_info
-        self.rows = collect_rows(func_info)
+        self.func_infos = list(func_infos)
+        self.by_name = {x.name: x for x in self.func_infos}
         self.inline = inline
-        self.initial: T.InitialValues = initial or {}
-        self.title = func_info.name
+        self.initials = dict(initials or {})
+        self.active = active or self.func_infos[0].name
+        self.title = (
+            self.func_infos[0].name if len(self.func_infos) == 1 else 'argsense'
+        )
         self.sub_title = 'argsense'
+
+    @property
+    def active_func_info(self) -> FuncInfo:
+        return self.by_name[self.active]
 
     def compose(self) -> ComposeResult:
         with Vertical(id='form'):
-            if self.func_info.desc:
-                yield Static(self.func_info.desc, id='desc')
-            for name, info in self.rows:
-                with Horizontal(classes='row'):
-                    yield Label(_label(info), classes='name')
-                    if info['ctype'] is ParamType.FLAG:
-                        yield Switch(
-                            value=bool(
-                                self.initial.get(name, _default_flag(info))
-                            ),
-                            id=widget_id(name),
-                        )
-                    else:
-                        yield Input(
-                            value=str(
-                                self.initial.get(name, _default_text(info))
-                            ),
-                            placeholder=info['desc'],
-                            id=widget_id(name),
-                        )
+            if len(self.func_infos) > 1:
+                yield Tabs(
+                    *(Tab(x.name, id=tab_id(x.name)) for x in self.func_infos),
+                    id='tabs',
+                )
+            with VerticalScroll(id='params'):
+                with ContentSwitcher(id='panes', initial=pane_id(self.active)):
+                    for func_info in self.func_infos:
+                        with Vertical(
+                            id=pane_id(func_info.name), classes='pane'
+                        ):
+                            yield from self._compose_pane(func_info)
             with Horizontal(id='actions'):
                 yield Button('Run', id='run', variant='primary')
                 yield Button('Run and exit', id='run-exit')
                 yield Button('Exit', id='exit', variant='error')
             yield RichLog(id='log', max_lines=1000, markup=False)
 
+    def _compose_pane(self, func_info: FuncInfo) -> ComposeResult:
+        initial = self.initials.get(func_info.name, {})
+        if func_info.desc:
+            yield Static(func_info.desc, classes='desc')
+        for name, info in collect_rows(func_info):
+            with Horizontal(classes='row'):
+                yield Label(_label(info), classes='name')
+                if info['ctype'] is ParamType.FLAG:
+                    yield Switch(
+                        value=bool(initial.get(name, _default_flag(info))),
+                        id=widget_id(func_info.name, name),
+                    )
+                else:
+                    yield Input(
+                        value=str(initial.get(name, _default_text(info))),
+                        placeholder=info['desc'],
+                        id=widget_id(func_info.name, name),
+                    )
+
     def on_mount(self) -> None:
         self.query_one('#log', RichLog).border_title = 'log'
         if self.inline:
-            # inline mode: the form is a fixed-height block, so the log panel
-            # gets 5 lines of content (plus the two border rows).
+            # inline mode: the form is a fixed-height block, so nothing
+            # scrolls and the log panel gets 5 lines of content (plus the two
+            # border rows).
             self.query_one('#form').styles.height = 'auto'
+            self.query_one('#params').styles.height = 'auto'
             self.query_one('#log', RichLog).styles.height = 7
+
+    def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
+        if event.tab is None:
+            return
+        self.active = (event.tab.id or '')[len('tab-') :] or self.active
+        self.query_one('#panes', ContentSwitcher).current = pane_id(self.active)
 
     # --------------------------------------------------------------------------
 
@@ -242,11 +331,12 @@ class ArgsenseTuiApp(App[t.Any]):
             # hand the assembled command line back to the caller, which runs it
             # through the cli path once the tui has closed - so that the target
             # function's prints are not swallowed by the log panel.
-            self.exit(CliRunRequest(tuple(self.collect_tokens())))
+            self.exit(CliRunRequest(self.active, tuple(self.collect_tokens())))
         elif event.button.id == 'exit':
             self.exit()
 
     def execute(self) -> None:
+        func_info = self.active_func_info
         try:
             args, kwargs = self.parse_form()
         except e.ArgvParsingFailed as exc:
@@ -258,7 +348,7 @@ class ArgsenseTuiApp(App[t.Any]):
         capture = io.StringIO()
         try:
             with redirect_stdout(capture):
-                result = self.func_info.target(*args, **kwargs)
+                result = func_info.target(*args, **kwargs)
         except Exception as exc:  # noqa: BLE001
             self.flush_capture(capture)
             self.write_log(
@@ -283,11 +373,15 @@ class ArgsenseTuiApp(App[t.Any]):
 
     def collect_tokens(self) -> t.List[str]:
         """
-        Assemble the command line tokens from the current form values.
+        Assemble the command line tokens from the current form values. Only the
+        active command's rows are read.
         """
+        func_info = self.active_func_info
         tokens: t.List[str] = []
-        for name, _info in self.rows:
-            widget = self.query_one('#{}'.format(widget_id(name)))
+        for name, _info in collect_rows(func_info):
+            widget = self.query_one(
+                '#{}'.format(widget_id(func_info.name, name))
+            )
             if isinstance(widget, Switch):
                 tokens += args_2_cargs(**{name: widget.value})
             elif isinstance(widget, Input):
@@ -302,10 +396,11 @@ class ArgsenseTuiApp(App[t.Any]):
         feeding it to the very same parser that the cli interface uses. This
         keeps type conversion, default values and error messages identical.
         """
+        func_info = self.active_func_info
         result = parse_argv(
             Argv(('argsense',), ('tui',), tuple(self.collect_tokens())),
             mode='command',
-            front_matter=front_matter(self.func_info),  # type: ignore
+            front_matter=front_matter(func_info),  # type: ignore
             implicit_help=False,
             raise_on_error=True,
         )
@@ -314,24 +409,29 @@ class ArgsenseTuiApp(App[t.Any]):
 
 
 def run_form(
-    func_info: FuncInfo,
+    func_infos: t.Sequence[FuncInfo],
     inline: bool = False,
     argv: t.Optional[Argv] = None,
-    cli_runner: t.Optional[t.Callable[[t.Tuple[str, ...]], t.Any]] = None,
+    cli_runner: t.Optional[t.Callable[[CliRunRequest], t.Any]] = None,
 ) -> t.Any:
     """
     Launch the form and return the target function's return value.
+
+    Every command in `func_infos` gets its own tab in the form.
 
     params:
         argv:
             an optional command line, whose values prefill the form.
         cli_runner:
-            called with the assembled tokens when the user pressed "Run and
-            exit". It should run the command line through the cli path.
+            called when the user pressed "Run and exit". It should run the
+            rebuilt command line through the cli path.
     """
-    initial = collect_initial_values(func_info, argv) if argv else {}
-    app = ArgsenseTuiApp(func_info, inline=inline, initial=initial)
+    func_infos = list(func_infos)
+    initials, active = resolve_initials(func_infos, argv)
+    app = ArgsenseTuiApp(
+        func_infos, inline=inline, initials=initials, active=active
+    )
     result = app.run(inline=inline)
     if isinstance(result, CliRunRequest) and cli_runner is not None:
-        return cli_runner(result.tokens)
+        return cli_runner(result)
     return result

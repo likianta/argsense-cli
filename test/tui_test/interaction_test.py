@@ -20,12 +20,20 @@ from argsense.parser import FuncInfo
 from argsense.renderer.tui import ArgsenseTuiApp
 from argsense.renderer.tui import CliRunRequest
 from argsense.renderer.tui import collect_initial_values
+from argsense.renderer.tui import resolve_initials
 from argsense.tui import TuiInterface
+from textual.containers import VerticalScroll
 from textual.widgets import Button
+from textual.widgets import ContentSwitcher
 from textual.widgets import Input
 from textual.widgets import RichLog
 from textual.widgets import Static
 from textual.widgets import Switch
+from textual.widgets import Tab
+from textual.widgets import Tabs
+
+SIZE = (100, 40)
+#   a terminal big enough to show a small form without scrolling.
 
 CALLS: t.List[t.Tuple] = []
 FAILURES: t.List[str] = []
@@ -48,6 +56,18 @@ def install(
     return 'ok:{}'.format(appid)
 
 
+def uninstall(appid: str, version: str = '') -> None:
+    """
+    uninstall an app.
+
+    params:
+        appid: the app id.
+        version: the version to uninstall.
+    """
+    print('uninstalling {} {}'.format(appid, version or '(latest)'))
+    CALLS.append(('uninstall', appid, version))
+
+
 def main(name: str, age: int):
     """
     General types demo.
@@ -59,15 +79,46 @@ def main(name: str, age: int):
     print(name, age)
 
 
-def func_info_of(func) -> t.Any:
+def many_params(
+    project_name: str,
+    version: str = '0.1.0',
+    author: str = '',
+    email: str = '',
+    description: str = '',
+    license: str = 'MIT',
+    homepage: str = '',
+    keywords: str = '',
+    package_dir: str = '.',
+    output_dir: str = 'dist',
+    jobs: int = 4,
+    timeout: int = 60,
+    retries: int = 2,
+    build_wheel: bool = True,
+    build_sdist: bool = True,
+    verbose: bool = False,
+) -> None:
+    """
+    a command with a lot of parameters.
+
+    params:
+        project_name: The project name.
+        version: The project version.
+    """
+    print('configure {} v{}'.format(project_name, version))
+
+
+def func_info_of(func) -> FuncInfo:
     cli = CommandLineInterface()
     cli.add_cmd(func)
     cli.resolve_doc_references()
     return cli.commands[id(func)]
 
 
-def build_app(inline: bool = False) -> ArgsenseTuiApp:
-    return ArgsenseTuiApp(func_info_of(install), inline=inline)
+def build_app(
+    func=install, inline: bool = False, extra: t.Sequence = ()
+) -> ArgsenseTuiApp:
+    func_infos = [func_info_of(func), *(func_info_of(x) for x in extra)]
+    return ArgsenseTuiApp(func_infos, inline=inline)
 
 
 def check(label: str, actual: t.Any, expected: t.Any) -> None:
@@ -89,26 +140,26 @@ def log_of(app: ArgsenseTuiApp) -> str:
 async def test_structure() -> None:
     print('[1] form structure')
     app = build_app()
-    async with app.run_test(size=(80, 24)) as pilot:
+    async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
         check('inputs for non-flag params', len(app.query(Input)), 3)
         check('switch for the flag param', len(app.query(Switch)), 1)
         check(
-            'desc is rendered', app.query_one('#desc', Static) is not None, True
+            'desc is rendered', app.query_one('.desc', Static) is not None, True
         )
         check(
             'default value is prefilled',
-            app.query_one('#param-count', Input).value,
+            app.query_one('#param-install-count', Input).value,
             '1',
         )
         check(
             'no default -> left empty',
-            app.query_one('#param-version', Input).value,
+            app.query_one('#param-install-version', Input).value,
             '',
         )
         check(
             'description becomes the placeholder',
-            app.query_one('#param-appid', Input).placeholder,
+            app.query_one('#param-install-appid', Input).placeholder,
             'the app id.',
         )
         check(
@@ -131,6 +182,7 @@ async def test_structure() -> None:
             isinstance(app.query_one('#log'), RichLog),
             True,
         )
+        check('a single command shows no tabs', len(app.query(Tab)), 0)
         run = app.query_one('#run', Button)
         run_exit = app.query_one('#run-exit', Button)
         exit_ = app.query_one('#exit', Button)
@@ -156,10 +208,33 @@ async def test_structure() -> None:
         )
 
 
-async def test_button_layout() -> None:
-    print('[2] the run buttons split the space, exit wraps')
+async def test_layout_order() -> None:
+    print('[2] the window is: params / buttons / log')
     app = build_app()
-    async with app.run_test(size=(80, 24)) as pilot:
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        params = app.query_one('#params', VerticalScroll)
+        actions = app.query_one('#actions')
+        log = app.query_one('#log', RichLog)
+        check(
+            'params is a scroll view', isinstance(params, VerticalScroll), True
+        )
+        check(
+            'params sits above the buttons',
+            params.region.bottom <= actions.region.y,
+            True,
+        )
+        check(
+            'the buttons sit above the log',
+            actions.region.bottom <= log.region.y,
+            True,
+        )
+
+
+async def test_button_layout() -> None:
+    print('[3] the run buttons split the space, exit wraps')
+    app = build_app()
+    async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
         run = app.query_one('#run', Button)
         run_exit = app.query_one('#run-exit', Button)
@@ -178,19 +253,19 @@ async def test_button_layout() -> None:
 
 
 async def test_log_height() -> None:
-    print('[3] the log panel height')
+    print('[4] the log panel height')
     app = build_app()
-    async with app.run_test(size=(80, 24)) as pilot:
+    async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
         log = app.query_one('#log')
         check(
-            'non-inline: stretches to the bottom of the window',
+            'non-inline: reaches the bottom of the window',
             log.region.bottom,
             app.screen.region.height,
         )
 
     app = build_app(inline=True)
-    async with app.run_test(size=(80, 24)) as pilot:
+    async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
         log = app.query_one('#log')
         # 5 lines of content + 2 border rows.
@@ -198,16 +273,16 @@ async def test_log_height() -> None:
 
 
 async def test_run() -> None:
-    print('[4] fill the form and press Run')
+    print('[5] fill the form and press Run')
     CALLS.clear()
     app = build_app()
-    async with app.run_test(size=(80, 24)) as pilot:
-        await pilot.click('#param-appid')
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.click('#param-install-appid')
         await pilot.press(*'Alice')
         await pilot.pause()
         check(
             'the typed value lands in the input',
-            app.query_one('#param-appid', Input).value,
+            app.query_one('#param-install-appid', Input).value,
             'Alice',
         )
 
@@ -239,17 +314,17 @@ async def test_run() -> None:
 
 
 async def test_flag_and_run_exit() -> None:
-    print('[5] toggle the switch, then press Run and exit')
+    print('[6] toggle the switch, then press Run and exit')
     CALLS.clear()
     app = build_app()
-    async with app.run_test(size=(80, 24)) as pilot:
-        await pilot.click('#param-appid')
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.click('#param-install-appid')
         await pilot.press(*'Bob')
-        await pilot.click('#param-use_exist')
+        await pilot.click('#param-install-use_exist')
         await pilot.pause()
         check(
             'the switch was toggled off',
-            app.query_one('#param-use_exist', Switch).value,
+            app.query_one('#param-install-use_exist', Switch).value,
             False,
         )
 
@@ -260,6 +335,7 @@ async def test_flag_and_run_exit() -> None:
     request = app.return_value
     check('a cli run was requested', isinstance(request, CliRunRequest), True)
     assert isinstance(request, CliRunRequest)
+    check('the request names the command', request.command, 'install')
     check(
         'the tokens mirror the form',
         request.tokens,
@@ -268,11 +344,11 @@ async def test_flag_and_run_exit() -> None:
 
 
 async def test_exit_button() -> None:
-    print('[6] press Exit -> quits without running')
+    print('[7] press Exit -> quits without running')
     CALLS.clear()
     app = build_app()
-    async with app.run_test(size=(80, 24)) as pilot:
-        await pilot.click('#param-appid')
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.click('#param-install-appid')
         await pilot.press(*'Alice')
         await pilot.pause()
         await pilot.click('#exit')
@@ -283,10 +359,10 @@ async def test_exit_button() -> None:
 
 
 async def test_errors() -> None:
-    print('[7] error reporting')
+    print('[8] error reporting')
     CALLS.clear()
     app = build_app()
-    async with app.run_test(size=(80, 24)) as pilot:
+    async with app.run_test(size=SIZE) as pilot:
         await pilot.click('#run')
         await pilot.pause()
         check('missing required arg -> not called', len(CALLS), 0)
@@ -298,13 +374,13 @@ async def test_errors() -> None:
         )
         check('no raw markup leaks through', '[' not in message, True)
 
-        await pilot.click('#param-appid')
+        await pilot.click('#param-install-appid')
         await pilot.press(*'Alice')
 
-        count_input = app.query_one('#param-count', Input)
+        count_input = app.query_one('#param-install-count', Input)
         count_input.value = ''
         await pilot.pause()
-        await pilot.click('#param-count')
+        await pilot.click('#param-install-count')
         await pilot.press(*'abc')
         await pilot.click('#run')
         await pilot.pause()
@@ -327,9 +403,9 @@ async def test_errors() -> None:
 
 
 async def test_narrow_terminal() -> None:
-    print('[8] narrow terminal')
+    print('[9] narrow terminal')
     app = build_app()
-    async with app.run_test(size=(80, 24)) as pilot:
+    async with app.run_test(size=SIZE) as pilot:
         await pilot.resize_terminal(46, 20)
         await pilot.pause()
         run = app.query_one('#run', Button)
@@ -345,8 +421,107 @@ async def test_narrow_terminal() -> None:
         check('exit stays wrapped', exit_.size.width < run.size.width, True)
 
 
+async def test_multi_command_tabs() -> None:
+    print('[10] several commands are switched by tabs')
+    CALLS.clear()
+    app = build_app(extra=(uninstall,))
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        tabs = app.query_one('#tabs', Tabs)
+        check('one tab per command', len(app.query(Tab)), 2)
+        check('the tabs are shown', tabs.size.height > 0, True)
+        check('the first command is active', app.active, 'install')
+        check(
+            'its pane is the visible one',
+            app.query_one('#panes', ContentSwitcher).current,
+            'pane-install',
+        )
+        check('both commands are mounted', len(app.query(Input)), 3 + 2)
+
+        # switch to the second command.
+        tabs.active = 'tab-uninstall'
+        await pilot.pause()
+        check('the active command follows the tab', app.active, 'uninstall')
+        check(
+            'the switcher follows the tab',
+            app.query_one('#panes', ContentSwitcher).current,
+            'pane-uninstall',
+        )
+        check(
+            'the old pane is hidden',
+            app.query_one('#pane-install').styles.display,
+            'none',
+        )
+        check(
+            'the new pane is shown',
+            app.query_one('#pane-uninstall').styles.display,
+            'block',
+        )
+
+        # run the second command.
+        await pilot.click('#param-uninstall-appid')
+        await pilot.press(*'Zoe')
+        await pilot.click('#run')
+        await pilot.pause()
+        check('the second command ran', CALLS[0], ('uninstall', 'Zoe', ''))
+        check(
+            'its output goes to the shared log',
+            'uninstalling Zoe' in log_of(app),
+            True,
+        )
+
+
+async def test_multi_command_run_and_exit() -> None:
+    print('[11] "Run and exit" carries the active command')
+    app = build_app(extra=(uninstall,))
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        app.query_one('#tabs', Tabs).active = 'tab-uninstall'
+        await pilot.pause()
+        await pilot.click('#param-uninstall-appid')
+        await pilot.press(*'Zoe')
+        await pilot.click('#run-exit')
+        await pilot.pause()
+    request = app.return_value
+    assert isinstance(request, CliRunRequest)
+    check('the request names the active command', request.command, 'uninstall')
+    check('the tokens come from that pane', request.tokens, ('--appid', 'Zoe'))
+
+
+async def test_many_params_scroll() -> None:
+    print('[12] a long form scrolls, the log keeps its minimum height')
+    app = build_app(many_params)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        params = app.query_one('#params', VerticalScroll)
+        log = app.query_one('#log', RichLog)
+        check(
+            'the parameter list is taller than the viewport',
+            params.max_scroll_y > 0,
+            True,
+        )
+        check(
+            'the viewport cannot show everything',
+            params.virtual_size.height > params.size.height,
+            True,
+        )
+        check(
+            'the log panel keeps >= 5 inner lines', log.region.height >= 7, True
+        )
+        check(
+            'the log reaches the bottom',
+            log.region.bottom,
+            app.screen.region.height,
+        )
+
+        # scroll to the last row.
+        params.scroll_end(animate=False)
+        await pilot.pause()
+        check('scrolling reaches the end', params.scroll_y, params.max_scroll_y)
+
+
 def test_argv_prefill() -> None:
-    print('[9] the command line prefills the form')
+    print('[13] the command line prefills the form')
     func_info = func_info_of(main)
     argv = Argv(('python',), ('main.py',), ('Alice', '22'))
     initial = collect_initial_values(func_info, argv)
@@ -363,29 +538,43 @@ def test_argv_prefill() -> None:
     check('unparsable argv -> no prefill', bad, {})
 
 
+def test_argv_prefill_multi_command() -> None:
+    print('[14] the command line picks the tab and prefills it')
+    func_infos = [func_info_of(install), func_info_of(uninstall)]
+    argv = Argv(('python',), ('demo.py',), ('uninstall', 'Zoe', '1.0'))
+    initials, active = resolve_initials(func_infos, argv)
+    check('the named command becomes active', active, 'uninstall')
+    check(
+        'its values are prefilled',
+        initials['uninstall'],
+        {'appid': 'Zoe', 'version': '1.0'},
+    )
+    check('the untouched command has no values', initials['install'], {})
+
+
 async def test_argv_prefill_in_form() -> None:
-    print('[10] the prefilled values show up in the widgets')
+    print('[15] the prefilled values show up in the widgets')
     func_info = func_info_of(main)
     initial = collect_initial_values(
         func_info, Argv(('python',), ('main.py',), ('Alice', '22'))
     )
-    app = ArgsenseTuiApp(func_info, initial=initial)
-    async with app.run_test(size=(80, 24)) as pilot:
+    app = ArgsenseTuiApp([func_info], initials={'main': initial})
+    async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
         check(
             'name input is prefilled',
-            app.query_one('#param-name', Input).value,
+            app.query_one('#param-main-name', Input).value,
             'Alice',
         )
         check(
             'age input is prefilled',
-            app.query_one('#param-age', Input).value,
+            app.query_one('#param-main-age', Input).value,
             '22',
         )
 
 
-def test_multi_command_is_rejected() -> None:
-    print('[11] multi-command is rejected before the app starts')
+def test_single_command_is_still_enforced() -> None:
+    print('[16] resolve_single_command still rejects several commands')
 
     def f1() -> None: ...
 
@@ -393,7 +582,9 @@ def test_multi_command_is_rejected() -> None:
 
     interface = TuiInterface()
     try:
-        interface.run((f1, f2))
+        interface._interface.resolve_single_command(  # noqa: SLF001
+            (f1, f2), sys._getframe(0)
+        )
     except RuntimeError as exc:
         check('raises RuntimeError', 'exactly one command' in str(exc), True)
     else:
@@ -401,19 +592,19 @@ def test_multi_command_is_rejected() -> None:
 
 
 def test_run_delegates_to_the_form() -> None:
-    print('[12] tui.run(...) resolves the entrance and opens the form')
+    print('[17] tui.run(...) resolves the entrance and opens the form')
     import argsense.renderer.tui as renderer
 
     captured: t.Dict[str, t.Any] = {}
     original = renderer.run_form
 
     def fake_run_form(
-        func_info: FuncInfo,
+        func_infos,
         inline: bool = False,
         argv: t.Optional[Argv] = None,
         cli_runner: t.Optional[t.Callable] = None,
     ) -> t.Any:
-        captured['name'] = func_info.name
+        captured['names'] = [x.name for x in func_infos]
         captured['inline'] = inline
         captured['argv'] = argv
         captured['has_runner'] = callable(cli_runner)
@@ -428,7 +619,7 @@ def test_run_delegates_to_the_form() -> None:
         renderer.run_form = original
         sys.argv = original_argv
 
-    check('delegates to the form renderer', captured.get('name'), 'install')
+    check('delegates to the form renderer', captured.get('names'), ['install'])
     check('passes the inline flag', captured.get('inline'), True)
     check(
         'passes the command line for prefill',
@@ -440,20 +631,20 @@ def test_run_delegates_to_the_form() -> None:
 
 
 def test_run_and_exit_goes_through_cli() -> None:
-    print('[13] "Run and exit" is dispatched to the cli path')
+    print('[18] "Run and exit" is dispatched to the cli path')
     import argsense.renderer.tui as renderer
 
     original = renderer.run_form
 
     def fake_run_form(
-        func_info: FuncInfo,
+        func_infos,
         inline: bool = False,
         argv: t.Optional[Argv] = None,
         cli_runner: t.Optional[t.Callable] = None,
     ) -> t.Any:
         # pretend the user filled the form and pressed "Run and exit".
         assert cli_runner is not None
-        return cli_runner(('Zoe',))
+        return cli_runner(CliRunRequest('install', ('Zoe',)))
 
     renderer.run_form = fake_run_form  # type: ignore
     original_argv = sys.argv
@@ -470,19 +661,19 @@ def test_run_and_exit_goes_through_cli() -> None:
 
 
 def test_mode_tokens() -> None:
-    print('[14] the mode tokens on the command line')
+    print('[19] the mode tokens on the command line')
     import argsense.renderer.tui as renderer
 
     captured: t.Dict[str, t.Any] = {}
     original_form = renderer.run_form
 
     def fake_run_form(
-        func_info: FuncInfo,
+        func_infos,
         inline: bool = False,
         argv: t.Optional[Argv] = None,
         cli_runner: t.Optional[t.Callable] = None,
     ) -> t.Any:
-        captured['name'] = func_info.name
+        captured['names'] = [x.name for x in func_infos]
         captured['inline'] = inline
         captured['argv'] = argv
         captured['has_runner'] = callable(cli_runner)
@@ -540,6 +731,7 @@ def test_mode_tokens() -> None:
 
 async def run_all() -> None:
     await test_structure()
+    await test_layout_order()
     await test_button_layout()
     await test_log_height()
     await test_run()
@@ -547,9 +739,13 @@ async def run_all() -> None:
     await test_exit_button()
     await test_errors()
     await test_narrow_terminal()
+    await test_multi_command_tabs()
+    await test_multi_command_run_and_exit()
+    await test_many_params_scroll()
     test_argv_prefill()
+    test_argv_prefill_multi_command()
     await test_argv_prefill_in_form()
-    test_multi_command_is_rejected()
+    test_single_command_is_still_enforced()
     test_run_delegates_to_the_form()
     test_run_and_exit_goes_through_cli()
     test_mode_tokens()

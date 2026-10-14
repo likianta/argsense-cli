@@ -43,25 +43,11 @@ class TuiInterface:
     def run(self, entrance: T0.Entrance = None, inline: bool = False) -> tp.Any:
         """
         Note:
-            Only a single command is supported here. Passing several commands
-            raises a `RuntimeError`.
+            Every registered command is shown on its own tab in the form.
         """
         config.apply_changes()
-        func_info = self._interface.resolve_single_command(
-            entrance, sys._getframe(1)
-        )
-
-        from .renderer.tui import run_form
-
-        argv = Argv.from_sys_argv()
-        return run_form(
-            func_info,
-            inline=inline,
-            argv=argv,
-            cli_runner=lambda tokens: self._interface.exec_argv(
-                Argv(argv.launcher, argv.target, tokens),
-                preset_func=func_info.target,
-            ),
+        return self._interface.run_tui(
+            entrance, sys._getframe(1), inline=inline, argv=Argv.from_sys_argv()
         )
 
 

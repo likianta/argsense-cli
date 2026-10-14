@@ -53,7 +53,7 @@ wheels = [
 
 [[package]]
 name = "argsense"
-version = "1.4.0a0"
+version = "2.0.0a0"
 source = { editable = "." }
 dependencies = [
     { name = "neoprint" },
@@ -88,7 +88,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "neoprint", specifier = ">=0.1.12" },
+    { name = "neoprint", specifier = ">=0.1.13a3", index = "http://localhost:2131/" },
     { name = "rich", specifier = ">=14.0.0" },
     { name = "streamlit-canary", marker = "python_full_version >= '3.11' and extra == 'all'", specifier = ">=0.4.0a69", index = "http://localhost:2131/" },
     { name = "streamlit-canary", marker = "python_full_version >= '3.11' and extra == 'gui'", specifier = ">=0.4.0a69", index = "http://localhost:2131/" },
@@ -724,13 +724,13 @@ wheels = [
 
 [[package]]
 name = "neoprint"
-version = "0.1.12"
-source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple/" }
+version = "0.1.13a3"
+source = { registry = "http://localhost:2131/" }
 dependencies = [
     { name = "rich" },
 ]
 wheels = [
-    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/fc/d5/b00a6cd1cc595ecbf4dcba0ae98b44a9733a0a62aa9f2c7d2d9806f1c6df/neoprint-0.1.12-py3-none-any.whl", hash = "sha256:39eafcd55e8b4f527fee5563d0bb70721edbc033fde3731647700c976d086be0", size = 36783, upload-time = "2026-09-23T09:15:17.442Z" },
+    { url = "http://localhost:2131/neoprint/neoprint-0.1.13a3-py3-none-any.whl" },
 ]
 
 [[package]]

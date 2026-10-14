@@ -280,22 +280,70 @@ class CommandLineInterface:
             )
 
         if mode == 'tui':
-            func_info = self.resolve_single_command(entrance, sys._getframe(1))
-            from .renderer.tui import run_form
-
-            return run_form(
-                func_info,
+            return self.run_tui(
+                entrance,
+                sys._getframe(1),
                 inline=kwargs.get('inline', False),
                 argv=argv,
-                cli_runner=lambda tokens: self.exec_argv(
-                    Argv(argv.launcher, argv.target, tokens),
-                    preset_func=func_info.target,
-                ),
             )
 
         raise NotImplementedError(
             'the [{}] mode is not implemented yet.'.format(mode)
         )
+
+    def run_tui(
+        self,
+        entrance: T.Entrance,
+        caller_frame: types.FrameType,
+        inline: bool = False,
+        argv: tp.Optional[Argv] = None,
+    ) -> tp.Any:
+        """
+        Run the tui interface on the commands carried by `entrance`.
+
+        Every registered command gets its own tab in the form. When the user
+        presses "Run and exit", the assembled command line is handed back to
+        this interface and executed through the cli path (see `exec_argv`), so
+        that the target function's prints go to the real console.
+        """
+        func_infos = self.resolve_commands(entrance, caller_frame)
+        if argv is None:
+            argv = Argv.from_sys_argv()
+
+        from .renderer.tui import CliRunRequest
+        from .renderer.tui import run_form
+
+        single = len(func_infos) == 1
+
+        def cli_runner(request: CliRunRequest) -> tp.Any:
+            if single:
+                tokens = request.tokens
+                preset_func = func_infos[0].target
+            else:
+                tokens = (request.command, *request.tokens)
+                preset_func = None
+            return self.exec_argv(
+                Argv(argv.launcher, argv.target, tokens),
+                preset_func=preset_func,
+            )
+
+        return run_form(
+            func_infos, inline=inline, argv=argv, cli_runner=cli_runner
+        )
+
+    def resolve_commands(
+        self, entrance: T.Entrance, caller_frame: types.FrameType
+    ) -> tp.List[T.FuncInfo]:
+        """
+        Resolve `entrance` into the list of commands it carries, in
+        registration order. The tui / gui interfaces use it.
+        """
+        preset_func = self.prepare_entrance(entrance, caller_frame)
+        self.resolve_doc_references()
+
+        if preset_func is not None:
+            return [self.commands[id(preset_func)]]
+        return list(self.commands.values())
 
     def resolve_single_command(
         self, entrance: T.Entrance, caller_frame: types.FrameType
@@ -304,13 +352,7 @@ class CommandLineInterface:
         Resolve `entrance` into the info of exactly one command. The tui / gui
         interfaces use it, since they can only present a single command.
         """
-        preset_func = self.prepare_entrance(entrance, caller_frame)
-        self.resolve_doc_references()
-
-        if preset_func is not None:
-            return self.commands[id(preset_func)]
-
-        funcs = list(self.commands.values())
+        funcs = self.resolve_commands(entrance, caller_frame)
         if len(funcs) != 1:
             raise RuntimeError(
                 'this interface works on exactly one command, but '
