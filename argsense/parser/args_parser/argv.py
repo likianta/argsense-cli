@@ -21,19 +21,19 @@ class Argv:
     launcher: T.ArgvLauncher
     target: T.ArgvTarget
     args: T.ArgvArgs
-    
+
     @property
     def possible_function(self) -> t.Optional[str]:  # FIXME: not reliable
         for x in self.args:
             if not x.startswith(('_', '-')):
                 return x.replace('_', '-')
-    
+
     @classmethod
     def from_sys_argv(cls) -> 'Argv':
         """
         note: this method should be called after main modules loaded. i.e. you -
         can not call this in global scope.
-        
+
         returns:
             e.g.
                 Argv(
@@ -58,22 +58,19 @@ class Argv:
             return Argv(
                 (sys.executable, '-m'),
                 (argv[0].replace('\\', '/').split('/')[-2],),
-                argv[1:]
+                argv[1:],
             )
         else:
             return Argv((sys.executable,), (argv[0],), argv[1:])
-    
+
     def __init__(
-        self,
-        launcher: T.ArgvLauncher,
-        target: T.ArgvTarget,
-        args: T.ArgvArgs
+        self, launcher: T.ArgvLauncher, target: T.ArgvTarget, args: T.ArgvArgs
     ) -> None:
         self.launcher = launcher
         self.target = target
         self.args = args
         self.argx = len(launcher) + len(target)
-    
+
     def __iter__(self) -> t.Iterator[t.Tuple[int, str, int]]:
         """
         yields:
@@ -91,14 +88,14 @@ class Argv:
 def report(err_idx: int, err_msg: str, err_type: str = '') -> None:
     """
     accurately report which element is parsing failed.
-    
+
     conception:
         input: py test.py foo --bar baz
         report:
             > python test.py foo --bar baz
             `--bar` was not recognized as a valid option in `foo` command. did
             you mean "--bart"?
-    
+
     see also:
         ./exceptions.py
     """
@@ -107,22 +104,22 @@ def report(err_idx: int, err_msg: str, err_type: str = '') -> None:
         xlist[err_idx] = '[red u]{}[/]'.format(xlist[err_idx])
     else:
         xlist.append('[red dim u]???[/]')
-    
+
     rich.print(
         rich.panel.Panel(
             dedent(
-                '''
+                """
                 Failed parsing command line arguments -- there was an error \\
                 happened in the following position:
 
                 [default on #1d1d1d] [bold cyan]>[/] {argv} [/]
 
                 {reason}
-                '''
-            ).strip().replace(' \\\n', ' ').format(
-                argv=' '.join(xlist),
-                reason=err_msg,
-            ),
+                """
+            )
+            .strip()
+            .replace(' \\\n', ' ')
+            .format(argv=' '.join(xlist), reason=err_msg),
             border_style='red',
             title='\\[argsense{}] argparsing failed'.format(
                 err_type and f'.{err_type}'
@@ -130,5 +127,5 @@ def report(err_idx: int, err_msg: str, err_type: str = '') -> None:
             title_align='left',
         )
     )
-    
+
     sys.exit(1)

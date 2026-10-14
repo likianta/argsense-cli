@@ -22,12 +22,7 @@ class T:
                 #   }
                 str,
                 tp.TypedDict(  # ty: ignore
-                    'ArgInfo',
-                    {
-                        'cname': str,
-                        'cshort': str,
-                        'desc': str,
-                    },
+                    'ArgInfo', {'cname': str, 'cshort': str, 'desc': str}
                 ),
             ],
             'kwargs': tp.Dict[
@@ -41,12 +36,7 @@ class T:
                 #   }
                 str,
                 tp.TypedDict(  # ty: ignore
-                    'OptInfo',
-                    {
-                        'cname': str,
-                        'cshort': str,
-                        'desc': str,
-                    },
+                    'OptInfo', {'cname': str, 'cshort': str, 'desc': str}
                 ),
             ],
         },

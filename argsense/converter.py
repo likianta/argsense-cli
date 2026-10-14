@@ -43,7 +43,7 @@ def args_2_cargs(*args, **kwargs) -> tp.List[str]:
 def name_2_cname(name: str, style: tp.Optional[T.Style] = None) -> str:
     """
     convert param name from python style to cli style.
-    
+
     style   input       output
     -----   ----------  ---------
     arg     aaa_bbb     aaa-bbb
@@ -59,12 +59,12 @@ def name_2_cname(name: str, style: tp.Optional[T.Style] = None) -> str:
     opt     aaa_bbb_    --aaa-bbb
     opt     _aaa_bbb_   --aaa-bbb
     opt     **aaa_bbb   **aaa-bbb
-    
+
     other styles follow the same rule with `arg`.
-    
+
     note:
         the output is forced lower case, no matter what the case of `name` is.
-    
+
     warning:
         be careful using `xxx_`, `_xxx`, etc. in the same function. it produces
         duplicate cnames and causes unexpected behavior!
@@ -73,11 +73,11 @@ def name_2_cname(name: str, style: tp.Optional[T.Style] = None) -> str:
     """
     if name.startswith('*'):
         i = name.rindex('*')
-        return name[:i + 1] + name_2_cname(name[i + 1:], style='arg')
+        return name[: i + 1] + name_2_cname(name[i + 1 :], style='arg')
     elif name.startswith(':'):
         assert name in (':h', ':help')
         return ':h'
-    
+
     name = name.lower().strip('_')
     if style == 'arg':
         arg_style = config.ARG_NAME_STYLE
@@ -106,16 +106,16 @@ def type_2_ctype(type_: T.ParamType1) -> T.ParamType2:
         to: `./argparse/parser.py : def parse_sys_argv()`
     """
     return {
-        'any'  : ParamType.ANY,
+        'any': ParamType.ANY,
         # 'bool' : ParamType.BOOL,
-        'dict' : ParamType.DICT,
-        'flag' : ParamType.FLAG,
+        'dict': ParamType.DICT,
+        'flag': ParamType.FLAG,
         'float': ParamType.NUMBER,
-        'int'  : ParamType.NUMBER,
-        'list' : ParamType.LIST,
-        'none' : ParamType.NONE,
-        'set'  : ParamType.LIST,
-        'str'  : ParamType.TEXT,
+        'int': ParamType.NUMBER,
+        'list': ParamType.LIST,
+        'none': ParamType.NONE,
+        'set': ParamType.LIST,
+        'str': ParamType.TEXT,
         'tuple': ParamType.LIST,
     }.get(type_, ParamType.ANY)
 
@@ -152,6 +152,7 @@ def val_2_cval(value: tp.Any, type_: ParamType = ParamType.ANY) -> str:
 
 # -----------------------------------------------------------------------------
 
+
 def cname_2_name(name: str) -> str:
     return name.replace('-', '_')
 
@@ -185,25 +186,25 @@ PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(
 )
 
 SPECIAL_ARGS = {
-    ':cwd'        : os.getcwd(),
-    ':empty'      : '',
-    ':f'          : False,  # alias of ':false'
-    ':false'      : False,
-    ':h'          : True,  # alias of ':help'
-    ':help'       : True,
+    ':cwd': os.getcwd(),
+    ':empty': '',
+    ':f': False,  # alias of ':false'
+    ':false': False,
+    ':h': True,  # alias of ':help'
+    ':help': True,
     # ':i'          : True,  # alias of ':interactive'
     # ':interactive': True,
-    ':loop'       : True,
-    ':none'       : None,
-    ':t'          : True,  # alias of ':true'
-    ':true'       : True,
+    ':loop': True,
+    ':none': None,
+    ':t': True,  # alias of ':true'
+    ':true': True,
 }
 
 
 def cval_2_val(value: str, type_: ParamType = ParamType.ANY) -> tp.Any:
     if value in SPECIAL_ARGS:
         return SPECIAL_ARGS[value]
-    
+
     if type_ == ParamType.ANY:
         if PYTHON_ACCEPTABLE_NUMBER_PATTERN.match(value):
             return eval(value)
@@ -216,11 +217,16 @@ def cval_2_val(value: str, type_: ParamType = ParamType.ANY) -> tp.Any:
     #     return True if value in (':true', 'true', 'TRUE', '1') else False
     elif type_ == ParamType.FLAG:
         assert value in (
-            ':true', ':false',
-            'true', 'false',
-            '1', '0',
-            ':t', ':f',
-            'TRUE', 'FALSE',
+            ':true',
+            ':false',
+            'true',
+            'false',
+            '1',
+            '0',
+            ':t',
+            ':f',
+            'TRUE',
+            'FALSE',
         ), ('incorrect value for flag type', value, type_)
         return value in (':true', 'true', '1', ':t', 'TRUE')
     elif type_ == ParamType.NONE:

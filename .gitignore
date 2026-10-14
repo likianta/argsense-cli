@@ -2,6 +2,7 @@
 /deleted/
 /dist/
 /examples/test.py
+/test/temp/
 __pycache__/
 *.pyc
 .DS_Store

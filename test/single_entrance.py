@@ -5,7 +5,7 @@ from argsense import cli
 def main(aaa: int, bbb: str, ccc: bool = True):
     """
     just print the incoming arguments.
-    
+
     params:
         aaa: million central free if already bill.
         bbb (-b): wait size information policy.

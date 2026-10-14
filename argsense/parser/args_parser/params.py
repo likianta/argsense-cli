@@ -24,22 +24,21 @@ class T:
 
 
 class ParamsHolder:
-    
     def __init__(self, args: T.Args, kwargs: T.KwArgs, **references) -> None:
         self._cnames = references.get('cnames', ('[i]...[/]',))
-        
+
         self._args = [(k, v) for k, v in args.items() if k != '*']
         self._kwargs = [(k, v) for k, v in kwargs.items() if k != '**']
-        
+
         self._has_args = '*' in args
         self._has_kwargs = '**' in kwargs
-        
+
     def __bool__(self) -> bool:
         """
         returning True means that there are still parameters to be resolved.
         """
         return bool(self._args)
-    
+
     def get_and_pop_param(self, index: int, name: str = None) -> T.Param:
         if name:
             # let's check kwargs first.
@@ -63,15 +62,15 @@ class ParamsHolder:
                     if not k.startswith(':'):
                         return self._kwargs.pop(i)
             raise e.TooManyArguments(index)
-    
+
     def resolve(self, kwname: str) -> None:  # note: no usage yet.
         for i, (k, v) in enumerate(self._kwargs):
             if k == kwname:
                 self._kwargs.pop(i)
                 break
-    
+
     _simple_counter = 0
-    
+
     def _generate_anonymous_arg_name(self) -> str:
         self._simple_counter += 1
         return f'*{self._simple_counter}'

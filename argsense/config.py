@@ -7,6 +7,7 @@ TODO:
         PRETTY_ERROR
         USE_RICH_MARKUP
 """
+
 import typing as tp
 
 from rich import get_console
@@ -44,7 +45,7 @@ HIDE_UNSTATED_VARIABLE_KWARGS = True
 '''
 POST_LOGO_IN_HELP_INTERFACE = True
 PROGRAM_NAME_STYLE = 'fixed'
-'''
+"""
     type: 'fixed' | 'system_dependent'
     illustration:
         system      style='fixed'   style='system_dependent'
@@ -55,7 +56,32 @@ PROGRAM_NAME_STYLE = 'fixed'
         windows     python -m       py -m
         windows     xxx.exe         xxx.exe
     see also: `./renderer/rich/render2.py : [def] _detect_program_name`
-'''
+"""
+
+# ------------------------------------------------------------------------------
+# parameters table
+
+PARAM_PANEL_BORDER_WIDTH = 1
+#   the 'PARAMETERS' panel draws a 1-char border on each side.
+PARAM_PANEL_PADDING_X = 2
+#   related: `renderer/rich/render.py : [def] render_function_parameters : -
+#   [code] rich.panel.Panel(..., padding=(0, 2))`
+PARAM_TABLE_NUM_COLUMNS = 7
+#   required, index, param, short, type, description, default.
+LEAST_WIDTH_RATIO_OF_PARAM_DESC = 0.5
+"""
+    if the 'param_desc' column's width takes up less than this ratio of the -
+    whole panel, the description is considered too cramped. argsense then -
+    stacks the description onto a second line, so that it can use the full -
+    panel width (see also `_make_layout_plan` in `renderer/rich/render.py`).
+"""
+OMIT_DEFAULT_PREFIX_IF_DESC_TOO_NARROW = False
+"""
+    if true, when the description is too cramped, argsense additionally omits -
+    the "default = " prefix in the default column to save some space (it is -
+    only useful for the single-line grid layout). disabled by default, so the -
+    default values are always shown as "default = <value>".
+"""
 
 # ------------------------------------------------------------------------------
 # TODO: need refactoring
@@ -71,12 +97,12 @@ BARE_NONE_MEANS_ANY = False
 FALLBACK_TYPE: T.FallbackType = 'str'
 #   see [./parser/func_parser.py : def parse_function()]
 FALLBACK_DESC = '[dim]no description[/]'
-''' suggested:
+""" suggested:
         <empty string>
         [dim]no description[/]
         [dim]there is no description provided.[/]
     see also: [./cli.py : def show2() : def show()]
-'''
+"""
 FALLBACK_TO_HELP_IF_ARGPARSE_FAILED = False
 #   see [./argparse/argv.py : class ArgvVendor : def report()]
 OVERWRITTEN_SCHEME: T.OverwrittenScheme = 'last'

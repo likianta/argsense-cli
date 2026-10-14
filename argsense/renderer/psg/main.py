@@ -30,7 +30,7 @@ class T:
     FuncsInfo = t.Union[t.Tuple[FuncInfo, ...], t.List[FuncInfo]]
     KwArgsInfo = T0.ArgsTypeB
     ParamName = T0.ParamName
-    
+
     Layout = t.List[t.List[psg.Element]]
     Row = t.List[psg.Element]
 
@@ -38,17 +38,12 @@ class T:
 def run(funcs_info: T.FuncsInfo) -> t.Any:
     if psg is None:
         raise RuntimeError('PySimpleGUI is not installed')
-    
+
     layout = [
-        [
-            _create_tab_group(funcs_info),
-        ],
-        [
-            psg.Button('copy command'),
-            psg.Button('run'),
-        ],
+        [_create_tab_group(funcs_info)],
+        [psg.Button('copy command'), psg.Button('run')],
     ]
-    
+
     win = psg.Window('Argsense GUI', layout)
     while True:
         evt, val = win.read()
@@ -65,28 +60,24 @@ def _add_row(*items: psg.Element) -> T.Row:
 def _create_tab_group(funcs_info: T.FuncsInfo) -> psg.TabGroup:
     layout = []
     for info in funcs_info:
-        layout.append([
-            psg.Tab(info.name, [
-                [
-                    psg.Text(info.name),
-                ],
-                [
-                    psg.Text(info.desc),
-                ],
-                [
-                    psg.Frame(
-                        'arguments',
-                        _build_args_panel(info.args)
-                    )
-                ],
-                [
-                    psg.Frame(
-                        'keyword arguments',
-                        _build_kwargs_panel(info.kwargs)
-                    )
-                ]
-            ])
-        ])
+        layout.append(
+            [
+                psg.Tab(
+                    info.name,
+                    [
+                        [psg.Text(info.name)],
+                        [psg.Text(info.desc)],
+                        [psg.Frame('arguments', _build_args_panel(info.args))],
+                        [
+                            psg.Frame(
+                                'keyword arguments',
+                                _build_kwargs_panel(info.kwargs),
+                            )
+                        ],
+                    ],
+                )
+            ]
+        )
     return psg.TabGroup(layout)
 
 
@@ -108,17 +99,21 @@ def _build_kwargs_panel(kwargs_info: T.KwArgsInfo) -> T.Layout:
 
 def _get_arg_entry(name: T.ParamName, info: dict) -> t.Iterable[psg.Element]:
     name = name + ' ({})'.format(info['ctype'].name)
-    
-    assert info['ctype'] not in (ParamType.DICT, ParamType.LIST), \
-        ('unsupported type', info)
-    assert info['ctype'] not in (ParamType.FLAG, ParamType.NONE), \
-        ('unexpected type', info)
-    
+
+    assert info['ctype'] not in (ParamType.DICT, ParamType.LIST), (
+        'unsupported type',
+        info,
+    )
+    assert info['ctype'] not in (ParamType.FLAG, ParamType.NONE), (
+        'unexpected type',
+        info,
+    )
+
     if info['ctype'] == ParamType.FLAG:
         yield psg.Checkbox(name)
         if info['desc']:
             yield psg.Text(info['desc'], text_color='grey')
-    
+
     else:
         yield psg.Text(name)
         if info['desc']:
@@ -128,17 +123,21 @@ def _get_arg_entry(name: T.ParamName, info: dict) -> t.Iterable[psg.Element]:
 
 def _get_kwarg_entry(name: T.ParamName, info: dict) -> t.Iterable[psg.Element]:
     name = name + ' ({})'.format(info['ctype'].name)
-    
-    assert info['ctype'] not in (ParamType.DICT, ParamType.LIST), \
-        ('unsupported type', info)
-    assert info['ctype'] not in (ParamType.FLAG, ParamType.NONE), \
-        ('unexpected type', info)
-    
+
+    assert info['ctype'] not in (ParamType.DICT, ParamType.LIST), (
+        'unsupported type',
+        info,
+    )
+    assert info['ctype'] not in (ParamType.FLAG, ParamType.NONE), (
+        'unexpected type',
+        info,
+    )
+
     if info['ctype'] == ParamType.FLAG:
         yield psg.Checkbox(name, default=bool(info['default']))
         if info['desc']:
             yield psg.Text(info['desc'], text_color='grey')
-    
+
     else:
         yield psg.Text(name)
         if info['desc']:

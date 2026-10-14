@@ -15,7 +15,7 @@ def func0(a_very_very_very_very_very_very_very_very_very_very_long_name: str):
 # noinspection PyUnusedLocal
 @cli.cmd()
 def a_very_very_very_very_very_very_very_very_very_very_very_very_long_name_2(
-    a_very_very_very_very_very_very_very_very_very_very_long_name: str
+    a_very_very_very_very_very_very_very_very_very_very_long_name: str,
 ):
     pass
 

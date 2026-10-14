@@ -252,6 +252,173 @@ if __name__ == '__main__':
     typer.run(hello)
 ```
 
+### Handling Long Descriptions
+
+> A long parameter description is a common challenge for any help interface. Most CLI libraries simply wrap it inside the narrow "help" column, which produces a tall, ragged block that is hard to scan, and leaves a lot of blank space under the parameter name and type. ArgSense notices when the description column is too cramped and gives the description a full-width line of its own.
+
+The same command, defined in ArgSense (the libraries below implement the exact same command):
+
+```python
+from argsense import cli
+
+@cli
+def install(appid: str, version: str = '', use_exist: bool = True):
+    """
+    install an app.
+
+    params:
+        appid: the app id (a normalized app name).
+        version: the app version to operate on.
+            if not given, the last installed version will be used.
+        use_exist (-u):
+            1. if `version` is not given, will try to use the last installed -
+            version.
+            2. if `version` is given, but not installed, and if depsland finds
+            a newer version already installed, will use the newer one.
+                why we do this: due to the design limitation, the cloud drive -
+                stores only one "latest" version on the oss side; older -
+                versions are discarded as soon as a new version is published. -
+                this means user can never retrieve a specific older version at -
+                that time. we have to force user to use the newer one.
+    """
+```
+
+**ArgSense** — the description gets a full-width line of its own:
+
+```text
+                       python long_desc_argsense.py ...
+  install an app.
+┌──────────────────────────────────────────────────────────────── PARAMETERS ─┐
+│  * 1    appid        TEXT                                                   │
+│         the app id (a normalized app name).                                 │
+│                                                                             │
+│    2    version      TEXT                                     default = ""  │
+│         the app version to operate on.                                      │
+│         if not given, the last installed version will be used.              │
+│                                                                             │
+│    3    use-exist -u FLAG                                  default = :true  │
+│         1. if `version` is not given, will try to use the last installed    │
+│         version.                                                            │
+│         2. if `version` is given, but not installed, and if depsland finds  │
+│         a newer version already installed, will use the newer one.          │
+│             why we do this: due to the design limitation, the cloud drive   │
+│             stores only one "latest" version on the oss side; older         │
+│             versions are discarded as soon as a new version is published.   │
+│             this means user can never retrieve a specific older version at  │
+│             that time. we have to force user to use the newer one.          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                                        🔥 powered by argsense
+```
+
+**argparse** — the description is wrapped into the narrow help column:
+
+```text
+usage: install [-h] [--version VERSION] [--use-exist] appid
+
+install an app.
+
+positional arguments:
+  appid              the app id (a normalized app name).
+
+options:
+  -h, --help         show this help message and exit
+  --version VERSION  the app version to operate on. if not given, the last
+                     installed version will be used.
+  --use-exist, -u    1. if `version` is not given, will try to use the last
+                     installed version. 2. if `version` is given, but not
+                     installed, and if depsland finds a newer version already
+                     installed, will use the newer one. why we do this: due to
+                     the design limitation, the cloud drive stores only one
+                     "latest" version on the oss side; older versions are
+                     discarded as soon as a new version is published. this
+                     means user can never retrieve a specific older version at
+                     that time. we have to force user to use the newer one.
+```
+
+**Click** — same wrapping behavior:
+
+```text
+Usage: long_desc_click.py [OPTIONS] APPID
+
+  install an app.
+
+Options:
+  --version TEXT   the app version to operate on. if not given, the last
+                   installed version will be used.
+  -u, --use-exist  1. if `version` is not given, will try to use the last
+                   installed version. 2. if `version` is given, but not
+                   installed, and if depsland finds a newer version already
+                   installed, will use the newer one. why we do this: due to
+                   the design limitation, the cloud drive stores only one
+                   "latest" version on the oss side; older versions are
+                   discarded as soon as a new version is published. this means
+                   user can never retrieve a specific older version at that
+                   time. we have to force user to use the newer one.
+  --help           Show this message and exit.
+```
+
+**Typer** — rich panels, but the description column is still narrow:
+
+```text
+ Usage: long_desc_typer.py [OPTIONS] {appid}
+
+ install an app.
+
+┌─ Arguments ─────────────────────────────────────────────────────────────────┐
+│ *    appid      <str>  [required]                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌─ Options ───────────────────────────────────────────────────────────────────┐
+│ --version            <str>  the app version to operate on. if not given,    │
+│                             the last installed version will be used.        │
+│ --use-exist  -u             1. if `version` is not given, will try to use   │
+│                             the last installed version. 2. if `version` is  │
+│                             given, but not installed, and if depsland finds │
+│                             a newer version already installed, will use the │
+│                             newer one. why we do this: due to the design    │
+│                             limitation, the cloud drive stores only one     │
+│                             "latest" version on the oss side; older         │
+│                             versions are discarded as soon as a new version │
+│                             is published. this means user can never         │
+│                             retrieve a specific older version at that time. │
+│                             we have to force user to use the newer one.     │
+│                             [default: True]                                 │
+│ --help                      Show this message and exit.                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**cyclopts** — the description column is even narrower:
+
+```text
+Usage: install APPID [ARGS]
+
+install an app.
+
+┌─ Commands ──────────────────────────────────────────────────────────────────┐
+│ --help (-h)  Display this message and exit.                                 │
+│ --version    Display application version.                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌─ Parameters ────────────────────────────────────────────────────────────────┐
+│ *  APPID --appid             the app id (a normalized app name). [required] │
+│    VERSION --version         the app version to operate on. if not given,   │
+│                              the last installed version will be used.       │
+│                              [default: ""]                                  │
+│    USE-EXIST --use-exist -u                                                 │
+│      --no-use-exist           1 if version is not given, will try to use    │
+│                                 the last installed version. 2. if version   │
+│                                 is given, but not installed, and if         │
+│                                 depsland finds a newer version already      │
+│                                 installed, will use the newer one. why we   │
+│                                 do this: due to the design limitation, the  │
+│                                 cloud drive stores only one "latest"        │
+│                                 version on the oss side; older versions are │
+│                                 discarded as soon as a new version is       │
+│                                 published. this means user can never        │
+│                                 retrieve a specific older version at that   │
+│                                 time. we have to force user to use the      │
+│                                 newer one. [default: True]                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
 ### Multiple Commands in One File
 
 #### ArgSense

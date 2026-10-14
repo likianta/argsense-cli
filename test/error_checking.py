@@ -23,7 +23,6 @@ def test() -> None:
         # misspellings
         'version --add-prefix',
         'version --add-v-prefix',
-        
         # insufficient parameters
         'login AAA',
         # wrong type of parameter
@@ -35,14 +34,15 @@ def test() -> None:
         # option ahead of command
         'AAA BBB login',
         '--remember-me login AAA BBB',
-        
         # wrong type of parameters
         'auto-type-conversion :true bbb ccc',
         'auto-type-conversion 111 :true ccc',
     ):
         print(':di', args)
         run_cmd_args(
-            sys.executable, __file__, *shlex.split(args),
+            sys.executable,
+            __file__,
+            *shlex.split(args),
             force_term_color=True,
             ignore_error=True,
             verbose=True,
@@ -52,6 +52,7 @@ def test() -> None:
 @cli
 def version(add_v_prefix=False):
     from argsense import __version__
+
     if add_v_prefix:
         print('v' + __version__)
     else:

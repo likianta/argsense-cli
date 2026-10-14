@@ -13,37 +13,56 @@ class T:
     ParamName = str
     # TODO: shall we use `.args_parser.ParamType` instead?
     PlainParamType = t.Literal[
-        'any', 'bool', 'dict', 'flag', 'float', 'int',
-        'list', 'none', 'set', 'str', 'tuple',
+        'any',
+        'bool',
+        'dict',
+        'flag',
+        'float',
+        'int',
+        'list',
+        'none',
+        'set',
+        'str',
+        'tuple',
     ]
 
     ArgsTypeA = t.Dict[
-        ParamName, t.TypedDict('ArgsInfo', {  # type: ignore
-            'cname': str,
-            'ctype': ParamType,
-            'desc' : str,
-        })
+        ParamName,
+        t.TypedDict(
+            'ArgsInfo',
+            {  # type: ignore
+                'cname': str,
+                'ctype': ParamType,
+                'desc': str,
+            },
+        ),
     ]
     ArgsTypeB = t.Dict[
         ParamName,
-        t.TypedDict('KwargsInfo', {  # type: ignore
-            'cname'  : str,
-            'ctype'  : ParamType,
-            'desc'   : str,
-            'default': t.Any,
-        })
+        t.TypedDict(
+            'KwargsInfo',
+            {  # type: ignore
+                'cname': str,
+                'ctype': ParamType,
+                'desc': str,
+                'default': t.Any,
+            },
+        ),
     ]
-    RawInfo = t.TypedDict('RawInfo', {
-        'name'  : str,
-        'args'  : t.Tuple[
-            t.List[t.Tuple[ParamName, PlainParamType]],
-            t.List[t.Tuple[ParamName, PlainParamType, t.Any]],
-            t.List[t.Tuple[ParamName, PlainParamType]],
-            t.List[t.Tuple[ParamName, PlainParamType, t.Any]],
-            t.List[t.Tuple[ParamName, PlainParamType]],
-        ],
-        'return': PlainParamType,  # noqa
-    })
+    RawInfo = t.TypedDict(
+        'RawInfo',
+        {
+            'name': str,
+            'args': t.Tuple[
+                t.List[t.Tuple[ParamName, PlainParamType]],
+                t.List[t.Tuple[ParamName, PlainParamType, t.Any]],
+                t.List[t.Tuple[ParamName, PlainParamType]],
+                t.List[t.Tuple[ParamName, PlainParamType, t.Any]],
+                t.List[t.Tuple[ParamName, PlainParamType]],
+            ],
+            'return': PlainParamType,  # noqa
+        },
+    )
 
 
 # class ArgumentType(Enum):
@@ -77,6 +96,7 @@ class FuncInfo:
                 ddd: type 3
                 eee: type 4
     """
+
     args0: T.ArgsTypeA
     args1: T.ArgsTypeB
     args2: T.ArgsTypeA
@@ -87,37 +107,37 @@ class FuncInfo:
     name: str
     target: t.Callable
     transfer_help: bool  # FIXME: temp solution
-    
+
     GLOBAL_CNAME_2_NAME: t.Dict[str, str] = {
-        ':h'    : ':help',
-        ':help' : ':help',
-        '-h'    : ':help',
+        ':h': ':help',
+        ':help': ':help',
+        '-h': ':help',
         '--help': ':help',
     }
-    
+
     GLOBAL_KWARGS: T.ArgsTypeB = {  # noqa
-        ':help' : {
-            'cname'  : '--help',
-            'ctype'  : ParamType.FLAG,
-            'desc'   : 'show help message and exit',
+        ':help': {
+            'cname': '--help',
+            'ctype': ParamType.FLAG,
+            'desc': 'show help message and exit',
             'default': False,  # False means `not explicitly set by user`.
             #   for example, when user inputs in command line:
             #       `argsense xxx.py -h`  # -> True
             #       `argsense xxx.py`     # -> False
-        },
+        }
     }
-    
+
     def __init__(self, info: T.RawInfo) -> None:
         from ..converter import name_2_cname
         from ..converter import type_2_ctype
-        
+
         self.name = info['name']
         # self.cname = name_2_cname(self.name, style='cmd')
         self.desc = ''
         # self.return_type = info['return']
         self.cname_2_name = FuncInfo.GLOBAL_CNAME_2_NAME.copy()
         self.transfer_help = False
-        
+
         self.args0 = {}
         for name, type in info['args'][0]:
             self._register_cname(name_2_cname(name, style='arg'), name)
@@ -125,91 +145,84 @@ class FuncInfo:
             self.args0[name] = {
                 'cname': name_2_cname(name, style='arg'),
                 'ctype': type_2_ctype(type),
-                'desc' : '',
+                'desc': '',
             }
-        
+
         self.args1 = {}
         for name, type, default in info['args'][1]:
             self._register_cname(name_2_cname(name, style='opt'), name)
             self.args1[name] = {
-                'cname'  : name_2_cname(name, style='opt'),
-                'ctype'  : type_2_ctype(type),
-                'desc'   : '',
+                'cname': name_2_cname(name, style='opt'),
+                'ctype': type_2_ctype(type),
+                'desc': '',
                 'default': default,
             }
-        
+
         self.args2 = {}
         if info['args'][2]:
             name, type = info['args'][2][0]
             self.args2['*'] = {
                 'cname': name_2_cname(name, style='arg'),
                 'ctype': type_2_ctype(type),
-                'desc' : '',
+                'desc': '',
             }
-        
+
         self.args3 = {}
         for name, type, default in info['args'][3]:
             self._register_cname(name_2_cname(name, style='opt'), name)
             self.args3[name] = {
-                'cname'  : name_2_cname(name, style='opt'),
-                'ctype'  : type_2_ctype(type),
-                'desc'   : '',
+                'cname': name_2_cname(name, style='opt'),
+                'ctype': type_2_ctype(type),
+                'desc': '',
                 'default': default,
             }
-        
+
         self.args4 = {}
         if info['args'][4]:
             name, type = info['args'][4][0]
             self.args4['**'] = {
                 'cname': name_2_cname(name, style='arg'),
                 'ctype': type_2_ctype(type),
-                'desc' : '',
+                'desc': '',
             }
-    
+
     @property
     def args(self) -> T.ArgsTypeA:
-        return {
-            **self.args0,
-            **self.args2,
-        }
-    
+        return {**self.args0, **self.args2}
+
     @property
     def kwargs(self) -> T.ArgsTypeB:
-        return {
-            **self.args1,
-            **self.args3,
-            **self.args4,
-        }
-    
+        return {**self.args1, **self.args3, **self.args4}
+
     @property
     def extended_kwargs(self) -> T.ArgsTypeB:
         return {
             **self.args1,
             **self.args3,
             **self.args4,
-            **FuncInfo.GLOBAL_KWARGS
+            **FuncInfo.GLOBAL_KWARGS,
         }
-    
+
     @property
     def has_var_args(self) -> bool:
         return bool(self.args2)
-    
+
     @property
     def has_var_kwargs(self) -> bool:
         return bool(self.args4)
-    
+
     def get_param(self, name: str) -> t.Optional[dict]:
-        """ get a parameter's info dict by its python-style name. """
+        """get a parameter's info dict by its python-style name."""
         for d in (self.args0, self.args1, self.args2, self.args3, self.args4):
             if name in d:
                 return d[name]
         return None
-    
+
     def fill_docs_info(self, info: T.DocsInfo) -> None:
         self.desc = info['desc']
-        
+
         # FIXME: do not use '<cname>, <cshort>' format. we need a better way.
-        
+
         for name, value in info['args'].items():
             # assert self.args[name]['cname'] == value['cname']
             self.args[name]['desc'] = value['desc']
@@ -218,7 +231,7 @@ class FuncInfo:
                 self.args[name]['cname'] = '{}, {}'.format(
                     value['cname'], value['cshort']
                 )
-            
+
         for name, value in info['kwargs'].items():
             if name in self.kwargs:
                 # assert self.kwargs[name]['cname'] == value['cname']
@@ -234,26 +247,27 @@ class FuncInfo:
                 if value['cshort']:
                     self._register_cname(value['cshort'], name)
                     self.args3[name] = {
-                        'cname'  : '{}, {}'
-                        .format(value['cname'], value['cshort']),
-                        'ctype'  : ParamType.ANY,
-                        'desc'   : value['desc'],
+                        'cname': '{}, {}'.format(
+                            value['cname'], value['cshort']
+                        ),
+                        'ctype': ParamType.ANY,
+                        'desc': value['desc'],
                         'default': ...,
                     }
                 else:
                     self.args3[name] = {
-                        'cname'  : value['cname'],
-                        'ctype'  : ParamType.ANY,
-                        'desc'   : value['desc'],
+                        'cname': value['cname'],
+                        'ctype': ParamType.ANY,
+                        'desc': value['desc'],
                         'default': ...,
                     }
-    
+
     def _register_cname(self, cname: str, for_name: str) -> None:
         if cname in self.cname_2_name:
             if (
-                cname == '-h' and
-                config.ALLOW_HSHORT_TO_BE_REDEFINED and
-                self.cname_2_name[cname] == ':help'
+                cname == '-h'
+                and config.ALLOW_HSHORT_TO_BE_REDEFINED
+                and self.cname_2_name[cname] == ':help'
             ):
                 self.cname_2_name[cname] = for_name
             else:
@@ -267,12 +281,11 @@ class FuncInfo:
 
 
 def parse_function(
-    func: T.Func,
-    fallback_type: T.FallbackType = 'any'
+    func: T.Func, fallback_type: T.FallbackType = 'any'
 ) -> FuncInfo:
     spec = getfullargspec(func)
     annotations = Annotations(spec.annotations, fallback_type)
-    ''' ^
+    """ ^
     example:
         def foo(a: str, b: int, c=123, *args, d: bool = False, **kwargs):
             pass
@@ -290,13 +303,13 @@ def parse_function(
         #           'd': <class 'bool'>,
         #       }
         #   )
-    '''
+    """
     args0 = []
     args1 = []
     args2 = []
     args3 = []
     args4 = []
-    
+
     if spec.defaults:
         args_count = len(spec.args) - len(spec.defaults)
     else:
@@ -305,7 +318,7 @@ def parse_function(
         name = spec.args[i]
         type_ = annotations.get_arg_type(name)
         args0.append((name, type_))
-        
+
     if spec.defaults:
         enum: t.Iterator[t.Tuple[int, int]] = enumerate(
             range(len(spec.args) - len(spec.defaults), len(spec.args))
@@ -315,10 +328,10 @@ def parse_function(
             default = spec.defaults[i]
             type_ = annotations.get_kwarg_type(name, default)
             args1.append((name, type_, default))
-    
+
     if spec.varargs:
         args2.append(('*' + spec.varargs, 'any'))
-    
+
     if spec.kwonlyargs:
         # --- a
         # for name, default in spec.kwonlydefaults.items():
@@ -342,46 +355,47 @@ def parse_function(
                 default = ':required'
                 type_ = annotations.get_arg_type(name)
             args3.append((name, type_, default))
-        
+
     if spec.varkw:
         args4.append(('**' + spec.varkw, 'any'))
-    
+
     return_ = annotations.get_return_type()
-    
-    return FuncInfo({
-        'name'  : func.__name__,
-        'args'  : (args0, args1, args2, args3, args4),
-        'return': return_,
-    })
+
+    return FuncInfo(
+        {
+            'name': func.__name__,
+            'args': (args0, args1, args2, args3, args4),
+            'return': return_,
+        }
+    )
 
 
 class Annotations:
-    
     def __init__(
         self,
         annotations: t.Dict[str, t.Any],
-        fallback_type: T.FallbackType = 'any'
+        fallback_type: T.FallbackType = 'any',
     ) -> None:
         self.annotations = annotations
         self._fallback_type = fallback_type
         self._type_2_str = {
-            'any'    : 'any',
-            'anystr' : 'str',
-            'bool'   : 'flag',
-            'dict'   : 'dict',
-            'float'  : 'float',
-            'int'    : 'int',
-            'list'   : 'list',
+            'any': 'any',
+            'anystr': 'str',
+            'bool': 'flag',
+            'dict': 'dict',
+            'float': 'float',
+            'int': 'int',
+            'list': 'list',
             'literal': 'str',
-            'none'   : 'none',
-            'set'    : 'set',
-            'str'    : 'str',
-            'tuple'  : 'tuple',
-            'union'  : 'any',
+            'none': 'none',
+            'set': 'set',
+            'str': 'str',
+            'tuple': 'tuple',
+            'union': 'any',
         }
         if config.BARE_NONE_MEANS_ANY:
             self._type_2_str['none'] = 'any'
-    
+
     # noinspection PyUnresolvedReferences,PyProtectedMember
     def _normalize_type(self, type_: t.Any) -> T.PlainParamType:
         out = str(type_)
@@ -389,10 +403,9 @@ class Annotations:
             out = type_
         elif isinstance(type_, t._TypedDictMeta):
             return 'dict'
-        elif (
-            (x := getattr(type_, '__base__', None)) and
-            str(x) == "<class 'tuple'>"
-        ):
+        elif (x := getattr(type_, '__base__', None)) and str(
+            x
+        ) == "<class 'tuple'>":
             return 'tuple'  # typing.NamedTuple
         else:
             # if we are running in lower version python, be noted some classes -
@@ -425,13 +438,13 @@ class Annotations:
         if out in self._type_2_str:
             return self._type_2_str[out]
         return 'any'
-    
+
     def get_arg_type(self, name: str) -> T.PlainParamType:
         if name in self.annotations:
             return self._normalize_type(self.annotations[name])
         else:
             return self._fallback_type
-    
+
     def get_kwarg_type(self, name: str, value: t.Any) -> T.PlainParamType:
         if name in self.annotations:
             out = self._normalize_type(self.annotations[name])
@@ -439,23 +452,23 @@ class Annotations:
             out = self.deduce_type_by_value(value)
         # noinspection PyTypeChecker
         return out
-    
+
     def get_return_type(self) -> T.PlainParamType:
         if 'return' in self.annotations:
             return self._normalize_type(self.annotations['return'])
         else:
             return 'none'
-    
+
     @staticmethod
     def deduce_type_by_value(default: t.Any) -> T.PlainParamType:
         dict_ = {
-            bool : 'flag',
-            dict : 'dict',
+            bool: 'flag',
+            dict: 'dict',
             float: 'float',
-            int  : 'int',
-            list : 'list',
-            set  : 'set',
-            str  : 'str',
+            int: 'int',
+            list: 'list',
+            set: 'set',
+            str: 'str',
             tuple: 'tuple',
         }
         # noinspection PyTypeChecker

@@ -14,18 +14,24 @@ class T:  # Typehint
     _KwArgName = str
     _OptionName = str
     _ParamName = str
-    
-    ParamsInfo = t.TypedDict('ParamsInfo', {
-        'args'  : t.Dict[_ParamName, ParamType],
-        'kwargs': t.Dict[_KwArgName, ParamType],
-        'index' : t.Dict[_OptionName, _KwArgName],
-    })
-    
-    ParsedResult = t.TypedDict('ParsedResult', {
-        'command': str,
-        'args'   : t.Dict[_ParamName, t.Any],
-        'kwargs' : t.Dict[_ParamName, t.Any],
-    })
+
+    ParamsInfo = t.TypedDict(
+        'ParamsInfo',
+        {
+            'args': t.Dict[_ParamName, ParamType],
+            'kwargs': t.Dict[_KwArgName, ParamType],
+            'index': t.Dict[_OptionName, _KwArgName],
+        },
+    )
+
+    ParsedResult = t.TypedDict(
+        'ParsedResult',
+        {
+            'command': str,
+            'args': t.Dict[_ParamName, t.Any],
+            'kwargs': t.Dict[_ParamName, t.Any],
+        },
+    )
 
 
 def parse_argstring(args: str) -> t.List[str]:
@@ -54,37 +60,37 @@ def _walking_through_argv(
     implicit_help: bool = True,
 ) -> T.ParsedResult:
     from ...converter import SPECIAL_ARGS, cval_2_val
-    
+
     flag = 'INIT'
     out = {
         'command': '',
-        'args'   : {},  # dict[str name, any value]
-        'kwargs' : {},  # dict[str name, any value]
+        'args': {},  # dict[str name, any value]
+        'kwargs': {},  # dict[str name, any value]
     }
     params = ParamsHolder(
         front_matter['args'],
         front_matter['kwargs'],
-        cnames=tuple(front_matter['index'].keys())
+        cnames=tuple(front_matter['index'].keys()),
     )
     temp_store = {}
-    
+
     # -------------------------------------------------------------------------
-    
+
     def feed_anonymous_arg() -> None:
         implicit_name, param_type = params.get_and_pop_param(index)
         param_value = _eval_param_value(arg, param_type)
         out['args'][implicit_name] = param_value
-    
+
     def feed_help() -> None:
         try:
             assert arg in (':h', ':help', '-h', '--help')
         except AssertionError:
             raise e.ParamAheadOfCommand(index)
         out['kwargs'][':help'] = True
-    
+
     def feed_implicit_help() -> None:
         out['kwargs'][':help'] = False  # False means "implicit".
-    
+
     def feed_option_name() -> bool:
         """
         returns: True means "resolved".
@@ -114,21 +120,21 @@ def _walking_through_argv(
                 temp_store['param_name'] = param_name
                 temp_store['param_type'] = param_type
                 return False
-    
+
     def feed_option_value() -> None:
         param_name = temp_store['param_name']
         param_type = temp_store['param_type']
         param_value = _eval_param_value(arg, param_type)
         out['kwargs'][param_name] = param_value
         temp_store.clear()
-    
+
     def feed_possible_func_name() -> None:
         try:
             assert re.match(r'^[a-zA-Z][-\w]*$', arg)
         except AssertionError:
             raise e.ParamAheadOfCommand(index)
         out['command'] = arg.replace('_', '-')
-    
+
     def feed_short_option_name() -> bool:
         try:
             assert arg.count('-') == 1
@@ -138,7 +144,7 @@ def _walking_through_argv(
             assert arg == arg.lower() or arg == arg.upper()
         except AssertionError:
             raise e.MixinCase(index)
-        
+
         if arg[1:].isupper():
             option_name = arg.lower()
             param_name = _get_option_name(option_name)
@@ -160,7 +166,7 @@ def _walking_through_argv(
                 temp_store['param_name'] = param_name
                 temp_store['param_type'] = param_type
                 return False
-    
+
     def feed_special_arg() -> None:
         assert arg in SPECIAL_ARGS
         if arg in (':h', ':help'):
@@ -175,30 +181,28 @@ def _walking_through_argv(
             implicit_name, param_type = params.get_and_pop_param(index)
             param_value = SPECIAL_ARGS[arg]
             out['args'][implicit_name] = param_value
-    
+
     # -------------------------------------------------------------------------
-    
+
     def _eval_param_value(x: str, possible_type: ParamType) -> t.Any:
         try:
             return cval_2_val(x, possible_type)
         except AssertionError:
             raise e.TypeConversionError(
-                index,
-                expected_type=possible_type.name,
-                given_type=str(arg)
+                index, expected_type=possible_type.name, given_type=str(arg)
             )
-    
+
     def _get_option_name(cname: str) -> str:
-        """ convert cname to name. """
+        """convert cname to name."""
         if cname in front_matter['index']:
             return front_matter['index'][cname]
         elif '**' in front_matter['kwargs']:
             return cname.lstrip('-').replace('-', '_')
         else:
             raise e.ParamNotFound(index, cname, front_matter['index'].keys())
-    
+
     # -------------------------------------------------------------------------
-    
+
     for index, arg in enumerate(argv.args, argv.argx):
         if flag == 'INIT':
             if mode == 'group':
@@ -257,41 +261,39 @@ def _walking_through_argv(
             # restore "-h" definition to ":help" so that it guides user to the -
             # help interface.
             from ...config import ALLOW_HSHORT_TO_BE_REDEFINED
+
             try:
                 assert (
+                    # 1. assert author had modified "-h" definition.
+                    ALLOW_HSHORT_TO_BE_REDEFINED
+                    and front_matter['index']['-h'] != ':help'
+                ) and (
+                    # 2. user must give "-h" in the end of argv.
                     (
-                        # 1. assert author had modified "-h" definition.
-                        ALLOW_HSHORT_TO_BE_REDEFINED and
-                        front_matter['index']['-h'] != ':help'
-                    ) and
-                    (
-                        # 2. user must give "-h" in the end of argv.
-                        (
-                            mode == 'group' and
-                            len(argv.args) == 2 and
-                            argv.args[1] == '-h'
-                        ) or
-                        (
-                            mode == 'command' and
-                            len(argv.args) == 1 and
-                            argv.args[0] == '-h'
-                        )
+                        mode == 'group'
+                        and len(argv.args) == 2
+                        and argv.args[1] == '-h'
+                    )
+                    or (
+                        mode == 'command'
+                        and len(argv.args) == 1
+                        and argv.args[0] == '-h'
                     )
                 )
             except AssertionError:
                 raise e.InsufficientArguments(
-                    -1, tuple(front_matter['args'].keys())[len(out['args']):]
+                    -1, tuple(front_matter['args'].keys())[len(out['args']) :]
                 )
             # 3. cancel the incoming error, and redirect "-h" to ":help" -
             # definition.
             out['kwargs'][':help'] = True
             flag = 'OVER'
     assert flag == 'OVER', flag
-    
+
     # post check
     if bool(params):
         if ':help' not in out['kwargs']:
             raise e.InsufficientArguments(
-                -1, tuple(front_matter['args'].keys())[len(out['args']):]
+                -1, tuple(front_matter['args'].keys())[len(out['args']) :]
             )
     return t.cast(T.ParsedResult, out)
