@@ -419,6 +419,61 @@ install an app.
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### Hidden Description
+
+> A docstring usually carries more than the parameter list — usage notes, references, examples, and so on. ArgSense shows only the top description and the `params:` section in the help interface; whatever follows them is treated as private and hidden. Libraries that reuse the raw docstring as the help text instead dump those extra sections into the output, which is noisy and often loses the original layout.
+
+Take the following function. The `notes:` and `references:` sections are not part of the help interface:
+
+```python
+def foo(aaa: str, bbb: bool = False):
+    """
+    do something meaningful.
+
+    params:
+        aaa: the description of aaa.
+        bbb: the description of bbb.
+
+    notes:
+        this section should not appear in the help interface.
+
+    references:
+        - `http://example.com`
+        - `http://example.org`
+    """
+```
+
+**ArgSense** — only the top description and the parameters are shown:
+
+```text
+                      python hidden_desc_argsense.py ...
+  do something meaningful.
+┌──────────────────────────────────────────────────────────────── PARAMETERS ─┐
+│  * 1    aaa  TEXT                                                           │
+│         the description of aaa.                                             │
+│                                                                             │
+│    2    bbb  FLAG                                         default = :false  │
+│         the description of bbb.                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                                        🔥 powered by argsense
+```
+
+**Click** — the raw docstring is used as the help text, so the extra sections leak into the output (and their layout is collapsed):
+
+```text
+Usage: hidden_desc_click.py [OPTIONS] AAA
+
+  do something meaningful.
+
+  notes:     this section should not appear in the help interface.
+
+  references:     - http://example.com     - http://example.org
+
+Options:
+  --bbb   the description of bbb.
+  --help  Show this message and exit.
+```
+
 ### Multiple Commands in One File
 
 #### ArgSense
