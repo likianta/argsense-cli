@@ -15,7 +15,11 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 from argsense.cli import CommandLineInterface
+from argsense.parser import Argv
+from argsense.parser import FuncInfo
 from argsense.renderer.tui import ArgsenseTuiApp
+from argsense.renderer.tui import CliRunRequest
+from argsense.renderer.tui import collect_initial_values
 from argsense.tui import TuiInterface
 from textual.widgets import Button
 from textual.widgets import Input
@@ -44,11 +48,26 @@ def install(
     return 'ok:{}'.format(appid)
 
 
-def build_app() -> ArgsenseTuiApp:
+def main(name: str, age: int):
+    """
+    General types demo.
+
+    params:
+        name: Your name.
+        age: Your age.
+    """
+    print(name, age)
+
+
+def func_info_of(func) -> t.Any:
     cli = CommandLineInterface()
-    cli.add_cmd(install)
+    cli.add_cmd(func)
     cli.resolve_doc_references()
-    return ArgsenseTuiApp(cli.commands[id(install)])
+    return cli.commands[id(func)]
+
+
+def build_app(inline: bool = False) -> ArgsenseTuiApp:
+    return ArgsenseTuiApp(func_info_of(install), inline=inline)
 
 
 def check(label: str, actual: t.Any, expected: t.Any) -> None:
@@ -103,41 +122,83 @@ async def test_structure() -> None:
             'default',
         )
         check(
+            'exit uses the error (danger) style',
+            app.query_one('#exit', Button).variant,
+            'error',
+        )
+        check(
             'the log panel exists',
             isinstance(app.query_one('#log'), RichLog),
             True,
         )
+        run = app.query_one('#run', Button)
+        run_exit = app.query_one('#run-exit', Button)
+        exit_ = app.query_one('#exit', Button)
         check(
-            'Run sits on the left of Run and exit',
-            app.query_one('#run', Button).region.x
-            < app.query_one('#run-exit', Button).region.x,
+            'run < run-and-exit < exit',
+            run.region.x < run_exit.region.x < exit_.region.x,
             True,
         )
         check(
-            'the two buttons resolve to different colours',
-            app.query_one('#run', Button).styles.color
-            != app.query_one('#run-exit', Button).styles.color,
+            'one character gap: run -> run-and-exit',
+            run_exit.region.x - (run.region.x + run.size.width),
+            1,
+        )
+        check(
+            'one character gap: run-and-exit -> exit',
+            exit_.region.x - (run_exit.region.x + run_exit.size.width),
+            1,
+        )
+        check(
+            'exit wraps its content (narrower than run)',
+            exit_.size.width < run.size.width,
             True,
         )
 
 
-async def test_equal_button_width() -> None:
-    print('[2] the two buttons split the horizontal space')
+async def test_button_layout() -> None:
+    print('[2] the run buttons split the space, exit wraps')
     app = build_app()
     async with app.run_test(size=(80, 24)) as pilot:
         await pilot.pause()
-        run_width = app.query_one('#run', Button).size.width
-        exit_width = app.query_one('#run-exit', Button).size.width
-        check('equal widths', run_width, exit_width)
+        run = app.query_one('#run', Button)
+        run_exit = app.query_one('#run-exit', Button)
+        exit_ = app.query_one('#exit', Button)
+        actions = app.query_one('#actions')
         check(
-            'each takes exactly half of the action row',
-            run_width * 2,
-            app.query_one('#actions').size.width,
+            'run and run-and-exit are equal',
+            run.size.width,
+            run_exit.size.width,
+        )
+        check(
+            'the row is exactly: run + gap + run-exit + gap + exit',
+            run.size.width * 2 + exit_.size.width + 2,
+            actions.size.width,
         )
 
 
+async def test_log_height() -> None:
+    print('[3] the log panel height')
+    app = build_app()
+    async with app.run_test(size=(80, 24)) as pilot:
+        await pilot.pause()
+        log = app.query_one('#log')
+        check(
+            'non-inline: stretches to the bottom of the window',
+            log.region.bottom,
+            app.screen.region.height,
+        )
+
+    app = build_app(inline=True)
+    async with app.run_test(size=(80, 24)) as pilot:
+        await pilot.pause()
+        log = app.query_one('#log')
+        # 5 lines of content + 2 border rows.
+        check('inline: fixed to 5 inner lines', log.region.height, 7)
+
+
 async def test_run() -> None:
-    print('[3] fill the form and press Run')
+    print('[4] fill the form and press Run')
     CALLS.clear()
     app = build_app()
     async with app.run_test(size=(80, 24)) as pilot:
@@ -178,7 +239,7 @@ async def test_run() -> None:
 
 
 async def test_flag_and_run_exit() -> None:
-    print('[4] toggle the switch, then press Run and exit')
+    print('[5] toggle the switch, then press Run and exit')
     CALLS.clear()
     app = build_app()
     async with app.run_test(size=(80, 24)) as pilot:
@@ -194,17 +255,35 @@ async def test_flag_and_run_exit() -> None:
 
         await pilot.click('#run-exit')
         await pilot.pause()
-        check('the function was called once', len(CALLS), 1)
-        check(
-            'False is passed through as --no-use-exist',
-            CALLS[0],
-            ('Bob', '', False, 1),
-        )
-    check('the app exited', app.return_value, 'ok:Bob')
+        check('the function is NOT run inside the tui', len(CALLS), 0)
+    check('the app exited', app.is_running, False)
+    request = app.return_value
+    check('a cli run was requested', isinstance(request, CliRunRequest), True)
+    assert isinstance(request, CliRunRequest)
+    check(
+        'the tokens mirror the form',
+        request.tokens,
+        ('--appid', 'Bob', '--no-use-exist', '--count', '1'),
+    )
+
+
+async def test_exit_button() -> None:
+    print('[6] press Exit -> quits without running')
+    CALLS.clear()
+    app = build_app()
+    async with app.run_test(size=(80, 24)) as pilot:
+        await pilot.click('#param-appid')
+        await pilot.press(*'Alice')
+        await pilot.pause()
+        await pilot.click('#exit')
+        await pilot.pause()
+        check('the function was not called', len(CALLS), 0)
+    check('the app exited', app.is_running, False)
+    check('exit returns nothing', app.return_value, None)
 
 
 async def test_errors() -> None:
-    print('[5] error reporting')
+    print('[7] error reporting')
     CALLS.clear()
     app = build_app()
     async with app.run_test(size=(80, 24)) as pilot:
@@ -248,27 +327,65 @@ async def test_errors() -> None:
 
 
 async def test_narrow_terminal() -> None:
-    print('[6] narrow terminal')
+    print('[8] narrow terminal')
     app = build_app()
     async with app.run_test(size=(80, 24)) as pilot:
         await pilot.resize_terminal(46, 20)
         await pilot.pause()
-        width = app.query_one('#run', Button).size.width
-        check('buttons survive a narrow terminal', width > 0, True)
+        run = app.query_one('#run', Button)
+        run_exit = app.query_one('#run-exit', Button)
+        exit_ = app.query_one('#exit', Button)
+        check('buttons survive a narrow terminal', run.size.width > 0, True)
+        check('run buttons stay equal', run.size.width, run_exit.size.width)
         check(
-            'buttons stay equal',
-            width,
-            app.query_one('#run-exit', Button).size.width,
+            'the gaps survive',
+            run_exit.region.x - (run.region.x + run.size.width),
+            1,
+        )
+        check('exit stays wrapped', exit_.size.width < run.size.width, True)
+
+
+def test_argv_prefill() -> None:
+    print('[9] the command line prefills the form')
+    func_info = func_info_of(main)
+    argv = Argv(('python',), ('main.py',), ('Alice', '22'))
+    initial = collect_initial_values(func_info, argv)
+    check(
+        'values are mapped onto the params',
+        initial,
+        {'name': 'Alice', 'age': '22'},
+    )
+
+    # a command line that cannot be parsed simply yields nothing.
+    bad = collect_initial_values(
+        func_info, Argv(('python',), ('main.py',), ('--nope',))
+    )
+    check('unparsable argv -> no prefill', bad, {})
+
+
+async def test_argv_prefill_in_form() -> None:
+    print('[10] the prefilled values show up in the widgets')
+    func_info = func_info_of(main)
+    initial = collect_initial_values(
+        func_info, Argv(('python',), ('main.py',), ('Alice', '22'))
+    )
+    app = ArgsenseTuiApp(func_info, initial=initial)
+    async with app.run_test(size=(80, 24)) as pilot:
+        await pilot.pause()
+        check(
+            'name input is prefilled',
+            app.query_one('#param-name', Input).value,
+            'Alice',
         )
         check(
-            'buttons re-split for the new width',
-            width * 2,
-            app.query_one('#actions').size.width,
+            'age input is prefilled',
+            app.query_one('#param-age', Input).value,
+            '22',
         )
 
 
 def test_multi_command_is_rejected() -> None:
-    print('[7] multi-command is rejected before the app starts')
+    print('[11] multi-command is rejected before the app starts')
 
     def f1() -> None: ...
 
@@ -284,44 +401,94 @@ def test_multi_command_is_rejected() -> None:
 
 
 def test_run_delegates_to_the_form() -> None:
-    print('[8] tui.run(...) resolves the entrance and opens the form')
+    print('[12] tui.run(...) resolves the entrance and opens the form')
     import argsense.renderer.tui as renderer
 
     captured: t.Dict[str, t.Any] = {}
     original = renderer.run_form
 
-    def fake_run_form(func_info, inline: bool = False):
+    def fake_run_form(
+        func_info: FuncInfo,
+        inline: bool = False,
+        argv: t.Optional[Argv] = None,
+        cli_runner: t.Optional[t.Callable] = None,
+    ) -> t.Any:
         captured['name'] = func_info.name
         captured['inline'] = inline
+        captured['argv'] = argv
+        captured['has_runner'] = callable(cli_runner)
         return 'stub-result'
 
-    renderer.run_form = fake_run_form
+    renderer.run_form = fake_run_form  # type: ignore
+    original_argv = sys.argv
     try:
+        sys.argv = ['prog', 'Alice', '22']
         result = TuiInterface().run(install, inline=True)
     finally:
         renderer.run_form = original
+        sys.argv = original_argv
 
+    check('delegates to the form renderer', captured.get('name'), 'install')
+    check('passes the inline flag', captured.get('inline'), True)
     check(
-        'delegates to the form renderer',
-        captured,
-        {'name': 'install', 'inline': True},
+        'passes the command line for prefill',
+        captured['argv'].args,
+        ('Alice', '22'),
     )
+    check('passes a cli runner', captured.get('has_runner'), True)
     check('returns the form result', result, 'stub-result')
 
 
+def test_run_and_exit_goes_through_cli() -> None:
+    print('[13] "Run and exit" is dispatched to the cli path')
+    import argsense.renderer.tui as renderer
+
+    original = renderer.run_form
+
+    def fake_run_form(
+        func_info: FuncInfo,
+        inline: bool = False,
+        argv: t.Optional[Argv] = None,
+        cli_runner: t.Optional[t.Callable] = None,
+    ) -> t.Any:
+        # pretend the user filled the form and pressed "Run and exit".
+        assert cli_runner is not None
+        return cli_runner(('Zoe',))
+
+    renderer.run_form = fake_run_form  # type: ignore
+    original_argv = sys.argv
+    CALLS.clear()
+    try:
+        sys.argv = ['prog']
+        with redirect_stdout(io.StringIO()):
+            CommandLineInterface().run(install, mode='tui')
+    finally:
+        renderer.run_form = original
+        sys.argv = original_argv
+
+    check('the cli path executed the function', CALLS[0], ('Zoe', '', True, 1))
+
+
 def test_mode_tokens() -> None:
-    print('[9] the mode tokens on the command line')
+    print('[14] the mode tokens on the command line')
     import argsense.renderer.tui as renderer
 
     captured: t.Dict[str, t.Any] = {}
     original_form = renderer.run_form
 
-    def fake_run_form(func_info, inline: bool = False):
+    def fake_run_form(
+        func_info: FuncInfo,
+        inline: bool = False,
+        argv: t.Optional[Argv] = None,
+        cli_runner: t.Optional[t.Callable] = None,
+    ) -> t.Any:
         captured['name'] = func_info.name
         captured['inline'] = inline
+        captured['argv'] = argv
+        captured['has_runner'] = callable(cli_runner)
         return 'stub-result'
 
-    renderer.run_form = fake_run_form
+    renderer.run_form = fake_run_form  # type: ignore
     original_argv = sys.argv
     try:
         sys.argv = ['prog', ':tui']
@@ -332,6 +499,15 @@ def test_mode_tokens() -> None:
         sys.argv = ['prog', ':itui']
         CommandLineInterface().run(install, mode='cli')
         check(':itui means an inline tui', captured.get('inline'), True)
+
+        captured.clear()
+        sys.argv = ['prog', 'Zoe', '22']
+        CommandLineInterface().run(install, mode='tui')
+        check(
+            'the tui receives the positional args for prefill',
+            captured['argv'].args,
+            ('Zoe', '22'),
+        )
 
         captured.clear()
         CALLS.clear()
@@ -362,15 +538,20 @@ def test_mode_tokens() -> None:
 # -----------------------------------------------------------------------------
 
 
-async def main() -> None:
+async def run_all() -> None:
     await test_structure()
-    await test_equal_button_width()
+    await test_button_layout()
+    await test_log_height()
     await test_run()
     await test_flag_and_run_exit()
+    await test_exit_button()
     await test_errors()
     await test_narrow_terminal()
+    test_argv_prefill()
+    await test_argv_prefill_in_form()
     test_multi_command_is_rejected()
     test_run_delegates_to_the_form()
+    test_run_and_exit_goes_through_cli()
     test_mode_tokens()
 
     print()
@@ -383,4 +564,4 @@ async def main() -> None:
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(run_all())

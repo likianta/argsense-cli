@@ -4,6 +4,7 @@ import typing as tp
 from . import config
 from .cli import CommandLineInterface
 from .cli import T as T0
+from .parser import Argv
 
 
 class TuiInterface:
@@ -52,7 +53,16 @@ class TuiInterface:
 
         from .renderer.tui import run_form
 
-        return run_form(func_info, inline=inline)
+        argv = Argv.from_sys_argv()
+        return run_form(
+            func_info,
+            inline=inline,
+            argv=argv,
+            cli_runner=lambda tokens: self._interface.exec_argv(
+                Argv(argv.launcher, argv.target, tokens),
+                preset_func=func_info.target,
+            ),
+        )
 
 
 tui = TuiInterface(name='argsense-tui')

@@ -283,7 +283,15 @@ class CommandLineInterface:
             func_info = self.resolve_single_command(entrance, sys._getframe(1))
             from .renderer.tui import run_form
 
-            return run_form(func_info, inline=kwargs.get('inline', False))
+            return run_form(
+                func_info,
+                inline=kwargs.get('inline', False),
+                argv=argv,
+                cli_runner=lambda tokens: self.exec_argv(
+                    Argv(argv.launcher, argv.target, tokens),
+                    preset_func=func_info.target,
+                ),
+            )
 
         raise NotImplementedError(
             'the [{}] mode is not implemented yet.'.format(mode)
