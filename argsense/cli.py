@@ -231,16 +231,21 @@ class CommandLineInterface:
             caller's module (only when nothing was registered explicitly).
         """
         config.apply_changes()
-        preset_func = self._prepare_entrance(entrance, sys._getframe(1))
+        preset_func = self.prepare_entrance(entrance, sys._getframe(1))
         return self.exec_argv(
             argv=Argv.from_sys_argv(),
             preset_func=preset_func,
             transport_help=transport_help,
         )
 
-    def _prepare_entrance(
+    def prepare_entrance(
         self, entrance: T.Entrance, caller_frame: types.FrameType
     ) -> tp.Optional[T.Func]:
+        """
+        Register the commands carried by `entrance` (and, when it is `None`,
+        scan `caller_frame` for public functions), then tell whether a single
+        function should be used as the only entrance.
+        """
         if entrance is None:
             # only scan when nothing was registered explicitly, so that the
             # `@cli` / `cli.add_cmd(...)` style keeps its exact behavior.

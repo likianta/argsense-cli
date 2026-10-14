@@ -43,11 +43,19 @@ def parse_argv(
     mode: t.Literal['command', 'group'],
     front_matter: T.ParamsInfo,
     implicit_help: bool = True,
+    raise_on_error: bool = False,
 ) -> t.Optional[T.ParsedResult]:
+    """
+    Note:
+        by default a parsing failure is reported and causes a `SystemExit`
+        (that is what a command line interface wants). Pass
+        `raise_on_error=True` to let the exception propagate instead, which is
+        what the tui / gui renderers need.
+    """
     try:
         return _walking_through_argv(argv, mode, front_matter, implicit_help)
     except e.ArgvParsingFailed as err:
-        if os.getenv('ARGSENSE_DEBUG') == '1':
+        if raise_on_error or os.getenv('ARGSENSE_DEBUG') == '1':
             raise err
         else:
             report(err.index, str(err))

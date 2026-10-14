@@ -25,5 +25,7 @@ from .parser import parse_argstring
 from .parser import parse_argv
 from .parser import parse_docstring
 from .parser import parse_function
+from .tui import TuiInterface
+from .tui import tui
 
 __version__ = '1.4.0'
