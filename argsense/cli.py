@@ -59,7 +59,11 @@ class CommandLineInterface:
     # --------------------------------------------------------------------------
 
     def add_cmd(
-        self, func: T.Func, name: str = '', transfer_help: bool = False
+        self,
+        func: T.Func,
+        name: str = '',
+        transfer_help: bool = False,
+        rich: tp.Optional[bool] = None,
     ) -> None:
         if name:
             assert not name.startswith('-')
@@ -92,6 +96,7 @@ class CommandLineInterface:
         func_info.target = func
         func_info.name = cmd_name
         func_info.transfer_help = transfer_help  # FIXME: temp solution
+        func_info.use_rich_markup = rich
         func_info.fill_docs_info(docs_info)
 
         self.commands[id(func)] = func_info
@@ -173,7 +178,10 @@ class CommandLineInterface:
     # decorators
 
     def cmd(
-        self, name: str = '', transfer_help: bool = False
+        self,
+        name: str = '',
+        transfer_help: bool = False,
+        rich: tp.Optional[bool] = None,
     ) -> tp.Callable[[T.Func], T.Func]:
         """
         Usage:
@@ -181,10 +189,16 @@ class CommandLineInterface:
             @cli
             def foo(...):
                 ...
+
+        Args:
+            name: the command name. if not given, the function name is used.
+            transfer_help: whether to pass `-h` / `:help` down to the function.
+            rich: whether to parse rich markup (bbcode-like) in the function's
+                docstring. `None` follows `config.USE_RICH_MARKUP`.
         """
 
         def decorator(func: T.Func) -> T.Func:
-            self.add_cmd(func, name, transfer_help)
+            self.add_cmd(func, name, transfer_help, rich=rich)
             return func
 
         return decorator

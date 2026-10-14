@@ -5,7 +5,6 @@ TODO:
         FALLBACK_TO_HELP_IF_ARGPARSE_FAILED
         FALLBACK_TYPE
         PRETTY_ERROR
-        USE_RICH_MARKUP
 """
 
 import typing as tp
@@ -64,24 +63,30 @@ PROGRAM_NAME_STYLE = 'fixed'
 PARAM_PANEL_BORDER_WIDTH = 1
 #   the 'PARAMETERS' panel draws a 1-char border on each side.
 PARAM_PANEL_PADDING_X = 2
-#   related: `renderer/rich/render.py : [def] render_function_parameters : -
+#   related: `renderer/rich/render.py : [def] render_function_parameters :
 #   [code] rich.panel.Panel(..., padding=(0, 2))`
 PARAM_TABLE_NUM_COLUMNS = 7
 #   required, index, param, short, type, description, default.
 LEAST_WIDTH_RATIO_OF_PARAM_DESC = 0.5
-"""
-    if the 'param_desc' column's width takes up less than this ratio of the -
-    whole panel, the description is considered too cramped. argsense then -
-    stacks the description onto a second line, so that it can use the full -
-    panel width (see also `_make_layout_plan` in `renderer/rich/render.py`).
-"""
+#   if the 'param_desc' column's width takes up less than this ratio of the
+#   whole panel, the description is considered too cramped. argsense then stacks
+#   the description onto a second line, so that it can use the full panel width
+#   (see also `_make_layout_plan` in `renderer/rich/render.py`).
 OMIT_DEFAULT_PREFIX_IF_DESC_TOO_NARROW = False
-"""
-    if true, when the description is too cramped, argsense additionally omits -
-    the "default = " prefix in the default column to save some space (it is -
-    only useful for the single-line grid layout). disabled by default, so the -
-    default values are always shown as "default = <value>".
-"""
+#   if true, when the description is too cramped, argsense additionally omits
+#   the "default = " prefix in the default column to save some space (it is only
+#   useful for the single-line grid layout). disabled by default, so the default
+#   values are always shown as "default = <value>".
+
+# ------------------------------------------------------------------------------
+# docstring
+
+USE_RICH_MARKUP = False
+#   whether to parse rich markup (bbcode-like) in docstrings, for example
+#   "[red]hello[/]". disabled by default, because the markup parser may mistake
+#   ordinary bracketed text (such as "[2024-01-01]") for illegal markup.
+#   you can also turn it on for a single command with `@cli.cmd(rich=True)`,
+#   which overrides this global switch.
 
 # ------------------------------------------------------------------------------
 # TODO: need refactoring
@@ -90,7 +95,6 @@ OMIT_DEFAULT_PREFIX_IF_DESC_TOO_NARROW = False
 ALIGN_ARGS_AND_OPTS_FIELD_WIDTH = False
 ARG_NAME_STYLE: T.ArgNameStyle = 'aaa-bbb'
 PRETTY_ERROR = True
-USE_RICH_MARKUP = True
 
 # fallback
 BARE_NONE_MEANS_ANY = False

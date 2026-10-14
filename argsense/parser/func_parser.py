@@ -137,6 +137,9 @@ class FuncInfo:
         # self.return_type = info['return']
         self.cname_2_name = FuncInfo.GLOBAL_CNAME_2_NAME.copy()
         self.transfer_help = False
+        # `None` means to follow `config.USE_RICH_MARKUP`;
+        # it can be overridden per command via `@cli.cmd(rich=...)`.
+        self.use_rich_markup: t.Optional[bool] = None
 
         self.args0 = {}
         for name, type in info['args'][0]:

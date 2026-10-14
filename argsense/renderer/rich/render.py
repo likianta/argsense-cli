@@ -56,6 +56,7 @@ def render_function_parameters(
     argv: Argv, func_info: FuncInfo, *, show_func_name_in_title: bool = True
 ) -> None:
     has_any_args = bool(func_info.args or func_info.kwargs)
+    use_markup = _resolve_markup(func_info)
 
     title_parts = [_detect_program_name(argv)]
     if show_func_name_in_title:
@@ -74,7 +75,8 @@ def render_function_parameters(
     if func_info.desc:
         console.print(
             rich.padding.Padding(
-                rich.text.Text(func_info.desc, style=color.gray2), (0, 2, 0, 2)
+                _render_text(func_info.desc, color.gray2, use_markup),
+                (0, 2, 0, 2),
             )
         )
 
@@ -85,9 +87,13 @@ def render_function_parameters(
     plan = _make_layout_plan(rows)
 
     if plan['stacked']:
-        table = _render_stacked_table(rows, plan['omit_default_prefix'])
+        table = _render_stacked_table(
+            rows, plan['omit_default_prefix'], use_markup
+        )
     else:
-        table = _render_grid_table(rows, plan['omit_default_prefix'])
+        table = _render_grid_table(
+            rows, plan['omit_default_prefix'], use_markup
+        )
 
     if table.rows:
         console.print(
@@ -101,6 +107,29 @@ def render_function_parameters(
         )
         if config.POST_LOGO_IN_HELP_INTERFACE:
             _post_logo(color_seed='blue')
+
+
+def _resolve_markup(func_info: FuncInfo) -> bool:
+    """
+    a per-command `rich` setting (`@cli.cmd(rich=...)`) takes precedence over
+    the global `config.USE_RICH_MARKUP`.
+    """
+    if func_info.use_rich_markup is None:
+        return config.USE_RICH_MARKUP
+    return func_info.use_rich_markup
+
+
+def _render_text(
+    text: str, style: t.Optional[str], use_markup: bool
+) -> rich.text.Text:
+    """
+    build a rich text object. when `use_markup` is false, the text is treated
+    literally, so that bracketed text (e.g. "[2024-01-01]") is shown as-is,
+    instead of being parsed (and possibly rejected) as rich markup.
+    """
+    if use_markup:
+        return rich.text.Text.from_markup(text, style=style)
+    return rich.text.Text(text, style=style)
 
 
 # ------------------------------------------------------------------------------
@@ -182,8 +211,8 @@ def _collect_parameter_rows(func_info: FuncInfo) -> t.List[dict]:
                 'name': '...',
                 'short': '',
                 'type': func_info.args4['**']['ctype'].name,
-                'desc': '[dim](this function may accept more keyword arguments as '
-                'implicit vars...)[/]',
+                'desc': '(this function may accept more keyword arguments as '
+                'implicit vars...)',
                 'default': None,
             }
         )
@@ -311,7 +340,7 @@ def _make_layout_plan(rows: t.List[dict]) -> t.Dict[str, bool]:
 
 
 def _render_grid_table(
-    rows: t.List[dict], omit_default_prefix: bool
+    rows: t.List[dict], omit_default_prefix: bool, use_markup: bool
 ) -> rich.table.Table:
     table = rich.table.Table.grid(expand=True, padding=(0, 1))
     #   padding=(0, 1): cell's padding, (vertical, horizontal).
@@ -339,14 +368,14 @@ def _render_grid_table(
             cells['name'],
             cells['short'],
             cells['type'],
-            row['desc'],
+            _render_text(row['desc'], None, use_markup),
             cells['default'],
         )
     return table
 
 
 def _render_stacked_table(
-    rows: t.List[dict], omit_default_prefix: bool
+    rows: t.List[dict], omit_default_prefix: bool, use_markup: bool
 ) -> rich.table.Table:
     """
     in this layout, each parameter takes two (or more) lines:
@@ -378,6 +407,7 @@ def _render_stacked_table(
                 w_short,
                 w_type,
                 omit_default_prefix,
+                use_markup,
             )
         )
         prev_has_desc = bool(row['desc'])
@@ -393,6 +423,7 @@ def _build_stacked_block(
     w_short: int,
     w_type: int,
     omit_default_prefix: bool,
+    use_markup: bool,
 ) -> rich.console.Group:
     head = rich.text.Text()
     head.append(row['required'], style=color.red)
@@ -415,7 +446,7 @@ def _build_stacked_block(
         return rich.console.Group(
             head,
             rich.padding.Padding(
-                rich.text.Text(row['desc'], style=color.gray2),
+                _render_text(row['desc'], color.gray2, use_markup),
                 (0, 0, 0, indent),
             ),
         )
