@@ -1,5 +1,6 @@
 /.idea/
 /dist/
+/docs/advertisement/
 /examples/test.py
 /test/temp/
 __pycache__/

@@ -20,7 +20,7 @@ Screenshots:
 
 - Python first. ArgSense takes `:true` `:false` `:none` from CLI and convert them to direct Python types.
 - Intuitive. It gets all information from the function signature and docstrings.
-- Less peripheral code.
+- Less peripheral code. No decorator is required: pass a function to `cli.run(...)`, or call a bare `cli.run()` to publish every public function in the module.
 - Rich panel of help interface.
 
 ## Comparison with Other Libraries
@@ -34,9 +34,10 @@ Screenshots:
 ```python
 from argsense import cli
 
-@cli
+
 def hello(name: str = 'world'):
     print(f'hello {name}')
+
 
 if __name__ == '__main__':
     cli.run(hello)
@@ -45,14 +46,13 @@ if __name__ == '__main__':
 ```shell
 # get help
 python main.py -h
-python main.py hello -h
 
-# run with default name
-python main.py hello
+# run with the default name
+python main.py
 
-# run with given name
-python main.py hello Alice
-python main.py hello --name Alice
+# run with a given name
+python main.py Alice
+python main.py --name Alice
 ```
 
 #### argparse (standard library)
@@ -195,7 +195,7 @@ ArgSense reads the whole help page from the function's docstring: the command de
 ```python
 from argsense import cli
 
-@cli
+
 def hello(name: str = 'world', *, verbose: bool = False):
     """
     greet someone.
@@ -261,7 +261,7 @@ The same command, defined in ArgSense (the libraries below implement the exact s
 ```python
 from argsense import cli
 
-@cli
+
 def install(appid: str, version: str = '', use_exist: bool = True):
     """
     install an app.
@@ -478,18 +478,19 @@ Options:
 
 #### ArgSense
 
-Decorate every function with `@cli`, then call `cli.run()` without an argument. `python main.py -h` lists all commands, and `python main.py <cmd> -h` shows one.
+Define the functions and call `cli.run()` without an argument: ArgSense scans the module and exposes every public function as a command. `python main.py -h` lists all commands, and `python main.py <cmd> -h` shows one.
 
 ```python
 from argsense import cli
 
-@cli
+
 def foo(a: str):
     ...
 
-@cli
+
 def bar(b: int):
     ...
+
 
 if __name__ == '__main__':
     cli.run()
@@ -552,15 +553,16 @@ ArgSense infers a parameter's type from its annotation, converts the input accor
 ```python
 from argsense import cli
 
-@cli
+
 def train(
-    count: int, 
-    addr: int, 
-    rate: float = 0.1, 
-    tag: str = '', 
+    count: int,
+    addr: int,
+    rate: float = 0.1,
+    tag: str = '',
     verbose: bool = False
 ):
     ...
+
 
 if __name__ == '__main__':
     cli.run(train)
@@ -613,9 +615,10 @@ def train(count: int, rate: float = 0.1, tag: str = '', verbose: bool = False):
 from argsense import cli
 from neoprint import print
 
-@cli
+
 def foo(aaa: int, *bbb, ccc: int = 999, **ddd):
     print(locals(), ':l')
+
 
 cli.run(foo)
 ```
@@ -671,7 +674,7 @@ When several commands share the same parameter, you only need to document it onc
 ```python
 from argsense import cli
 
-@cli
+
 def foo(name: str, age: int):
     """
     params:
@@ -679,7 +682,7 @@ def foo(name: str, age: int):
         age: the leader's age.
     """
 
-@cli
+
 def bar(name: str, age: int):
     """
     params:
@@ -721,7 +724,7 @@ def bar(name): ...
 | `clize`         | type hints + docstring         | docstring                   | yes                       | `run`                    | decent               |
 | `cyclopts`      | type hints                     | `Annotated` + docstring     | yes                       | `App`                    | rich                 |
 | `defopt`        | type hints + reST docstring    | reST docstring              | yes                       | function list            | plain                |
-| **`argsense`**  | type hints + docstring         | docstring (`params:`)       | yes                       | `@cli` commands          | rich                 |
+| **`argsense`**  | type hints + docstring         | docstring (`params:`)       | yes                       | `cli.run()`              | rich                 |
 
 ## Install
 
@@ -739,9 +742,10 @@ The latest version is 1.2+.
 from argsense import cli
 from typing import Any
 
-@cli
+
 def main(foo: Any, bar: Any):
     print(f'{foo=}, {bar=}')
+
 
 if __name__ == '__main__':
     cli.run(main)
@@ -759,7 +763,7 @@ python main.py 0xFFFF 0b1111
 
 ![](docs/images/261013-172905.png)
 
-That is all you need: decorate the function with `@cli`, then call `cli.run()`. The parameter list, the help text and the type conversion are all derived from the signature and the docstring. See [Comparison with Other Libraries](#comparison-with-other-libraries) for the big picture, and [In-Depth Reading](#in-depth-reading) for the details.
+That is all you need: pass the function to `cli.run()`, or call a bare `cli.run()` to publish the whole module. The parameter list, the help text and the type conversion are all derived from the signature and the docstring. (The `@cli` decorator and `cli.add_cmd(...)` are still supported — reach for them when you need per-command options such as a custom name.) See [Comparison with Other Libraries](#comparison-with-other-libraries) for the big picture, and [In-Depth Reading](#in-depth-reading) for the details.
 
 ## In-Depth Reading
 
@@ -868,7 +872,7 @@ They can also be wrapped with `typing.Optional[...]`, as shown in the following 
 import typing as t
 from argsense import cli
 
-@cli
+
 def main(
     aaa: bool,
     bbb: float,
@@ -930,7 +934,7 @@ The usage of boolean values (`:true` `:false`) is rather special. Please refer t
 # test.py
 from argsense import cli
 
-@cli
+
 def main(foo: bool, bar: bool):
     """
     params:
@@ -965,7 +969,7 @@ python test.py --not-foo --not-bar
 
 This is parsed as `main(foo=False, bar=False)`.
 
-Note the `--no-foo` / `--not-foo` syntax. 
+Note the `--no-foo` / `--not-foo` syntax.
 
 The abbreviation in `foo (-f)` must be lowercase (otherwise ArgSense reports a parsing error), so the docstring never mixes uppercase and lowercase. Uppercase is reserved to mean "not".
 
@@ -979,9 +983,10 @@ ArgSense supports passing `*args` and `**kwargs`, and its usage is intuitive. Se
 # test.py
 from argsense import cli
 
-@cli
+
 def main(aaa, *bbb, ccc=123, **ddd) -> None:
     print(f'{aaa=}, {bbb=}, {ccc=}, {ddd=}')
+
 
 if __name__ == '__main__':
     cli.run(main)

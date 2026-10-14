@@ -1,4 +1,7 @@
+import inspect
 import re
+import sys
+import types
 import typing as tp
 from textwrap import dedent
 
@@ -26,6 +29,9 @@ class T:
     FuncInfo = FuncInfo
 
     CommandsCollect = tp.Dict[_FunctionId, FuncInfo]
+
+    # the argument accepted by `cli.run(...)`.
+    Entrance = tp.Union[Func, tp.Dict[str, Func], tp.Iterable[Func], None]
 
 
 # matches a docstring that reuses another command's parameter description.
@@ -207,14 +213,74 @@ class CommandLineInterface:
     # run
 
     def run(
-        self, func: tp.Optional[T.Func] = None, transport_help: bool = False
+        self, entrance: T.Entrance = None, transport_help: bool = False
     ) -> tp.Any:
+        """
+        Run the CLI.
+
+        Usage:
+            cli.run()             # scan the caller's module and expose every
+                                  # public function as a command.
+            cli.run(foo)          # use `foo` as the only entrance.
+            cli.run((foo, bar))   # expose `foo` and `bar` as commands.
+            cli.run({'foo': foo, 'baring': bar})  # dict form, custom names.
+
+        Note:
+            Using `@cli` / `cli.add_cmd(...)` is optional: any function passed
+            here is registered on the fly, and a bare `cli.run()` scans the
+            caller's module (only when nothing was registered explicitly).
+        """
         config.apply_changes()
+        preset_func = self._prepare_entrance(entrance, sys._getframe(1))
         return self.exec_argv(
             argv=Argv.from_sys_argv(),
-            preset_func=func,
+            preset_func=preset_func,
             transport_help=transport_help,
         )
+
+    def _prepare_entrance(
+        self, entrance: T.Entrance, caller_frame: types.FrameType
+    ) -> tp.Optional[T.Func]:
+        if entrance is None:
+            # only scan when nothing was registered explicitly, so that the
+            # `@cli` / `cli.add_cmd(...)` style keeps its exact behavior.
+            if not self.commands:
+                self._scan_frame(caller_frame)
+            return None
+
+        if callable(entrance):
+            self._add_cmd_if_new(entrance)
+            return entrance
+
+        if isinstance(entrance, dict):
+            for name, func in entrance.items():
+                self._add_cmd_if_new(func, name)
+            return None
+
+        for func in entrance:
+            self._add_cmd_if_new(func)
+        return None
+
+    def _scan_frame(self, frame: types.FrameType) -> None:
+        """
+        Register every public function that is defined in the caller's module,
+        so that a bare `cli.run()` is enough to build a multi-command CLI.
+        """
+        module_name = frame.f_globals.get('__name__')
+        for name, obj in frame.f_locals.items():
+            if name.startswith('_'):
+                continue
+            if not inspect.isfunction(obj):
+                continue
+            if obj.__module__ != module_name:
+                continue
+            self._add_cmd_if_new(obj)
+
+    def _add_cmd_if_new(self, func: T.Func, name: str = '') -> None:
+        if id(func) in self.commands:
+            # it was already added by `@cli` / `cli.add_cmd(...)`.
+            return
+        self.add_cmd(func, name)
 
     def wrap(self, func: T.Func) -> tp.Callable[[], tp.Any]:
         """
