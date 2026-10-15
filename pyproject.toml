@@ -1,6 +1,6 @@
 [project]
 name = "argsense"
-version = "2.0.0b1"
+version = "2.0.0b2"
 description = "New command line interface based on Rich library."
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"
@@ -65,6 +65,12 @@ relative-imports-order = "closest-to-furthest"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+
+[tool.ty.environment]
+# `sidework` scripts are run as standalone files (their own directory is the
+# first entry of `sys.path`), so the sibling modules they import are only
+# resolvable for the type checker when the directory is on its search path.
+extra-paths = ["sidework"]
 
 [tool.ty.rules]
 invalid-type-form = "ignore"

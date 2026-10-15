@@ -21,16 +21,27 @@ argsense-cli/
 │   ├── cli.py                # CommandLineInterface: 命令注册, 运行, docstring 引用解析
 │   ├── config.py             # 全局配置项
 │   ├── converter.py          # 名称/类型转换
+│   ├── tui.py                # TuiInterface: cli 接口的文本界面 (TUI) 形态
 │   ├── parser/               # 解析层
 │   │   ├── func_parser.py    # parse_function(): 解析函数签名 (FuncInfo)
 │   │   ├── docs_parser.py    # parse_docstring(): 解析 docstring
 │   │   └── args_parser/      # parse_argv(): 把 argv 解析成实参
-│   └── renderer/             # 渲染层 (rich 帮助界面; psg 为 PySimpleGUI 图形界面后端)
+│   └── renderer/             # 渲染层
+│       ├── rich/             # 命令行帮助界面 (palette.py 为配色表)
+│       ├── tui/              # 文本界面 (Textual; app.py 为表单应用)
+│       └── psg/              # PySimpleGUI 图形界面后端
+├── sidework/                 # 辅助脚本 (文档插图生成等)
+│   ├── readme_screenshots.py # 批量生成 README 插图
+│   ├── readme_scenes.py      # README 插图的场景定义 (console scene / tui scene)
+│   ├── record_help_interface.py    # 单张帮助界面截图的底层入口
+│   └── screenshot_console_output.py # 单个控制台会话截图的底层入口
+├── examples/                 # 示例脚本
 ├── test/                     # 手工运行的测试脚本 (非 pytest), 部分测试可能过时, 注意甄别
+│   └── tui_test/             # TUI 的场景脚本与无头测试
 ├── docs/                     # 补充文档 (部分可能已过时)
-│   └── images/               # 文档所使用到的插图
+│   └── images/               # 文档所使用到的插图 (由 sidework 脚本生成)
 ├── README.md                 # 自述文档
-└── CHANGELOG.zh.md           # 更新日志
+└── CHANGELOG.md              # 更新日志 (只维护英文版)
 ```
 
 ## 代码风格
@@ -66,6 +77,21 @@ Commit 信息格式:
 
 如果只修改了 .gitignore 中的文件, 没有产生 git 差异, 则不需要提供 commit 信息参考.
 
+## 文档与插图
+
+- `README.md` 是唯一维护的自述文档 (英文). 更新日志只维护英文版 `CHANGELOG.md`, 中文版已废弃.
+- `README.md` 中的插图由 `sidework/readme_screenshots.py` 批量生成, 场景定义在 `sidework/readme_scenes.py`:
+
+  ```shell
+  python sidework/readme_screenshots.py            # 刷新全部插图
+  python sidework/readme_screenshots.py tui-log    # 只刷新某一张 (逗号分隔可指定多张)
+  ```
+
+  其中两类插图: 控制台插图 (模拟终端会话, 或渲染 `-h` 帮助界面), 以及 TUI 插图 (用 `Pilot` 无头驱动 Textual 表单, 再导出截图). 少数插图 (如 `261015-140133`, `261015-140405`, `261015-132007`) 直接运行 `test/` 下的场景脚本.
+- 图片名是稳定的 (不带时间戳), 所以刷新插图不会产生孤儿文件; README 通过图片名引用插图.
+- 新增或修改 README 插图时, 必须同步更新 `readme_scenes.py` 与 `readme_screenshots.py` 中的清单, 以确保插图始终可重现.
+- `sidework/record_help_interface.py` 与 `sidework/screenshot_console_output.py` 是底层录制工具的单独入口; 日常刷新插图直接用 `readme_screenshots.py` 即可.
+
 ## 核心架构
 
 解析与渲染的主链路如下:
@@ -79,8 +105,9 @@ Commit 信息格式:
 3. **运行阶段** (`cli.py`)
    - `cli.run()` / `cli.exec_argv()` → 交给 `parser/args_parser` 解析 argv, 再调用目标函数
    - `exec_argv()` 入口会先调用 `resolve_doc_references()`, 解析 docstring 中的参数引用 (见下)
-4. **渲染阶段** (`renderer/rich`)
-   - 生成帮助界面, 参数表格, 错误提示
+4. **渲染阶段** (两种形态)
+   - `renderer/rich`: 生成帮助界面, 参数表格, 错误提示
+   - `renderer/tui`: 用 Textual 把命令渲染成可填写的表单 (`mode='tui'`, 或命令行里的 `:tui` / `:itui`)
 
 **内置命令**: `-h` / `:help` 显示帮助; `:loop` 进入循环调用模式; `:true` `:false` `:none` `:empty` 为特殊值 (详见 README).
 

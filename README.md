@@ -14,12 +14,16 @@ Screenshots:
 
 ![](docs/images/261015-140405.png)
 
+![](docs/images/tui-overview.png)
+
 ## Highlights
 
 - Python first. ArgSense takes `:true` `:false` `:none` from CLI and convert them to direct Python types.
 - Intuitive. It gets all information from the function signature and docstrings.
 - Less peripheral code. No decorator is required: pass a function to `cli.run(...)`, or call a bare `cli.run()` to publish every public function in the module.
 - Rich panel of help interface.
+- A [text user interface (TUI)](#tui) to fill a command in, instead of typing it.
+- A color palette based on [Catppuccin](https://catppuccin.com/), which falls back to the 16 basic ANSI colors on a legacy terminal.
 
 ## Comparison with Other Libraries
 
@@ -692,6 +696,12 @@ ArgSense supports Python 3.9 and above:
 pip install argsense
 ```
 
+The text user interface ([TUI](#tui)) is built on [Textual](https://textual.textualize.io/), which is an optional dependency:
+
+```shell
+pip install argsense[tui]
+```
+
 ## Quick Start
 
 ```python
@@ -718,6 +728,44 @@ python main.py 0xFFFF 0b1111
 ![](docs/images/261015-140457.png)
 
 That is all you need: pass the function to `cli.run()`, or call a bare `cli.run()` to publish the whole module. The parameter list, the help text and the type conversion are all derived from the signature and the docstring. (The `@cli` decorator and `cli.add_cmd(...)` are still supported — reach for them when you need per-command options such as a custom name.) See [Comparison with Other Libraries](#comparison-with-other-libraries) for the big picture, and [In-Depth Reading](#in-depth-reading) for the details.
+
+## TUI
+
+Besides the command line, ArgSense can render the same commands as a form. Everything the form needs — the parameters, their types, their help text and their default values — comes from the function signature and the docstring, exactly as the help interface does. Run `python main.py :tui`, or pass `mode='tui'`:
+
+```python
+from argsense import cli
+
+def main(name: str, age: int):
+    """
+    params:
+        name: Your name.
+        age: Your age.
+    """
+
+if __name__ == '__main__':
+    cli.run(main, mode='tui')
+```
+
+Then fill the command in, instead of typing it.
+
+**Sidebar and tabs.** When the commands are declared with `cli.run_group(...)` (see [Command Groups](#command-groups)), the group names are listed in a sidebar, and the tab bar shows the commands of the selected group. Without groups, every command gets a tab.
+
+![](docs/images/tui-overview.png)
+
+**Widgets.** A text parameter becomes an input, a number gets a narrow box of its own, and a flag becomes a switch. A parameter's description is used as the input's placeholder, and its full help (description, type and default value) as a tooltip.
+
+![](docs/images/tui-widgets.png)
+
+**Compact layout.** Consecutive small widgets — flags and numbers — are packed into a single row, so a long form wastes far less vertical space.
+
+![](docs/images/tui-compact-layout.png)
+
+**Log panel.** "Run" calls the command and shows whatever it printed in the log panel, instead of letting it mix into the form. "Run and exit" closes the form first, rebuilds the command line from the filled form, and runs it through the normal cli path.
+
+![](docs/images/tui-log.png)
+
+The tui is built on [Textual](https://textual.textualize.io/), and is an [optional dependency](#install).
 
 ## In-Depth Reading
 
