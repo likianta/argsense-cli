@@ -1,25 +1,36 @@
 """
 The color tables used by the rich renderer.
 
-Two palettes are maintained, and `get_palette()` picks one for the console in
-use:
+Three palettes are maintained, and `get_palette()` picks one for the console
+in use:
 
     ModernPalette
-        For the terminals that can show truecolor. The colors are the 'mocha'
-        flavour of the catppuccin palette (https://catppuccin.com/palette),
-        and the titles are drawn as a gradient.
+        For the terminals that report the truecolor color system. The colors
+        are the 'mocha' flavour of the catppuccin palette
+        (https://catppuccin.com/palette), and the titles are drawn as a
+        gradient.
+
+    ModernFlatPalette
+        For the terminals that report the 256-color color system. It keeps
+        the same catppuccin colors, but it drops the gradients: the xterm
+        color cube has only six levels per channel, so a ramp is reduced to a
+        few flat bands.
 
     LegacyPalette
-        For every other terminal - the 256-color ones, the plain 16-color
-        ones, and the legacy windows console. It only uses color names that
-        all of them understand, and it draws the titles in a single color:
-        a gradient would come out as noise there.
+        For the terminals that only know the 16 ansi colors - this is what
+        `standard` and the legacy windows console report - and for the runs
+        that get no color at all (`color_system` is `None` when the output is
+        not a terminal).
 
 The detection is delegated to rich, which already knows whether the console
 is the legacy windows one (see `rich.console.detect_legacy_windows`) and
 which color system it supports (see `rich.console.Console.color_system`). A
 legacy windows console is reported as `ColorSystem.WINDOWS`, so it never
 looks like a truecolor one.
+
+Note that picking a palette is only about colors: when the console can not
+show them at all, rich drops every escape sequence before it writes anything
+(see `rich.style.Style.render`).
 """
 
 import typing as tp
@@ -27,20 +38,25 @@ import typing as tp
 from rich import get_console
 from rich.console import Console
 
-MODERN_COLOR_SYSTEM = ('truecolor', '256')
-#   what `Console.color_system` reports for a terminal that can show truecolor.
-#   every other value ('standard', 'windows', or `None` when the output is not 
-#   a terminal) falls back to the legacy palette.
+MODERN_COLOR_SYSTEMS = ('truecolor', '256')
+#   the values of `Console.color_system` that get the modern colors.
+
+GRADIENT_COLOR_SYSTEM = 'truecolor'
+#   among them, the one that can also blend two colors into a ramp. that is
+#   why `ModernFlatPalette` is used for the rest of them.
 
 Gradient = tp.Union[str, tp.Tuple[str, str]]
-#   a two-stop gradient in a modern terminal, or a single color in a legacy
-#   one. the renderer's `_gradient()` handles both.
+#   a two-stop gradient, or a single color when the console can not blend.
+#   the renderer's `_gradient()` handles both.
 
 
 class ModernPalette:
     """
-    For the truecolor terminals. The colors are taken from the catppuccin
-    'mocha' flavour - the name of the color is noted next to each of them.
+    For the terminals that report the truecolor color system.
+
+    The colors are taken from the catppuccin 'mocha' flavour - the name of
+    the color is noted next to each of them - and the titles are drawn as a
+    gradient.
     """
 
     class title:
@@ -87,12 +103,33 @@ class ModernPalette:
         parameters = ('#89b4fa', '#7f849c')  # blue -> overlay1
 
 
+class ModernFlatPalette(ModernPalette):
+    """
+    For the terminals that report the 256-color color system.
+
+    It keeps the modern colors, but it can not use the gradients: the xterm
+    color cube has only six levels per channel, so a ramp is reduced to six
+    flat bands. The single colors below stand in for them.
+    """
+
+    class title:
+        gradient = '#f38ba8'  # red
+
+    class logo:
+        #   the first stop of each gradient of `ModernPalette`, that is, the
+        #   color that echoes the border of the panel it follows.
+        commands = '#cba6f7'  # mauve
+        parameters = '#89b4fa'  # blue
+
+
 class LegacyPalette:
     """
-    For the terminals that can not show truecolor. Only the 16 ansi colors
-    (and the styles built on them) are used. `bright_black` is the gray here:
-    unlike `grey50` it is a plain ansi color, so every terminal understands
-    it.
+    For the terminals that only know the 16 ansi colors, and for the runs
+    that get no color at all.
+
+    Only the ansi color names (and the styles built on them) are used.
+    `bright_black` is the gray here: unlike `grey50` it is a plain ansi
+    color, so every terminal understands it.
     """
 
     class title:
@@ -130,12 +167,14 @@ class LegacyPalette:
 
 
 Palette = tp.Union[ModernPalette, LegacyPalette]
-"""Either of the two palettes above."""
+"""Either of the palettes above. `ModernFlatPalette` is one of them."""
 
 
 def get_palette(console: tp.Optional[Console] = None) -> Palette:
     """
-    Pick the palette for the console in use.
+    Pick the palette for the console in use: `ModernPalette` on a truecolor
+    terminal, `ModernFlatPalette` on a 256-color one, `LegacyPalette`
+    otherwise.
 
     Note:
         Pass the console along when the caller does not print to the global
@@ -145,6 +184,9 @@ def get_palette(console: tp.Optional[Console] = None) -> Palette:
     """
     if console is None:
         console = get_console()
-    if console.color_system in MODERN_COLOR_SYSTEM:
+    color_system = console.color_system
+    if color_system not in MODERN_COLOR_SYSTEMS:
+        return LegacyPalette()
+    if color_system == GRADIENT_COLOR_SYSTEM:
         return ModernPalette()
-    return LegacyPalette()
+    return ModernFlatPalette()

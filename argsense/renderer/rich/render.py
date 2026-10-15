@@ -245,9 +245,7 @@ def _resolve_markup(func_info: FuncInfo) -> bool:
     return func_info.use_rich_markup
 
 
-def _render_text(
-    text: str, style: t.Optional[str], use_markup: bool
-) -> rich.text.Text:
+def _render_text(text: str, style: str, use_markup: bool) -> rich.text.Text:
     """
     build a rich text object. when `use_markup` is false, the text is treated
     literally, so that bracketed text (e.g. "[2024-01-01]") is shown as-is,
@@ -497,7 +495,7 @@ def _render_grid_table(
             cells['name'],
             cells['short'],
             cells['type'],
-            _render_text(row['desc'], None, use_markup),
+            _render_text(row['desc'], '', use_markup),
             cells['default'],
         )
     return table
@@ -626,8 +624,8 @@ def _gradient(text: str, gradient: Gradient) -> rich.text.Text:
     """
     Draw a title in its gradient.
 
-    A legacy palette hands a single color instead of a pair, because such a
-    terminal can not blend two colors into a readable ramp. The text is then
+    A palette hands a single color instead of a pair when the console can not
+    blend - see `ModernFlatPalette` and `LegacyPalette`. The text is then
     drawn flat, in that color.
     """
     if isinstance(gradient, str):
