@@ -1,6 +1,6 @@
 [project]
 name = "argsense"
-version = "1.4.0b0"
+version = "1.4.0"
 description = "New command line interface based on Rich library."
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"

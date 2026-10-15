@@ -10,11 +10,9 @@ It is much lighter than [argparse](#argparse-standard-library), [Click](#click) 
 
 Screenshots:
 
-![](docs/images/241219-110708.png)
+![](docs/images/261015-140133.png)
 
-![](docs/images/241218-163439.png)
-
-![](docs/images/241218-163458.png)
+![](docs/images/261015-140405.png)
 
 ## Highlights
 
@@ -34,10 +32,8 @@ Screenshots:
 ```python
 from argsense import cli
 
-
 def hello(name: str = 'world'):
     print(f'hello {name}')
-
 
 if __name__ == '__main__':
     cli.run(hello)
@@ -195,7 +191,6 @@ ArgSense reads the whole help page from the function's docstring: the command de
 ```python
 from argsense import cli
 
-
 def hello(name: str = 'world', *, verbose: bool = False):
     """
     greet someone.
@@ -212,7 +207,7 @@ if __name__ == '__main__':
 
 Screenshot (`python temp.py -h`):
 
-![](docs/images/261013-171259.png)
+![](docs/images/261015-140453.png)
 
 #### Click
 
@@ -261,7 +256,6 @@ The same command, defined in ArgSense (the libraries below implement the exact s
 ```python
 from argsense import cli
 
-
 def install(appid: str, version: str = '', use_exist: bool = True):
     """
     install an app.
@@ -285,139 +279,23 @@ def install(appid: str, version: str = '', use_exist: bool = True):
 
 **ArgSense** — the description gets a full-width line of its own:
 
-```text
-                       python long_desc_argsense.py ...
-  install an app.
-┌──────────────────────────────────────────────────────────────── PARAMETERS ─┐
-│  * 1    appid        TEXT                                                   │
-│         the app id (a normalized app name).                                 │
-│                                                                             │
-│    2    version      TEXT                                     default = ""  │
-│         the app version to operate on.                                      │
-│         if not given, the last installed version will be used.              │
-│                                                                             │
-│    3    use-exist -u FLAG                                  default = :true  │
-│         1. if `version` is not given, will try to use the last installed    │
-│         version.                                                            │
-│         2. if `version` is given, but not installed, and if depsland finds  │
-│         a newer version already installed, will use the newer one.          │
-│             why we do this: due to the design limitation, the cloud drive   │
-│             stores only one "latest" version on the oss side; older         │
-│             versions are discarded as soon as a new version is published.   │
-│             this means user can never retrieve a specific older version at  │
-│             that time. we have to force user to use the newer one.          │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                                        🔥 powered by argsense
-```
+![](docs/images/261015-140601.png)
 
 **argparse** — the description is wrapped into the narrow help column:
 
-```text
-usage: install [-h] [--version VERSION] [--use-exist] appid
-
-install an app.
-
-positional arguments:
-  appid              the app id (a normalized app name).
-
-options:
-  -h, --help         show this help message and exit
-  --version VERSION  the app version to operate on. if not given, the last
-                     installed version will be used.
-  --use-exist, -u    1. if `version` is not given, will try to use the last
-                     installed version. 2. if `version` is given, but not
-                     installed, and if depsland finds a newer version already
-                     installed, will use the newer one. why we do this: due to
-                     the design limitation, the cloud drive stores only one
-                     "latest" version on the oss side; older versions are
-                     discarded as soon as a new version is published. this
-                     means user can never retrieve a specific older version at
-                     that time. we have to force user to use the newer one.
-```
+![](docs/images/261015-140603.png)
 
 **Click** — same wrapping behavior:
 
-```text
-Usage: long_desc_click.py [OPTIONS] APPID
-
-  install an app.
-
-Options:
-  --version TEXT   the app version to operate on. if not given, the last
-                   installed version will be used.
-  -u, --use-exist  1. if `version` is not given, will try to use the last
-                   installed version. 2. if `version` is given, but not
-                   installed, and if depsland finds a newer version already
-                   installed, will use the newer one. why we do this: due to
-                   the design limitation, the cloud drive stores only one
-                   "latest" version on the oss side; older versions are
-                   discarded as soon as a new version is published. this means
-                   user can never retrieve a specific older version at that
-                   time. we have to force user to use the newer one.
-  --help           Show this message and exit.
-```
+![](docs/images/261015-140605.png)
 
 **Typer** — rich panels, but the description column is still narrow:
 
-```text
- Usage: long_desc_typer.py [OPTIONS] {appid}
-
- install an app.
-
-┌─ Arguments ─────────────────────────────────────────────────────────────────┐
-│ *    appid      <str>  [required]                                           │
-└─────────────────────────────────────────────────────────────────────────────┘
-┌─ Options ───────────────────────────────────────────────────────────────────┐
-│ --version            <str>  the app version to operate on. if not given,    │
-│                             the last installed version will be used.        │
-│ --use-exist  -u             1. if `version` is not given, will try to use   │
-│                             the last installed version. 2. if `version` is  │
-│                             given, but not installed, and if depsland finds │
-│                             a newer version already installed, will use the │
-│                             newer one. why we do this: due to the design    │
-│                             limitation, the cloud drive stores only one     │
-│                             "latest" version on the oss side; older         │
-│                             versions are discarded as soon as a new version │
-│                             is published. this means user can never         │
-│                             retrieve a specific older version at that time. │
-│                             we have to force user to use the newer one.     │
-│                             [default: True]                                 │
-│ --help                      Show this message and exit.                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+![](docs/images/261015-140607.png)
 
 **cyclopts** — the description column is even narrower:
 
-```text
-Usage: install APPID [ARGS]
-
-install an app.
-
-┌─ Commands ──────────────────────────────────────────────────────────────────┐
-│ --help (-h)  Display this message and exit.                                 │
-│ --version    Display application version.                                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-┌─ Parameters ────────────────────────────────────────────────────────────────┐
-│ *  APPID --appid             the app id (a normalized app name). [required] │
-│    VERSION --version         the app version to operate on. if not given,   │
-│                              the last installed version will be used.       │
-│                              [default: ""]                                  │
-│    USE-EXIST --use-exist -u                                                 │
-│      --no-use-exist           1 if version is not given, will try to use    │
-│                                 the last installed version. 2. if version   │
-│                                 is given, but not installed, and if         │
-│                                 depsland finds a newer version already      │
-│                                 installed, will use the newer one. why we   │
-│                                 do this: due to the design limitation, the  │
-│                                 cloud drive stores only one "latest"        │
-│                                 version on the oss side; older versions are │
-│                                 discarded as soon as a new version is       │
-│                                 published. this means user can never        │
-│                                 retrieve a specific older version at that   │
-│                                 time. we have to force user to use the      │
-│                                 newer one. [default: True]                  │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+![](docs/images/261015-140609.png)
 
 ### Hidden Description
 
@@ -483,14 +361,11 @@ Define the functions and call `cli.run()` without an argument: ArgSense scans th
 ```python
 from argsense import cli
 
-
 def foo(a: str):
     ...
 
-
 def bar(b: int):
     ...
-
 
 if __name__ == '__main__':
     cli.run()
@@ -642,7 +517,6 @@ ArgSense infers a parameter's type from its annotation, converts the input accor
 ```python
 from argsense import cli
 
-
 def train(
     count: int,
     addr: int,
@@ -651,7 +525,6 @@ def train(
     verbose: bool = False
 ):
     ...
-
 
 if __name__ == '__main__':
     cli.run(train)
@@ -665,7 +538,7 @@ python main.py --count 5 --addr 0xFFFF --rate 0.25 --tag :empty --verbose  # emp
 python main.py --count 5 --addr 0xFFFF --rate 0.25 --tag :none --verbose  # None type
 ```
 
-![](docs/images/261013-172346.png)
+![](docs/images/261015-140455.png)
 
 | User input | Recognized as       |
 | ---------- | ------------------- |
@@ -704,10 +577,8 @@ def train(count: int, rate: float = 0.1, tag: str = '', verbose: bool = False):
 from argsense import cli
 from neoprint import print
 
-
 def foo(aaa: int, *bbb, ccc: int = 999, **ddd):
     print(locals(), ':l')
-
 
 cli.run(foo)
 ```
@@ -717,7 +588,7 @@ python main.py -h
 python main.py 111 222 333 --ccc 444 --ddd 555 --eee :true
 ```
 
-![](docs/images/261013-174058.png)
+![](docs/images/261015-140459.png)
 
 #### Click
 
@@ -763,14 +634,12 @@ When several commands share the same parameter, you only need to document it onc
 ```python
 from argsense import cli
 
-
 def foo(name: str, age: int):
     """
     params:
         name: the leader's name.
         age: the leader's age.
     """
-
 
 def bar(name: str, age: int):
     """
@@ -831,10 +700,8 @@ The latest version is 1.2+.
 from argsense import cli
 from typing import Any
 
-
 def main(foo: Any, bar: Any):
     print(f'{foo=}, {bar=}')
-
 
 if __name__ == '__main__':
     cli.run(main)
@@ -850,7 +717,7 @@ python main.py 123 456
 python main.py 0xFFFF 0b1111
 ```
 
-![](docs/images/261013-172905.png)
+![](docs/images/261015-140457.png)
 
 That is all you need: pass the function to `cli.run()`, or call a bare `cli.run()` to publish the whole module. The parameter list, the help text and the type conversion are all derived from the signature and the docstring. (The `@cli` decorator and `cli.add_cmd(...)` are still supported — reach for them when you need per-command options such as a custom name.) See [Comparison with Other Libraries](#comparison-with-other-libraries) for the big picture, and [In-Depth Reading](#in-depth-reading) for the details.
 
@@ -888,7 +755,7 @@ That is all you need: pass the function to `cli.run()`, or call a bare `cli.run(
 
   ![](docs/images/241219-101538.png)
 
-  ![](docs/images/241219-101628.png)
+  ![](docs/images/261015-140529.png)
 - Parameter annotations must start with the `params:` field.
 - The format of a parameter annotation is:
 
@@ -926,7 +793,7 @@ That is all you need: pass the function to `cli.run()`, or call a bare `cli.run(
         """
     ```
 
-    ![](docs/images/241219-102629.png)
+    ![](docs/images/261015-140531.png)
 
     If the text is long and there is not enough space on the `first_line_of_description`, write it in `more_description_lines` instead:
 
@@ -961,7 +828,6 @@ They can also be wrapped with `typing.Optional[...]`, as shown in the following 
 import typing as t
 from argsense import cli
 
-
 def main(
     aaa: bool,
     bbb: float,
@@ -982,7 +848,7 @@ if __name__ == '__main__':
     cli.run(main)
 ```
 
-![](docs/images/241219-100049.png)
+![](docs/images/261015-140532.png)
 
 #### `int`, `float`
 
@@ -1023,14 +889,12 @@ The usage of boolean values (`:true` `:false`) is rather special. Please refer t
 # test.py
 from argsense import cli
 
-
 def main(foo: bool, bar: bool):
     """
     params:
         foo (-f):
         bar (-b):
     """
-    ...
 
 if __name__ == '__main__':
     cli.run(main)
@@ -1072,16 +936,14 @@ ArgSense supports passing `*args` and `**kwargs`, and its usage is intuitive. Se
 # test.py
 from argsense import cli
 
-
 def main(aaa, *bbb, ccc=123, **ddd) -> None:
     print(f'{aaa=}, {bbb=}, {ccc=}, {ddd=}')
-
 
 if __name__ == '__main__':
     cli.run(main)
 ```
 
-![](docs/images/241218-181643.png)
+![](docs/images/261015-140534.png)
 
 ## Frequently Asked Questions
 
