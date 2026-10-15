@@ -304,13 +304,18 @@ async def test_log_height() -> None:
             log.region.bottom,
             app.screen.region.height,
         )
+        check(
+            'non-inline: 40% of the window (2 rows less than it used to be)',
+            log.region.height,
+            15,
+        )
 
     app = build_app(inline=True)
     async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
         log = app.query_one('#log')
-        # 5 lines of content + 2 border rows.
-        check('inline: fixed to 5 inner lines', log.region.height, 7)
+        # 3 lines of content + 2 border rows.
+        check('inline: fixed to 3 inner lines', log.region.height, 5)
 
 
 async def test_run() -> None:
@@ -559,7 +564,7 @@ async def test_many_params_scroll() -> None:
             True,
         )
         check(
-            'the log panel keeps >= 5 inner lines', log.region.height >= 7, True
+            'the log panel keeps >= 3 inner lines', log.region.height >= 5, True
         )
         check(
             'the log reaches the bottom',
@@ -656,6 +661,7 @@ def test_run_delegates_to_the_form() -> None:
         inline: bool = False,
         argv: t.Optional[Argv] = None,
         cli_runner: t.Optional[t.Callable] = None,
+        groups: t.Optional[t.List] = None,
     ) -> t.Any:
         captured['names'] = [x.name for x in func_infos]
         captured['inline'] = inline
@@ -694,6 +700,7 @@ def test_run_and_exit_goes_through_cli() -> None:
         inline: bool = False,
         argv: t.Optional[Argv] = None,
         cli_runner: t.Optional[t.Callable] = None,
+        groups: t.Optional[t.List] = None,
     ) -> t.Any:
         # pretend the user filled the form and pressed "Run and exit".
         assert cli_runner is not None
@@ -725,6 +732,7 @@ def test_mode_tokens() -> None:
         inline: bool = False,
         argv: t.Optional[Argv] = None,
         cli_runner: t.Optional[t.Callable] = None,
+        groups: t.Optional[t.List] = None,
     ) -> t.Any:
         captured['names'] = [x.name for x in func_infos]
         captured['inline'] = inline

@@ -6,10 +6,14 @@ Usage:
     python test/command_group.py install my-app
     python test/command_group.py install my-app --no-upgrade
     python test/command_group.py doctor
+    python test/command_group.py :tui      # the tui lists the groups in a sidebar
+    python test/command_group.py :itui     # the same, as an inline block
 
 note:
     `cli.run_group(...)` parses the command line exactly like `cli.run(...)`.
-    The only difference is the "COMMAND GROUPS" help interface.
+    The only difference is the help interface: the cli shows the commands as a
+    tree grouped by their group names (see the COMMAND GROUPS panel), and the
+    tui lists them in a sidebar.
 """
 
 from argsense import cli

@@ -395,11 +395,30 @@ class CommandLineInterface:
         func_infos = self.resolve_commands(entrance, caller_frame)
         if argv is None:
             argv = Argv.from_sys_argv()
+        return self._run_tui_form(func_infos, inline=inline, argv=argv)
+
+    def _run_tui_form(
+        self,
+        func_infos: tp.List['T.FuncInfo'],
+        inline: bool,
+        argv: tp.Optional[Argv],
+        groups: tp.Optional['T.GroupStructure'] = None,
+    ) -> tp.Any:
+        """
+        Open the form on `func_infos`.
+
+        When `groups` is given, the commands are listed in a sidebar instead of
+        the tab bar - see `run_group` and `renderer.tui.run_form`.
+        """
+        if argv is None:
+            argv = Argv.from_sys_argv()
 
         if any(x in _HELP_REQUEST_TOKENS for x in argv.args):
-            single = len(func_infos) == 1
+            single = len(func_infos) == 1 and not groups
             return self.exec_argv(
-                argv, preset_func=func_infos[0].target if single else None
+                argv,
+                preset_func=func_infos[0].target if single else None,
+                group_structure=groups,
             )
 
         from .renderer.tui import CliRunRequest
@@ -420,14 +439,22 @@ class CommandLineInterface:
             )
 
         return run_form(
-            func_infos, inline=inline, argv=argv, cli_runner=cli_runner
+            func_infos,
+            inline=inline,
+            argv=argv,
+            cli_runner=cli_runner,
+            groups=groups,
         )
 
     def run_group(
-        self, groups: 'T.CommandGroups', transport_help: bool = False
+        self,
+        groups: 'T.CommandGroups',
+        mode: T.Mode = 'cli',
+        transport_help: bool = False,
+        **kwargs: tp.Any,
     ) -> tp.Any:
         """
-        Run the CLI with commands organized into groups.
+        Run the interface with commands organized into groups.
 
         Usage:
             cli.run_group({
@@ -441,18 +468,56 @@ class CommandLineInterface:
                 'debug': {'baz': baz},
             })
 
+        params:
+            mode:
+                'cli' (default) or 'tui'.
+                    - cli: `transport_help`
+                    - tui: `inline`
+            transport_help:
+                passed to the cli interface.
+
         Note:
             The command line works exactly like `cli.run(...)`: every command
             is invoked by its own name (the group name is NOT part of the
-            command line). The only difference is the help interface, which
-            shows the commands as a tree grouped by their group names.
+            command line). The only difference is the interface: the cli shows
+            the commands as a tree grouped by their group names, and the tui
+            lists them in a sidebar.
+
+            The mode can be overridden on the command line by `:cli`, `:tui`
+            or `:itui`, the same as `cli.run(...)`.
         """
         config.apply_changes()
         group_structure = self._add_command_groups(groups)
-        return self.exec_argv(
-            argv=Argv.from_sys_argv(),
-            transport_help=transport_help,
-            group_structure=group_structure,
+
+        argv = Argv.from_sys_argv()
+        token = next((x for x in argv.args if x in _MODE_TOKENS), None)
+        if token is not None:
+            argv = Argv(
+                argv.launcher,
+                argv.target,
+                tuple(x for x in argv.args if x != token),
+            )
+            mode = _MODE_TOKENS[token]
+            if token == ':itui':
+                kwargs['inline'] = True
+
+        if mode == 'cli':
+            return self.exec_argv(
+                argv=argv,
+                transport_help=transport_help,
+                group_structure=group_structure,
+            )
+
+        if mode == 'tui':
+            return self._run_tui_form(
+                list(self.commands.values()),
+                inline=kwargs.get('inline', False),
+                argv=argv,
+                groups=group_structure,
+            )
+
+        raise NotImplementedError(
+            'the [{}] mode is not implemented yet.'.format(mode)
         )
 
     def _add_command_groups(

@@ -13,6 +13,8 @@ from textual.widgets import Button
 from textual.widgets import ContentSwitcher
 from textual.widgets import Input
 from textual.widgets import Label
+from textual.widgets import ListItem
+from textual.widgets import ListView
 from textual.widgets import RichLog
 from textual.widgets import Static
 from textual.widgets import Switch
@@ -34,6 +36,9 @@ class T:
     #   form values of one command, keyed by the python param name
     InitialsMap = t.Dict[str, InitialValues]
     #   form values of every command, keyed by the command name
+    GroupStructure = t.List[t.Tuple[str, t.List[str]]]
+    #   [(group_name, [cmd_name, ...]), ...], the same shape that the cli help
+    #   interface draws as a tree (see `cli.run_group`)
 
 
 class CliRunRequest:
@@ -145,6 +150,10 @@ def label_id(command_name: str, param_name: str) -> str:
     return 'label-{}-{}'.format(command_name, param_name)
 
 
+def group_id(group_name: str) -> str:
+    return 'group-{}'.format(group_name)
+
+
 def front_matter(func_info: FuncInfo) -> dict:
     """
     The same `front_matter` that the cli interface hands to the parser.
@@ -223,6 +232,34 @@ def resolve_initials(
             initials[target.name] = collect_initial_values(target, sub_argv)
         break
     return initials, active
+
+
+def _resolve_groups(
+    groups: t.Optional[T.GroupStructure], func_infos: t.Sequence[FuncInfo]
+) -> T.GroupStructure:
+    """
+    Normalise the group structure for the sidebar: drop the names that match
+    no command, and collect the commands that no group mentions into a
+    trailing "ungrouped" group - the same way the cli help interface does it.
+    An empty result means "no sidebar".
+    """
+    if not groups:
+        return []
+
+    names = {x.name for x in func_infos}
+    structure: T.GroupStructure = []
+    used: t.Set[str] = set()
+    for group_name, cmd_names in groups:
+        members = [x for x in cmd_names if x in names]
+        if not members:
+            continue
+        used.update(members)
+        structure.append((group_name, members))
+
+    leftovers = [x.name for x in func_infos if x.name not in used]
+    if leftovers:
+        structure.append(('ungrouped', leftovers))
+    return structure
 
 
 def _label(info: dict) -> str:
@@ -310,6 +347,27 @@ def _tooltip(info: dict) -> Text:
     return text
 
 
+class GroupItem(ListItem):
+    """
+    One group of commands, drawn as a big button in the sidebar.
+
+    The item is three lines tall: an outline border with the group name in the
+    middle. The active group fills that border, which is what makes it look
+    pressed.
+
+    The look is styled by the app (see its CSS): it has to out-specify the
+    `-highlight` rule of `ListView`, which would otherwise paint the item's
+    background with the cursor color and hide the border.
+    """
+
+    def __init__(self, group_name: str) -> None:
+        super().__init__(id=group_id(group_name))
+        self.group_name = group_name
+
+    def compose(self) -> ComposeResult:
+        yield Label(self.group_name, classes='group-name')
+
+
 class ArgsenseTuiApp(App[t.Any]):
     CSS = """
     #form {
@@ -317,7 +375,53 @@ class ArgsenseTuiApp(App[t.Any]):
         height: 100%;
         padding: 0 2;
     }
+    #body {
+        layout: horizontal;
+        height: 1fr;
+    }
+    #sidebar {
+        width: 22;
+        height: 100%;
+        margin-right: 1;
+        border-right: solid $surface-lighten-2;
+        background: transparent;
+    }
+    #main {
+        width: 1fr;
+        height: 100%;
+    }
+    /* the sidebar is the only place where group items are used, and the
+       `#sidebar` prefix is what out-specifies the `-highlight` rule that
+       `ListView` brings (which would otherwise tint the item with the cursor
+       color and wash its border out). */
+    #sidebar > GroupItem {
+        height: 3;
+        border: round $surface-lighten-2;
+        background: transparent;
+        color: $text-muted;
+        content-align: center middle;
+    }
+    #sidebar > GroupItem.-highlight {
+        /* the list view cursor: a faint tint, so that it does not read as
+           "this is the active group". */
+        background: $surface;
+        color: $text;
+    }
+    #sidebar > GroupItem.-active {
+        /* a pressed button: the border stays the bright accent, and the fill
+           is a darker shade of it - using the accent for both would make the
+           border invisible. */
+        border: round $primary;
+        background: $primary-darken-2;
+        color: $text;
+        text-style: bold;
+    }
+    #sidebar > GroupItem > .group-name {
+        width: 100%;
+        text-align: center;
+    }
     #params {
+        width: 100%;
         height: 1fr;
     }
     #panes {
@@ -368,8 +472,12 @@ class ArgsenseTuiApp(App[t.Any]):
         margin-left: 1;
     }
     #log {
-        height: 1fr;
-        min-height: 7;
+        /* two fifths of the window (the margin above it is part of it). the log
+           used to share the space with the form evenly, which made it two rows
+           taller than the parameter area (the tab bar takes those two rows from
+           the form). the form, as `1fr`, takes whatever is left. */
+        height: 40%;
+        min-height: 5;
         margin-top: 1;
         border: round $primary;
         padding: 0 1;
@@ -389,12 +497,21 @@ class ArgsenseTuiApp(App[t.Any]):
         inline: bool = False,
         initials: t.Optional[T.InitialsMap] = None,
         active: str = '',
+        groups: t.Optional[T.GroupStructure] = None,
     ) -> None:
         super().__init__()
         self.func_infos = list(func_infos)
         self.by_name = {x.name: x for x in self.func_infos}
         self.inline = inline
         self.initials = dict(initials or {})
+        self.groups = _resolve_groups(groups, self.func_infos)
+        self.group_of = {
+            name: group_name
+            for group_name, names in self.groups
+            for name in names
+        }
+        self.members_of = dict(self.groups)
+        self.has_tabs = len(self.func_infos) > 1
         self.active = active or self.func_infos[0].name
         self.title = (
             self.func_infos[0].name if len(self.func_infos) == 1 else 'argsense'
@@ -407,19 +524,35 @@ class ArgsenseTuiApp(App[t.Any]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id='form'):
-            if len(self.func_infos) > 1:
-                yield Tabs(
-                    *(Tab(x.name, id=tab_id(x.name)) for x in self.func_infos),
-                    active=tab_id(self.active),
-                    id='tabs',
-                )
-            with VerticalScroll(id='params'):
-                with ContentSwitcher(id='panes', initial=pane_id(self.active)):
-                    for func_info in self.func_infos:
-                        with Vertical(
-                            id=pane_id(func_info.name), classes='pane'
+            with Horizontal(id='body'):
+                if self.groups:
+                    # the sidebar picks the group; the tab bar next to it shows
+                    # the commands of that group (see `activate`).
+                    yield ListView(
+                        *(GroupItem(x) for x, _ in self.groups), id='sidebar'
+                    )
+                with Vertical(id='main'):
+                    if self.has_tabs:
+                        # `active` is not passed here: `on_mount` takes care of
+                        # it, once the layout is known (`Tabs` can only scroll
+                        # the active tab into view when the tabs have a
+                        # region).
+                        yield Tabs(
+                            *(
+                                Tab(x.name, id=tab_id(x.name))
+                                for x in self.func_infos
+                            ),
+                            id='tabs',
+                        )
+                    with VerticalScroll(id='params'):
+                        with ContentSwitcher(
+                            id='panes', initial=pane_id(self.active)
                         ):
-                            yield from self._compose_pane(func_info)
+                            for func_info in self.func_infos:
+                                with Vertical(
+                                    id=pane_id(func_info.name), classes='pane'
+                                ):
+                                    yield from self._compose_pane(func_info)
             with Horizontal(id='actions'):
                 yield Button('Run', id='run', variant='primary')
                 yield Button('Run and exit', id='run-exit')
@@ -469,29 +602,93 @@ class ArgsenseTuiApp(App[t.Any]):
                 widget.tooltip = _tooltip(info)
         if self.inline:
             # inline mode: the form is a fixed-height block, so nothing
-            # scrolls and the log panel gets 5 lines of content (plus the two
+            # scrolls and the log panel gets 3 lines of content (plus the two
             # border rows).
             self.query_one('#form').styles.height = 'auto'
+            self.query_one('#body').styles.height = 'auto'
+            self.query_one('#main').styles.height = 'auto'
             self.query_one('#params').styles.height = 'auto'
-            self.query_one('#log', RichLog).styles.height = 7
+            self.query_one('#log', RichLog).styles.height = 5
+        # the command line may have picked a command of a group that is not the
+        # first one, so the sidebar and the tab bar have to catch up. it is
+        # deferred by one refresh, because scrolling to a tab or to a group
+        # item needs their regions, and those are only known after the first
+        # layout pass.
+        self.call_after_refresh(self.activate, self.active)
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
         if event.tab is None:
             return
-        self.active = (event.tab.id or '')[len('tab-') :] or self.active
-        self.query_one('#panes', ContentSwitcher).current = pane_id(self.active)
+        name = (event.tab.id or '')[len('tab-') :]
+        if name:
+            self.activate(name)
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        """
+        A sidebar item was clicked (or confirmed with enter): open that group.
+        Its first command is opened, unless the active one is already a member
+        of it.
+        """
+        item = event.item
+        if not isinstance(item, GroupItem):
+            return
+        members = self.members_of[item.group_name]
+        if self.active not in members:
+            self.activate(members[0])
+
+    def activate(self, command_name: str) -> None:
+        """
+        Show the pane of `command_name`, bring its group to the front, and
+        scroll the command's tab and its group's sidebar item into view.
+        """
+        if command_name not in self.by_name:
+            return
+        self.active = command_name
+        self.query_one('#panes', ContentSwitcher).current = pane_id(
+            command_name
+        )
+        if self.groups:
+            self.activate_group(self.group_of[command_name])
+        elif self.has_tabs:
+            self.query_one('#tabs', Tabs).active = tab_id(command_name)
+
+    def activate_group(self, group_name: str) -> None:
+        """
+        Make `group_name` the group on show: its item is the active one in the
+        sidebar, and the tab bar only shows its commands.
+        """
+        index = [x for x, _ in self.groups].index(group_name)
+        for item in self.query(GroupItem):
+            item.set_class(item.group_name == group_name, '-active')
+        # assigning `index` also scrolls the item into view.
+        self.query_one(ListView).index = index
+
+        if not self.has_tabs:
+            return
+        tabs = self.query_one('#tabs', Tabs)
+        # order matters: the new active tab must be visible before it becomes
+        # the active one, otherwise `Tabs` can not scroll it into view. and
+        # the tabs that are hidden afterwards must not be the active one -
+        # `Tabs.hide` would activate a neighbour instead.
+        for name in self.members_of[group_name]:
+            tabs.show(tab_id(name))
+        tabs.active = tab_id(self.active)
+        for name in self.by_name:
+            if name not in self.members_of[group_name]:
+                tabs.hide(tab_id(name))
 
     # --------------------------------------------------------------------------
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == 'run':
+        button_id = event.button.id or ''
+        if button_id == 'run':
             self.execute()
-        elif event.button.id == 'run-exit':
+        elif button_id == 'run-exit':
             # hand the assembled command line back to the caller, which runs it
             # through the cli path once the tui has closed - so that the target
             # function's prints are not swallowed by the log panel.
             self.exit(CliRunRequest(self.active, tuple(self.collect_tokens())))
-        elif event.button.id == 'exit':
+        elif button_id == 'exit':
             self.exit()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
@@ -647,11 +844,13 @@ def run_form(
     inline: bool = False,
     argv: t.Optional[Argv] = None,
     cli_runner: t.Optional[t.Callable[[CliRunRequest], t.Any]] = None,
+    groups: t.Optional[T.GroupStructure] = None,
 ) -> t.Any:
     """
     Launch the form and return the target function's return value.
 
-    Every command in `func_infos` gets its own tab in the form.
+    Every command in `func_infos` gets its own tab in the form - unless
+    `groups` is given, in which case the tab bar is replaced by the sidebar.
 
     params:
         argv:
@@ -659,11 +858,18 @@ def run_form(
         cli_runner:
             called when the user pressed "Run and exit". It should run the
             rebuilt command line through the cli path.
+        groups:
+            when given, the commands are listed in a sidebar instead of the
+            tab bar, and each group starts expanded.
     """
     func_infos = list(func_infos)
     initials, active = resolve_initials(func_infos, argv)
     app = ArgsenseTuiApp(
-        func_infos, inline=inline, initials=initials, active=active
+        func_infos,
+        inline=inline,
+        initials=initials,
+        active=active,
+        groups=groups,
     )
     result = app.run(inline=inline)
     if isinstance(result, CliRunRequest) and cli_runner is not None:

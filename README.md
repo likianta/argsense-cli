@@ -692,8 +692,6 @@ ArgSense supports Python 3.9 and above:
 pip install argsense
 ```
 
-The latest version is 1.2+.
-
 ## Quick Start
 
 ```python
