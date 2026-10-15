@@ -8,27 +8,24 @@ exposed colors:
             exposed [palette] object.
 """
 
-from __future__ import annotations
-
-import typing as t
+import typing as tp
 
 
 class T:
     _Color = str
-    _ColorPair = t.Tuple[str, str]
+    _ColorPair = tp.Tuple[str, str]
 
-    # noinspection PyTypedDict
-    Palette = t.TypedDict(
+    Palette = tp.TypedDict(
         'Palette',
         {
-            'title': t.TypedDict(
+            'title': tp.TypedDict(
                 'Title',
                 {'python': _Color, '-m': _Color, '.py': _Color, '.exe': _Color},
             ),
-            'panel': t.TypedDict(
+            'panel': tp.TypedDict(
                 'Panel',
                 {
-                    'border': t.TypedDict(
+                    'border': tp.TypedDict(
                         'Border',
                         {
                             'group': _Color,
@@ -41,7 +38,7 @@ class T:
                     )
                 },
             ),
-            'logo': t.TypedDict(
+            'logo': tp.TypedDict(
                 'Logo',
                 {
                     'group': _ColorPair,
@@ -54,9 +51,7 @@ class T:
     )
 
     class Palette2:
-        # noinspection PyPep8Naming
         class title:
-            # noinspection PyPep8Naming
             class prog_name:
                 python: str
                 m: str
@@ -69,9 +64,7 @@ class T:
             kwarg1: str
             kwarg2: str
 
-        # noinspection PyPep8Naming
         class panel:
-            # noinspection PyPep8Naming
             class border:
                 group: str
                 command: str
@@ -82,12 +75,11 @@ class T:
 
             command_highlight: str
 
-        # noinspection PyPep8Naming
         class logo:
-            group: t.Tuple[str, str]
-            command: t.Tuple[str, str]
-            argument: t.Tuple[str, str]
-            option: t.Tuple[str, str]
+            group: tp.Tuple[str, str]
+            command: tp.Tuple[str, str]
+            argument: tp.Tuple[str, str]
+            option: tp.Tuple[str, str]
 
 
 class BaseColor:
@@ -102,25 +94,27 @@ class BaseColor:
 
 class Color(BaseColor):
     """
-    inspired by [oh-my-posh/themes/bubbles <https://github.com/JanDeDobbeleer/
-    oh-my-posh/blob/main/themes/bubbles.omp.json>]
+    Inspired by oh-my-posh/themes/bubbles (https://github.com/JanDeDobbeleer
+    /oh-my-posh/blob/main/themes/bubbles.omp.json), you can get the preview at
+    https://ohmyposh.dev/docs/themes.
     """
 
-    blue = '#61afef'
-    blue1 = '#61afef'
+    blue = '#61afef'  # cornflower blue
+    blue1 = '#61afef'  # cornflower blue
     blue2 = '#5f87ff'  # cornflower blue
-    dark_magenta = '#8700af'
-    deep_gray = '#bcbcbc'
-    dim_acrylic = '#29315a'
-    gray1 = '#777b7f'
-    gray2 = '#909396'
-    green = '#50ab0e'
-    magenta = '#d08bf3'
-    red = 'red'
-    scarlet = '#e64747'
-    tan = '#f49364'
-    yellow = '#ccbf2f'
-    yellow_accent = '#fffd3c'
+    cyan = '#7fd5ea'  # seagull
+    dark_magenta = '#8700af'  # purple
+    deep_gray = '#bcbcbc'  # silver
+    dim_acrylic = '#29315a'  # rhino
+    gray1 = '#777b7f'  # rolling stone
+    gray2 = '#909396'  # oslo gray
+    green = '#50ab0e'  # christi
+    magenta = '#d08bf3'  # perfume
+    red = '#ff0a27'  # torch red
+    scarlet = '#e64747'  # cinnabar
+    tan = '#f49364'  # sandy brown
+    yellow = '#ccbf2f'  # old gold
+    yellow_accent = '#fffd3c'  # golden fizz
 
 
 class ColorPair:
@@ -151,38 +145,40 @@ class Palette:
                 setattr(self, k, Palette(v))
 
 
-# noinspection PyTypeChecker
-palette: T.Palette2 = Palette(
-    {
-        'title': {
-            'prog_name': {
-                'python': color.default,
-                'm': color.yellow,
-                'py': color.scarlet,
-                'exe': color.scarlet,
+palette = tp.cast(
+    T.Palette2,
+    Palette(
+        {
+            'title': {
+                'prog_name': {
+                    'python': color.default,
+                    'm': color.yellow,
+                    'py': color.scarlet,
+                    'exe': color.scarlet,
+                },
+                'func_name': color.magenta,
+                'arg1': color.blue1,
+                'arg2': color.blue2,
+                'kwarg1': color.gray1,
+                'kwarg2': color.gray2,
             },
-            'func_name': color.magenta,
-            'arg1': color.blue1,
-            'arg2': color.blue2,
-            'kwarg1': color.gray1,
-            'kwarg2': color.gray2,
-        },
-        'panel': {
-            'border': {
-                'group': color.magenta,
-                'command': color.tan,
-                'argument': color.blue,
-                'option': color.deep_gray,
-                'extension': color.dim,
-                'error': color.red,
+            'panel': {
+                'border': {
+                    'group': color.magenta,
+                    'command': color.tan,
+                    'argument': color.blue,
+                    'option': color.deep_gray,
+                    'extension': color.dim,
+                    'error': color.red,
+                },
+                'command_highlight': f'{color.dark_magenta} on {color.yellow_accent}',
             },
-            'command_highlight': f'{color.dark_magenta} on {color.yellow_accent}',
-        },
-        'logo': {
-            'group': color_pair.magenta,
-            'command': color_pair.tan,
-            'argument': color_pair.blue,
-            'option': color_pair.white,
-        },
-    }
+            'logo': {
+                'group': color_pair.magenta,
+                'command': color_pair.tan,
+                'argument': color_pair.blue,
+                'option': color_pair.white,
+            },
+        }
+    ),
 )

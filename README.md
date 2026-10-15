@@ -544,6 +544,95 @@ if __name__ == '__main__':
     app()
 ```
 
+### Command Groups
+
+#### ArgSense
+
+`cli.run_group()` takes the commands organized into groups. It does not change the command line: a command is still invoked by its own name, and the group name is *not* part of it. The difference is in the help interface, where the command list is rendered as a tree.
+
+```python
+from argsense import cli
+
+def install(appid: str):
+    """Install an app from OSS by querying appid."""
+
+def upgrade(appid: str):
+    """Upgrade an installed app to the newest version."""
+
+def doctor():
+    """Check the health of the local environment."""
+
+def echo(text: str):
+    """Print the given text back."""
+
+if __name__ == '__main__':
+    cli.run_group({
+        'app': (install, upgrade),
+        'debug': (doctor, echo),
+    })
+```
+
+```shell
+python main.py -h
+python main.py install my-app
+python main.py doctor
+```
+
+Screenshot (`python main.py -h`):
+
+![](docs/images/261015-132007.png)
+
+#### Click
+
+Click and Typer nest real sub-applications instead, so there the group name *does* become part of the command line (`python main.py app install my-app`).
+
+```python
+import click
+
+@click.group()
+def cli(): ...
+
+@cli.group()
+def app(): ...
+
+@app.command()
+def install(appid: str):
+    """Install an app from OSS by querying appid."""
+
+@cli.group()
+def debug(): ...
+
+@debug.command()
+def doctor():
+    """Check the health of the local environment."""
+
+if __name__ == '__main__':
+    cli()
+```
+
+#### Typer
+
+```python
+import typer
+
+app = typer.Typer()
+app_group = typer.Typer()
+debug_group = typer.Typer()
+app.add_typer(app_group, name='app')
+app.add_typer(debug_group, name='debug')
+
+@app_group.command()
+def install(appid: str):
+    """Install an app from OSS by querying appid."""
+
+@debug_group.command()
+def doctor():
+    """Check the health of the local environment."""
+
+if __name__ == '__main__':
+    app()
+```
+
 ### Parameter Types and Special Values
 
 #### ArgSense

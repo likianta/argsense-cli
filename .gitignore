@@ -1,7 +1,7 @@
 /.idea/
 /dist/
 /docs/advertisement/
-/examples/test.py
+/docs/images/svg/
 /test/temp/
 __pycache__/
 *.pyc
