@@ -42,6 +42,17 @@ class T:
     # the argument accepted by `cli.run(...)`.
     Entrance = tp.Union[Func, tp.Dict[str, Func], tp.Iterable[Func], None]
 
+    # the argument accepted by `cli.run_group(...)`.
+    #   {<group_name>: (<func>, <func>, ...)}
+    #   {<group_name>: {<cmd_name>: <func>, ...}}
+    CommandGroups = tp.Dict[
+        str, tp.Union[tp.Iterable[tp.Callable], tp.Dict[str, tp.Callable]]
+    ]
+
+    # the resolved group structure: [(<group_name>, [<cmd_name>, ...]), ...].
+    # it is only used to render the help interface (see `render_functions`).
+    GroupStructure = tp.List[tp.Tuple[str, tp.List[str]]]
+
 
 # matches a docstring that reuses another command's parameter description.
 # for example: "see `@foo:name`" (case-insensitive on the leading letter,
