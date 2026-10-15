@@ -22,18 +22,25 @@ class T:
     _ParamName = str
     _ParamType = ParamType
 
+    # the argument accepted by `cli.run_group(...)`.
+    #   {<group_name>: (<func>, <func>, ...)}
+    #   {<group_name>: {<cmd_name>: <func>, ...}}
+    CommandGroups = tp.Dict[
+        str, tp.Union[tp.Iterable[tp.Callable], tp.Dict[str, tp.Callable]]
+    ]
     # TODO: use 'grp', 'cmd' instead?
     CommandType = tp.Literal['group', 'command']
-    RenderMode = tp.Literal['auto', 'cli', 'gui', 'tui']
+    # the resolved group structure: [(<group_name>, [<cmd_name>, ...]), ...].
+    # it is only used to render the help interface (see `render_functions`).
+    GroupStructure = tp.List[tp.Tuple[str, tp.List[str]]]
     Func = tp.TypeVar('Func', bound=tp.Callable)
     FuncInfo = FuncInfo
+    Mode = tp.Literal['cli', 'gui', 'tui']
+    RenderMode = tp.Literal['auto', 'cli', 'gui', 'tui']
 
     CommandsCollect = tp.Dict[_FunctionId, FuncInfo]
-
     # the argument accepted by `cli.run(...)`.
     Entrance = tp.Union[Func, tp.Dict[str, Func], tp.Iterable[Func], None]
-
-    Mode = tp.Literal['cli', 'gui', 'tui']
 
 
 # matches a docstring that reuses another command's parameter description.
@@ -224,6 +231,65 @@ class CommandLineInterface:
     # --------------------------------------------------------------------------
     # run
 
+    def prepare_entrance(
+        self, entrance: T.Entrance, caller_frame: types.FrameType
+    ) -> tp.Optional[T.Func]:
+        """
+        Register the commands carried by `entrance` (and, when it is `None`,
+        scan `caller_frame` for public functions), then tell whether a single
+        function should be used as the only entrance.
+        """
+        if entrance is None:
+            # only scan when nothing was registered explicitly, so that the
+            # `@cli` / `cli.add_cmd(...)` style keeps its exact behavior.
+            if not self.commands:
+                self._scan_frame(caller_frame)
+            return None
+
+        if callable(entrance):
+            self._add_cmd_if_new(entrance)
+            return entrance
+
+        if isinstance(entrance, dict):
+            for name, func in entrance.items():
+                self._add_cmd_if_new(func, name)
+            return None
+
+        for func in entrance:
+            self._add_cmd_if_new(func)
+        return None
+
+    def resolve_commands(
+        self, entrance: T.Entrance, caller_frame: types.FrameType
+    ) -> tp.List[T.FuncInfo]:
+        """
+        Resolve `entrance` into the list of commands it carries, in
+        registration order. The tui / gui interfaces use it.
+        """
+        preset_func = self.prepare_entrance(entrance, caller_frame)
+        self.resolve_doc_references()
+
+        if preset_func is not None:
+            return [self.commands[id(preset_func)]]
+        return list(self.commands.values())
+
+    def resolve_single_command(
+        self, entrance: T.Entrance, caller_frame: types.FrameType
+    ) -> T.FuncInfo:
+        """
+        Resolve `entrance` into the info of exactly one command. The tui / gui
+        interfaces use it, since they can only present a single command.
+        """
+        funcs = self.resolve_commands(entrance, caller_frame)
+        if len(funcs) != 1:
+            raise RuntimeError(
+                'this interface works on exactly one command, but '
+                '{} were given: {}'.format(
+                    len(funcs), ', '.join(f.name for f in funcs)
+                )
+            )
+        return funcs[0]
+
     def run(
         self,
         entrance: T.Entrance = None,
@@ -331,64 +397,69 @@ class CommandLineInterface:
             func_infos, inline=inline, argv=argv, cli_runner=cli_runner
         )
 
-    def resolve_commands(
-        self, entrance: T.Entrance, caller_frame: types.FrameType
-    ) -> tp.List[T.FuncInfo]:
+    def run_group(
+        self, groups: 'T.CommandGroups', transport_help: bool = False
+    ) -> tp.Any:
         """
-        Resolve `entrance` into the list of commands it carries, in
-        registration order. The tui / gui interfaces use it.
-        """
-        preset_func = self.prepare_entrance(entrance, caller_frame)
-        self.resolve_doc_references()
+        Run the CLI with commands organized into groups.
 
-        if preset_func is not None:
-            return [self.commands[id(preset_func)]]
-        return list(self.commands.values())
+        Usage:
+            cli.run_group({
+                'app': (install, upgrade, run),
+                'debug': (doctor,),
+            })
 
-    def resolve_single_command(
-        self, entrance: T.Entrance, caller_frame: types.FrameType
-    ) -> T.FuncInfo:
+            # dict form, with custom command names.
+            cli.run_group({
+                'app': {'install': install, 'upgrade': upgrade},
+                'debug': {'baz': baz},
+            })
+
+        Note:
+            The command line works exactly like `cli.run(...)`: every command
+            is invoked by its own name (the group name is NOT part of the
+            command line). The only difference is the help interface, which
+            shows the commands as a tree grouped by their group names.
         """
-        Resolve `entrance` into the info of exactly one command. The tui / gui
-        interfaces use it, since they can only present a single command.
+        config.apply_changes()
+        group_structure = self._add_command_groups(groups)
+        return self.exec_argv(
+            argv=Argv.from_sys_argv(),
+            transport_help=transport_help,
+            group_structure=group_structure,
+        )
+
+    def _add_command_groups(
+        self, groups: 'T.CommandGroups'
+    ) -> 'T.GroupStructure':
         """
-        funcs = self.resolve_commands(entrance, caller_frame)
-        if len(funcs) != 1:
-            raise RuntimeError(
-                'this interface works on exactly one command, but '
-                '{} were given: {}'.format(
-                    len(funcs), ', '.join(f.name for f in funcs)
+        Register every command carried by `groups`, and return the group
+        structure to be rendered by the help interface.
+        """
+        structure: T.GroupStructure = []
+
+        for group_name, members in groups.items():
+            pairs: tp.List[tp.Tuple[str, tp.Callable]]
+            if isinstance(members, dict):
+                pairs = list(
+                    tp.cast('tp.Dict[str, tp.Callable]', members).items()
                 )
-            )
-        return funcs[0]
+            else:
+                pairs = [
+                    ('', func)
+                    for func in tp.cast('tp.Iterable[tp.Callable]', members)
+                ]
 
-    def prepare_entrance(
-        self, entrance: T.Entrance, caller_frame: types.FrameType
-    ) -> tp.Optional[T.Func]:
-        """
-        Register the commands carried by `entrance` (and, when it is `None`,
-        scan `caller_frame` for public functions), then tell whether a single
-        function should be used as the only entrance.
-        """
-        if entrance is None:
-            # only scan when nothing was registered explicitly, so that the
-            # `@cli` / `cli.add_cmd(...)` style keeps its exact behavior.
-            if not self.commands:
-                self._scan_frame(caller_frame)
-            return None
-
-        if callable(entrance):
-            self._add_cmd_if_new(entrance)
-            return entrance
-
-        if isinstance(entrance, dict):
-            for name, func in entrance.items():
+            cmd_names: tp.List[str] = []
+            for name, func in pairs:
                 self._add_cmd_if_new(func, name)
-            return None
+                # the actual name is used, since a command may have been
+                # registered earlier (e.g. by `@cli.cmd(name=...)`).
+                cmd_names.append(self.commands[id(func)].name)
 
-        for func in entrance:
-            self._add_cmd_if_new(func)
-        return None
+            structure.append((group_name, cmd_names))
+
+        return structure
 
     def _scan_frame(self, frame: types.FrameType) -> None:
         """
@@ -466,6 +537,7 @@ class CommandLineInterface:
         argv: Argv,
         preset_func: tp.Optional[T.Func] = None,
         transport_help: bool = False,
+        group_structure: tp.Optional['T.GroupStructure'] = None,
         _loop_verbose: bool = True,
     ) -> tp.Optional[tp.Any]:
         self.resolve_doc_references()
@@ -630,7 +702,9 @@ class CommandLineInterface:
         else:
             has_help, is_explicit = get_help_option()
             assert has_help
-            renderer.render_functions(argv, self.commands.values())
+            renderer.render_functions(
+                argv, self.commands.values(), group_structure
+            )
 
 
 cli = CommandLineInterface(name='argsense-cli')
