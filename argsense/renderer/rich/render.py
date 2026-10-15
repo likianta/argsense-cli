@@ -10,9 +10,11 @@ import rich.padding
 import rich.panel
 import rich.table
 import rich.text
+import rich.tree
 from rich import get_console
 
 from .style import color
+from .style import palette
 from ... import config
 from ...converter import val_2_cval
 from ...parser import Argv
@@ -21,7 +23,21 @@ from ...parser import FuncInfo
 console = get_console()
 
 
-def render_functions(argv: Argv, funcs: t.Iterable[FuncInfo]) -> None:
+def render_functions(
+    argv: Argv,
+    funcs: t.Iterable[FuncInfo],
+    groups: t.Optional[t.Sequence[t.Tuple[str, t.Sequence[str]]]] = None,
+) -> None:
+    """
+    Render the command list.
+
+    params:
+        groups:
+            the group structure built by `cli.run_group(...)`. When it is
+            given, the commands are shown as a tree grouped by their group
+            names; otherwise they are shown as a flat table (this is what
+            `cli.run(...)` does).
+    """
     console.print(
         _simple_gradient(
             _detect_program_name(argv) + ' ...',
@@ -31,6 +47,28 @@ def render_functions(argv: Argv, funcs: t.Iterable[FuncInfo]) -> None:
         style='bold',
     )
 
+    funcs = list(funcs)
+    if groups:
+        content = _build_command_groups(funcs, groups)
+        title = 'COMMAND GROUPS'
+    else:
+        content = _build_func_table(funcs)
+        title = 'FUNCTIONS'
+
+    console.print(
+        rich.panel.Panel(
+            content,
+            border_style=color.magenta,
+            padding=(0, 2),
+            title=title,
+            title_align='right',
+        )
+    )
+    if config.POST_LOGO_IN_HELP_INTERFACE:
+        _post_logo(color_seed='magenta')
+
+
+def _build_func_table(funcs: t.List[FuncInfo]) -> rich.table.Table:
     table = rich.table.Table.grid(expand=True, padding=(0, 4))
     table.add_column('index', style=color.yellow)
     table.add_column('function', style=color.magenta)
@@ -39,17 +77,69 @@ def render_functions(argv: Argv, funcs: t.Iterable[FuncInfo]) -> None:
     for i, f in enumerate(funcs, 1):
         table.add_row(str(i), f.name, f.desc)
 
-    console.print(
-        rich.panel.Panel(
-            table,
-            border_style=color.magenta,
-            padding=(0, 2),
-            title='FUNCTIONS',
-            title_align='right',
+    return table
+
+
+def _build_command_groups(
+    funcs: t.List[FuncInfo], groups: t.Sequence[t.Tuple[str, t.Sequence[str]]]
+) -> rich.console.Group:
+    """
+    Build the tree-like command list used by `cli.run_group(...)`.
+    """
+    lookup = {f.name: f for f in funcs}
+    name_width = max((len(x) for x in lookup), default=0)
+
+    blocks: t.List[t.Any] = []
+    used: t.Set[str] = set()
+
+    for group_name, cmd_names in groups:
+        names = [x for x in cmd_names if x in lookup]
+        if not names:
+            continue
+        used.update(names)
+
+        if blocks:
+            blocks.append('')
+        tree = rich.tree.Tree(
+            rich.text.Text(' {} '.format(group_name), style=_GROUP_BADGE_STYLE),
+            guide_style=color.dim,
         )
+        for name in names:
+            tree.add(_build_command_leaf(lookup[name], name_width))
+        blocks.append(tree)
+
+    # commands that do not belong to any group (e.g. they were registered by
+    # `@cli` before `cli.run_group(...)` was called) are still listed.
+    leftovers = [f for f in funcs if f.name not in used]
+    if leftovers:
+        if blocks:
+            blocks.append('')
+        tree = rich.tree.Tree(
+            rich.text.Text(' ungrouped ', style=_GROUP_BADGE_STYLE),
+            guide_style=color.dim,
+        )
+        for f in leftovers:
+            tree.add(_build_command_leaf(f, name_width))
+        blocks.append(tree)
+
+    return rich.console.Group(*blocks)
+
+
+def _build_command_leaf(func_info: FuncInfo, name_width: int) -> rich.text.Text:
+    """
+    One command of a group: its name, padded so that the descriptions of all
+    groups line up, followed by its description.
+    """
+    line = rich.text.Text()
+    line.append(func_info.name.ljust(name_width), style=color.magenta)
+    line.append('  ')
+    line.append_text(
+        _render_text(func_info.desc, color.gray2, _resolve_markup(func_info))
     )
-    if config.POST_LOGO_IN_HELP_INTERFACE:
-        _post_logo(color_seed='magenta')
+    return line
+
+
+_GROUP_BADGE_STYLE = 'bold black on {}'.format(palette.panel.border.group)
 
 
 def render_function_parameters(

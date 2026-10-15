@@ -33,6 +33,17 @@ class T:
     # the argument accepted by `cli.run(...)`.
     Entrance = tp.Union[Func, tp.Dict[str, Func], tp.Iterable[Func], None]
 
+    # the argument accepted by `cli.run_group(...)`.
+    #   {<group_name>: (<func>, <func>, ...)}
+    #   {<group_name>: {<cmd_name>: <func>, ...}}
+    CommandGroups = tp.Dict[
+        str, tp.Union[tp.Iterable[tp.Callable], tp.Dict[str, tp.Callable]]
+    ]
+
+    # the resolved group structure: [(<group_name>, [<cmd_name>, ...]), ...].
+    # it is only used to render the help interface (see `render_functions`).
+    GroupStructure = tp.List[tp.Tuple[str, tp.List[str]]]
+
 
 # matches a docstring that reuses another command's parameter description.
 # for example: "see `@foo:name`" (case-insensitive on the leading letter,
@@ -238,6 +249,70 @@ class CommandLineInterface:
             transport_help=transport_help,
         )
 
+    def run_group(
+        self, groups: 'T.CommandGroups', transport_help: bool = False
+    ) -> tp.Any:
+        """
+        Run the CLI with commands organized into groups.
+
+        Usage:
+            cli.run_group({
+                'app': (install, upgrade, run),
+                'debug': (doctor,),
+            })
+
+            # dict form, with custom command names.
+            cli.run_group({
+                'app': {'install': install, 'upgrade': upgrade},
+                'debug': {'baz': baz},
+            })
+
+        Note:
+            The command line works exactly like `cli.run(...)`: every command
+            is invoked by its own name (the group name is NOT part of the
+            command line). The only difference is the help interface, which
+            shows the commands as a tree grouped by their group names.
+        """
+        config.apply_changes()
+        group_structure = self._add_command_groups(groups)
+        return self.exec_argv(
+            argv=Argv.from_sys_argv(),
+            transport_help=transport_help,
+            group_structure=group_structure,
+        )
+
+    def _add_command_groups(
+        self, groups: 'T.CommandGroups'
+    ) -> 'T.GroupStructure':
+        """
+        Register every command carried by `groups`, and return the group
+        structure to be rendered by the help interface.
+        """
+        structure: T.GroupStructure = []
+
+        for group_name, members in groups.items():
+            pairs: tp.List[tp.Tuple[str, tp.Callable]]
+            if isinstance(members, dict):
+                pairs = list(
+                    tp.cast('tp.Dict[str, tp.Callable]', members).items()
+                )
+            else:
+                pairs = [
+                    ('', func)
+                    for func in tp.cast('tp.Iterable[tp.Callable]', members)
+                ]
+
+            cmd_names: tp.List[str] = []
+            for name, func in pairs:
+                self._add_cmd_if_new(func, name)
+                # the actual name is used, since a command may have been
+                # registered earlier (e.g. by `@cli.cmd(name=...)`).
+                cmd_names.append(self.commands[id(func)].name)
+
+            structure.append((group_name, cmd_names))
+
+        return structure
+
     def _prepare_entrance(
         self, entrance: T.Entrance, caller_frame: types.FrameType
     ) -> tp.Optional[T.Func]:
@@ -337,6 +412,7 @@ class CommandLineInterface:
         argv: Argv,
         preset_func: tp.Optional[T.Func] = None,
         transport_help: bool = False,
+        group_structure: tp.Optional['T.GroupStructure'] = None,
         _loop_verbose: bool = True,
     ) -> tp.Optional[tp.Any]:
         self.resolve_doc_references()
@@ -501,7 +577,9 @@ class CommandLineInterface:
         else:
             has_help, is_explicit = get_help_option()
             assert has_help
-            renderer.render_functions(argv, self.commands.values())
+            renderer.render_functions(
+                argv, self.commands.values(), group_structure
+            )
 
 
 cli = CommandLineInterface(name='argsense-cli')
