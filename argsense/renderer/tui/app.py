@@ -20,7 +20,6 @@ from textual.widgets import Tab
 from textual.widgets import Tabs
 
 from ...converter import args_2_cargs
-from ...converter import val_2_cval
 from ...parser import Argv
 from ...parser import FuncInfo
 from ...parser import ParamType
@@ -119,7 +118,7 @@ def collect_initial_values(func_info: FuncInfo, argv: Argv) -> T.InitialValues:
         if value == info.get('default', ...):
             # not given by the user; the form shows the default anyway.
             continue
-        values[name] = value if isinstance(value, bool) else val_2_cval(value)
+        values[name] = value if isinstance(value, bool) else _value_text(value)
     return values
 
 
@@ -164,11 +163,34 @@ def _label(info: dict) -> str:
     return info['cname'].split(',')[0].strip().lstrip('-')
 
 
+def _label_markup(info: dict) -> str:
+    """
+    The name column of a row. A required parameter (one without a default) is
+    preceded by a red "*".
+    """
+    if info.get('default', ...) is ...:
+        return '[red]*[/] {}'.format(_label(info))
+    return _label(info)
+
+
+def _value_text(value: t.Any) -> str:
+    """
+    The input box text that stands for a value: an empty string shows up as
+    ':empty' and `None` as ':none', so that "an empty value" can be told apart
+    from "nothing filled in".
+    """
+    if value is None:
+        return ':none'
+    if value == '':
+        return ':empty'
+    return str(value)
+
+
 def _default_text(info: dict) -> str:
     value = info.get('default', ...)
-    if value is ... or value is None or isinstance(value, bool):
+    if value is ... or isinstance(value, bool):
         return ''
-    return str(value)
+    return _value_text(value)
 
 
 def _default_flag(info: dict) -> bool:
@@ -337,7 +359,7 @@ class ArgsenseTuiApp(App[t.Any]):
             yield Static(func_info.desc, classes='desc')
         for name, info in collect_rows(func_info):
             with Horizontal(classes='row'):
-                yield Label(_label(info), classes='name')
+                yield Label(_label_markup(info), classes='name')
                 if info['ctype'] is ParamType.FLAG:
                     yield Switch(
                         value=bool(initial.get(name, _default_flag(info))),
@@ -418,7 +440,51 @@ class ArgsenseTuiApp(App[t.Any]):
                 return False
         return True
 
+    def collect_form_errors(self) -> t.List[str]:
+        """
+        Report the parameters of the active command whose input box was left
+        empty. An empty box is not silently replaced by the signature default,
+        so the user is told what to type instead. A required parameter (one
+        without a default) is left to the parser, which reports the missing
+        argument itself.
+        """
+        func_info = self.active_func_info
+        errors: t.List[str] = []
+        for name, info in collect_rows(func_info):
+            if info['ctype'] is ParamType.FLAG:
+                continue
+            widget = self.query_one(
+                '#{}'.format(widget_id(func_info.name, name))
+            )
+            if not isinstance(widget, Input) or widget.value.strip():
+                continue
+            default = info.get('default', ...)
+            label = _label(info)
+            if default is ...:
+                continue
+            elif default is None:
+                errors.append(
+                    "{} miss input, to pass 'empty' value, use :none".format(
+                        label
+                    )
+                )
+            elif default == '':
+                errors.append(
+                    "{} miss input, to pass 'empty' value, use :empty".format(
+                        label
+                    )
+                )
+            else:
+                errors.append('{} is not filled'.format(label))
+        return errors
+
     def execute(self) -> None:
+        errors = self.collect_form_errors()
+        if errors:
+            for message in errors:
+                self.write_log(Text(message, style='red'))
+            return
+
         func_info = self.active_func_info
         try:
             args, kwargs = self.parse_form()

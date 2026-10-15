@@ -23,9 +23,11 @@ from argsense.renderer.tui import collect_initial_values
 from argsense.renderer.tui import resolve_initials
 from argsense.tui import TuiInterface
 from textual.containers import VerticalScroll
+from textual.content import Content
 from textual.widgets import Button
 from textual.widgets import ContentSwitcher
 from textual.widgets import Input
+from textual.widgets import Label
 from textual.widgets import RichLog
 from textual.widgets import Static
 from textual.widgets import Switch
@@ -56,7 +58,7 @@ def install(
     return 'ok:{}'.format(appid)
 
 
-def uninstall(appid: str, version: str = '') -> None:
+def uninstall(appid: str, version: t.Optional[str] = None) -> None:
     """
     uninstall an app.
 
@@ -140,6 +142,14 @@ def log_of(app: ArgsenseTuiApp) -> str:
     return '\n'.join(strip.text for strip in lines)
 
 
+def rendered_label(widget: Input) -> Content:
+    """The painted content of the name label that sits in `widget`'s row."""
+    row = widget.parent
+    assert row is not None
+    label = row.query_one('.name', Label)
+    return t.cast('Content', label.render())
+
+
 # -----------------------------------------------------------------------------
 
 
@@ -159,9 +169,9 @@ async def test_structure() -> None:
             '1',
         )
         check(
-            'no default -> left empty',
+            'an empty-string default prefills :empty',
             app.query_one('#param-install-version', Input).value,
-            '',
+            ':empty',
         )
         check(
             'description becomes the placeholder',
@@ -345,7 +355,15 @@ async def test_flag_and_run_exit() -> None:
     check(
         'the tokens mirror the form',
         request.tokens,
-        ('--appid', 'Bob', '--no-use-exist', '--count', '1'),
+        (
+            '--appid',
+            'Bob',
+            '--version',
+            ':empty',
+            '--no-use-exist',
+            '--count',
+            '1',
+        ),
     )
 
 
@@ -469,7 +487,7 @@ async def test_multi_command_tabs() -> None:
         await pilot.press(*'Zoe')
         await pilot.click('#run')
         await pilot.pause()
-        check('the second command ran', CALLS[0], ('uninstall', 'Zoe', ''))
+        check('the second command ran', CALLS[0], ('uninstall', 'Zoe', None))
         check(
             'its output goes to the shared log',
             'uninstalling Zoe' in log_of(app),
@@ -491,7 +509,11 @@ async def test_multi_command_run_and_exit() -> None:
     request = app.return_value
     assert isinstance(request, CliRunRequest)
     check('the request names the active command', request.command, 'uninstall')
-    check('the tokens come from that pane', request.tokens, ('--appid', 'Zoe'))
+    check(
+        'the tokens come from that pane',
+        request.tokens,
+        ('--appid', 'Zoe', '--version', ':none'),
+    )
 
 
 async def test_many_params_scroll() -> None:
@@ -907,6 +929,117 @@ def test_help_request_skips_the_form() -> None:
         sys.argv = original_argv
 
 
+async def test_default_prefill() -> None:
+    print('[26] a signature default prefills the input box')
+    app = build_app(extra=(uninstall,))
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        check(
+            "'' prefills :empty",
+            app.query_one('#param-install-version', Input).value,
+            ':empty',
+        )
+        check(
+            'None prefills :none',
+            app.query_one('#param-uninstall-version', Input).value,
+            ':none',
+        )
+        check(
+            'a non-empty default is shown as-is',
+            app.query_one('#param-install-count', Input).value,
+            '1',
+        )
+        check(
+            'a required param stays empty',
+            app.query_one('#param-install-appid', Input).value,
+            '',
+        )
+
+
+async def test_cleared_input_is_reported() -> None:
+    print('[27] clearing an input is reported instead of using the default')
+    CALLS.clear()
+    app = build_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.click('#param-install-appid')
+        await pilot.press(*'Alice')
+
+        version = app.query_one('#param-install-version', Input)
+        version.value = ''
+        await pilot.pause()
+        await pilot.click('#run')
+        await pilot.pause()
+        check('an empty-string default -> no run', len(CALLS), 0)
+        check(
+            'the :empty hint is shown',
+            "version miss input, to pass 'empty' value, use :empty"
+            in log_of(app),
+            True,
+        )
+
+        version.value = ':empty'
+        count = app.query_one('#param-install-count', Input)
+        count.value = ''
+        await pilot.pause()
+        await asyncio.sleep(0.4)
+        await pilot.click('#run')
+        await pilot.pause()
+        check('a non-empty default -> no run', len(CALLS), 0)
+        check(
+            'it says the param is not filled',
+            'count is not filled' in log_of(app),
+            True,
+        )
+
+        count.value = '2'
+        await pilot.pause()
+        await asyncio.sleep(0.4)
+        await pilot.click('#run')
+        await pilot.pause()
+        check('the form runs once fixed', CALLS[0], ('Alice', '', True, 2))
+
+    CALLS.clear()
+    app = build_app(extra=(uninstall,))
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        app.query_one('#tabs', Tabs).active = 'tab-uninstall'
+        await pilot.pause()
+        await pilot.click('#param-uninstall-appid')
+        await pilot.press(*'Zoe')
+        app.query_one('#param-uninstall-version', Input).value = ''
+        await pilot.pause()
+        await pilot.click('#run')
+        await pilot.pause()
+        check('a None default -> no run', len(CALLS), 0)
+        check(
+            'the :none hint is shown',
+            "version miss input, to pass 'empty' value, use :none"
+            in log_of(app),
+            True,
+        )
+
+
+async def test_required_marker() -> None:
+    print("[28] a required parameter is marked with a red '*'")
+    app = build_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        rendered = rendered_label(app.query_one('#param-install-appid', Input))
+        check('the marker precedes the name', rendered.plain, '* appid')
+        check('only the marker is styled', len(rendered.spans), 1)
+        span = rendered.spans[0]
+        check('the marker is red', 'red' in str(span.style), True)
+        check(
+            'the span covers exactly the "*"',
+            rendered.plain[span.start : span.end],
+            '*',
+        )
+
+        other = rendered_label(app.query_one('#param-install-version', Input))
+        check('an optional param has no marker', other.plain, 'version')
+        check('and carries no style', len(other.spans), 0)
+
+
 # -----------------------------------------------------------------------------
 
 
@@ -936,6 +1069,9 @@ async def run_all() -> None:
     await test_enter_needs_every_required_param()
     await test_enter_without_input_focus()
     test_help_request_skips_the_form()
+    await test_default_prefill()
+    await test_cleared_input_is_reported()
+    await test_required_marker()
 
     print()
     if FAILURES:

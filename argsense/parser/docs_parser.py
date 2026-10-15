@@ -21,7 +21,7 @@ class T:
                 #       }, ...
                 #   }
                 str,
-                tp.TypedDict(  # ty: ignore
+                tp.TypedDict(
                     'ArgInfo', {'cname': str, 'cshort': str, 'desc': str}
                 ),
             ],
@@ -35,7 +35,7 @@ class T:
                 #       }, ...
                 #   }
                 str,
-                tp.TypedDict(  # ty: ignore
+                tp.TypedDict(
                     'OptInfo', {'cname': str, 'cshort': str, 'desc': str}
                 ),
             ],
@@ -67,7 +67,7 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
 
     flag = 'INIT'
     temp_str: str = ''
-    temp_dict: t.Optional[dict] = None
+    temp_dict: tp.Optional[dict] = None
 
     def accumulate_lines(line: str) -> None:
         nonlocal temp_str
@@ -84,6 +84,7 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
 
         m = re.match(r' {4}(\*?)(\w+)(?: \((-\w\d*)\))?:(?: (.*))?', line)
         #                  ~~~~1~~~~2      ~~~~~~~3         ~~~4
+        assert m
         has_asterisk = bool(m.group(1))
         param_name = m.group(2)
         param_short = m.group(3) or ''
