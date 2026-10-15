@@ -1,184 +1,149 @@
 """
-exposed colors:
-    there are two types of color series you can use:
-        1.  for standard color, for example 'red', 'blue', 'yellow', 'dim', etc.
-            you can use the plain string directly.
-        2.  for specific color for widgets and elements, for example the error
-            panel, command panel, function description, etc. you should use the
-            exposed [palette] object.
+The color tables used by the rich renderer.
+
+Two palettes are maintained, and `get_palette()` picks one for the console in
+use:
+
+    ModernPalette
+        For the terminals that can show truecolor. The colors are the 'mocha'
+        flavour of the catppuccin palette (https://catppuccin.com/palette),
+        and the titles are drawn as a gradient.
+
+    LegacyPalette
+        For every other terminal - the 256-color ones, the plain 16-color
+        ones, and the legacy windows console. It only uses color names that
+        all of them understand, and it draws the titles in a single color:
+        a gradient would come out as noise there.
+
+The detection is delegated to rich, which already knows whether the console
+is the legacy windows one (see `rich.console.detect_legacy_windows`) and
+which color system it supports (see `rich.console.Console.color_system`). A
+legacy windows console is reported as `ColorSystem.WINDOWS`, so it never
+looks like a truecolor one.
 """
 
 import typing as tp
 
+from rich import get_console
+from rich.console import Console
 
-class T:
-    _Color = str
-    _ColorPair = tp.Tuple[str, str]
+MODERN_COLOR_SYSTEM = 'truecolor'
+#   what `Console.color_system` reports for a terminal that can show
+#   truecolor. every other value ('standard', '256', 'windows', or `None`
+#   when the output is not a terminal) falls back to the legacy palette.
 
-    Palette = tp.TypedDict(
-        'Palette',
-        {
-            'title': tp.TypedDict(
-                'Title',
-                {'python': _Color, '-m': _Color, '.py': _Color, '.exe': _Color},
-            ),
-            'panel': tp.TypedDict(
-                'Panel',
-                {
-                    'border': tp.TypedDict(
-                        'Border',
-                        {
-                            'group': _Color,
-                            'command': _Color,
-                            'argument': _Color,
-                            'option': _Color,
-                            'extension': _Color,
-                            'error': _Color,
-                        },
-                    )
-                },
-            ),
-            'logo': tp.TypedDict(
-                'Logo',
-                {
-                    'group': _ColorPair,
-                    'command': _ColorPair,
-                    'argument': _ColorPair,
-                    'option': _ColorPair,
-                },
-            ),
-        },
-    )
-
-    class Palette2:
-        class title:
-            class prog_name:
-                python: str
-                m: str
-                py: str
-                exe: str
-
-            func_name: str
-            arg1: str
-            arg2: str
-            kwarg1: str
-            kwarg2: str
-
-        class panel:
-            class border:
-                group: str
-                command: str
-                argument: str
-                option: str
-                extension: str
-                error: str
-
-            command_highlight: str
-
-        class logo:
-            group: tp.Tuple[str, str]
-            command: tp.Tuple[str, str]
-            argument: tp.Tuple[str, str]
-            option: tp.Tuple[str, str]
+Gradient = tp.Union[str, tp.Tuple[str, str]]
+#   a two-stop gradient in a modern terminal, or a single color in a legacy
+#   one. the renderer's `_gradient()` handles both.
 
 
-class BaseColor:
-    blue = 'blue'
-    cyan = 'cyan'
-    default = 'default'
-    dim = 'dim'
-    magenta = 'magenta'
-    red = 'red'
-    yellow = 'yellow'
-
-
-class Color(BaseColor):
+class ModernPalette:
     """
-    Inspired by oh-my-posh/themes/bubbles (https://github.com/JanDeDobbeleer
-    /oh-my-posh/blob/main/themes/bubbles.omp.json), you can get the preview at
-    https://ohmyposh.dev/docs/themes.
+    For the truecolor terminals. The colors are taken from the catppuccin
+    'mocha' flavour - the name of the color is noted next to each of them.
     """
 
-    blue = '#61afef'  # cornflower blue
-    blue1 = '#61afef'  # cornflower blue
-    blue2 = '#5f87ff'  # cornflower blue
-    cyan = '#7fd5ea'  # seagull
-    dark_magenta = '#8700af'  # purple
-    deep_gray = '#bcbcbc'  # silver
-    dim_acrylic = '#29315a'  # rhino
-    gray1 = '#777b7f'  # rolling stone
-    gray2 = '#909396'  # oslo gray
-    green = '#50ab0e'  # christi
-    magenta = '#d08bf3'  # perfume
-    red = '#ff0a27'  # torch red
-    scarlet = '#e64747'  # cinnabar
-    tan = '#f49364'  # sandy brown
-    yellow = '#ccbf2f'  # old gold
-    yellow_accent = '#fffd3c'  # golden fizz
+    class title:
+        # the program banner, and the title of the parameters panel
+        gradient = ('#fab387', '#f9e2af')  # peach -> yellow
+
+    class panel:
+        class border:
+            commands = '#cba6f7'  # mauve
+            parameters = '#89b4fa'  # blue
+
+    class commands:
+        # the 'FUNCTIONS' / 'COMMAND GROUPS' panel
+        index = '#f9e2af'  # yellow
+        name = '#cba6f7'  # mauve
+        desc = '#7f849c'  # overlay1 (a gray)
+
+    class groups:
+        # the command groups tree
+        name = 'bold #cba6f7'  # mauve
+        guide = '#6c7086'  # overlay0
+        command = '#94e2d5'  # teal
+        desc = '#7f849c'  # overlay1
+
+    class param:
+        # the 'PARAMETERS' panel
+        required = '#f38ba8'  # red
+        index = '#f9e2af'  # yellow
+        name = 'bold #89b4fa'  # blue
+        short = 'bold #a6e3a1'  # green
+        type = 'dim #f9e2af'  # dim yellow
+        desc = '#7f849c'  # overlay1
+        #   the description text, wherever it comes from: the description of
+        #   the function (drawn above the panel), the description column of
+        #   the parameters table, and the description line of the stacked
+        #   layout. all three share this color.
+        default = '#fab387'  # peach
+
+    class logo:
+        # 'powered by argsense'. the gradient echoes the border of the panel
+        # it follows.
+        commands = ('#cba6f7', '#f5c2e7')  # mauve -> pink
+        parameters = ('#89b4fa', '#b4befe')  # blue -> lavender
 
 
-class ColorPair:
-    blue = ('#0a87ee', '#9294f0')  # calm blue -> light blue
-    # blue = ('#2d34f1', '#9294f0')  # ocean blue -> light blue
-    # magenta = ('#ed3b3b', '#d08bf3')  # rose red -> violet
-    magenta = ('#f38cfd', '#d08bf3')  # light magenta -> violet
-    tan = ('#f47fa4', '#f49364')  # cold sandy -> camel tan
-    white = ('#ffffff', '#a8a8a8')  # bleach -> dim gray
-
-
-color = Color()
-color_pair = ColorPair()
-
-
-class Palette:
+class LegacyPalette:
     """
-    ref: python use dot-notation to access dict elements:
-        https://stackoverflow.com/a/54332748/9695911
+    For the terminals that can not show truecolor. Only the 16 ansi colors
+    (and the styles built on them) are used. `bright_black` is the gray here:
+    unlike `grey50` it is a plain ansi color, so every terminal understands
+    it.
     """
 
-    def __init__(self, data: dict):
-        # warning: make sure the key is a valid pattern as a attribute name.
-        for k, v in data.items():
-            if not isinstance(v, dict):
-                setattr(self, k, v)
-            else:
-                setattr(self, k, Palette(v))
+    class title:
+        gradient = 'yellow'
+
+    class panel:
+        class border:
+            commands = 'magenta'
+            parameters = 'blue'
+
+    class commands:
+        index = 'yellow'
+        name = 'magenta'
+        desc = 'bright_black'
+
+    class groups:
+        name = 'bold magenta'
+        guide = 'dim'
+        command = 'cyan'
+        desc = 'bright_black'
+
+    class param:
+        required = 'red'
+        index = 'yellow'
+        name = 'bold blue'
+        short = 'bold green'
+        type = 'dim yellow'
+        desc = 'bright_black'
+        #   see `ModernPalette.param.desc` - the same three places.
+        default = 'bright_red'
+
+    class logo:
+        commands = 'magenta'
+        parameters = 'blue'
 
 
-palette = tp.cast(
-    T.Palette2,
-    Palette(
-        {
-            'title': {
-                'prog_name': {
-                    'python': color.default,
-                    'm': color.yellow,
-                    'py': color.scarlet,
-                    'exe': color.scarlet,
-                },
-                'func_name': color.magenta,
-                'arg1': color.blue1,
-                'arg2': color.blue2,
-                'kwarg1': color.gray1,
-                'kwarg2': color.gray2,
-            },
-            'panel': {
-                'border': {
-                    'group': color.magenta,
-                    'command': color.tan,
-                    'argument': color.blue,
-                    'option': color.deep_gray,
-                    'extension': color.dim,
-                    'error': color.red,
-                },
-                'command_highlight': f'{color.dark_magenta} on {color.yellow_accent}',
-            },
-            'logo': {
-                'group': color_pair.magenta,
-                'command': color_pair.tan,
-                'argument': color_pair.blue,
-                'option': color_pair.white,
-            },
-        }
-    ),
-)
+Palette = tp.Union[ModernPalette, LegacyPalette]
+"""Either of the two palettes above."""
+
+
+def get_palette(console: tp.Optional[Console] = None) -> Palette:
+    """
+    Pick the palette for the console in use.
+
+    Note:
+        Pass the console along when the caller does not print to the global
+        one (for example the screenshot tooling assigns its own console to
+        the renderer). Do not resolve the palette once at import time: the
+        console may be replaced later, and with it the color support.
+    """
+    if console is None:
+        console = get_console()
+    if console.color_system == MODERN_COLOR_SYSTEM:
+        return ModernPalette()
+    return LegacyPalette()

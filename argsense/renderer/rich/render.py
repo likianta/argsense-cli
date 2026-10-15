@@ -1,10 +1,8 @@
-import math
 import os
 import typing as t
-from random import randint
 
-import neoprint as np
 import rich.box
+import rich.color
 import rich.console
 import rich.padding
 import rich.panel
@@ -13,13 +11,26 @@ import rich.text
 import rich.tree
 from rich import get_console
 
-from .style import color
+from .style import get_palette
+from .style import Gradient
+from .style import Palette
 from ... import config
 from ...converter import val_2_cval
 from ...parser import Argv
 from ...parser import FuncInfo
 
 console = get_console()
+
+
+def _palette() -> Palette:
+    """
+    The color table to draw with.
+
+    It is looked up on every call instead of once at import time, because the
+    console may still be replaced later (the screenshot tooling does that to
+    record a truecolor console), and the palette depends on it.
+    """
+    return get_palette(console)
 
 
 def render_functions(
@@ -37,41 +48,41 @@ def render_functions(
             names; otherwise they are shown as a flat table (this is what
             `cli.run(...)` does).
     """
+    palette = _palette()
     console.print(
-        _simple_gradient(
-            _detect_program_name(argv) + ' ...',
-            (0xFF0000, 0xFFFF00),  # red -> yellow
-        ),
+        _gradient(_detect_program_name(argv) + ' ...', palette.title.gradient),
         justify='center',
         style='bold',
     )
 
     funcs = list(funcs)
     if groups:
-        content = _build_command_groups(funcs, groups)
+        content = _build_command_groups(funcs, groups, palette)
         title = 'COMMAND GROUPS'
     else:
-        content = _build_func_table(funcs)
+        content = _build_func_table(funcs, palette)
         title = 'FUNCTIONS'
 
     console.print(
         rich.panel.Panel(
             content,
-            border_style=color.magenta,
+            border_style=palette.panel.border.commands,
             padding=(0, 2),
             title=title,
             title_align='right',
         )
     )
     if config.POST_LOGO_IN_HELP_INTERFACE:
-        _post_logo(color_seed='magenta')
+        _post_logo(palette.logo.commands)
 
 
-def _build_func_table(funcs: t.List[FuncInfo]) -> rich.table.Table:
+def _build_func_table(
+    funcs: t.List[FuncInfo], palette: Palette
+) -> rich.table.Table:
     table = rich.table.Table.grid(expand=True, padding=(0, 4))
-    table.add_column('index', style=color.yellow)
-    table.add_column('function', style=color.magenta)
-    table.add_column('description', style=color.gray2, ratio=1)
+    table.add_column('index', style=palette.commands.index)
+    table.add_column('function', style=palette.commands.name)
+    table.add_column('description', style=palette.commands.desc, ratio=1)
 
     for i, f in enumerate(funcs, 1):
         table.add_row(str(i), f.name, f.desc)
@@ -104,11 +115,10 @@ class _GroupTree(rich.tree.Tree):
     ]
 
 
-_GROUP_NAME_STYLE = 'bold {}'.format(color.magenta)
-
-
 def _build_command_groups(
-    funcs: t.List[FuncInfo], groups: t.Sequence[t.Tuple[str, t.Sequence[str]]]
+    funcs: t.List[FuncInfo],
+    groups: t.Sequence[t.Tuple[str, t.Sequence[str]]],
+    palette: Palette,
 ) -> rich.console.Group:
     """
     Build the tree-like command list used by `cli.run_group(...)`.
@@ -128,11 +138,11 @@ def _build_command_groups(
         if blocks:
             blocks.append('')
         tree = _GroupTree(
-            rich.text.Text(group_name, style=_GROUP_NAME_STYLE),
-            guide_style=color.dim,
+            rich.text.Text(group_name, style=palette.groups.name),
+            guide_style=palette.groups.guide,
         )
         for name in names:
-            tree.add(_build_command_leaf(lookup[name], name_width))
+            tree.add(_build_command_leaf(lookup[name], name_width, palette))
         blocks.append(tree)
 
     # commands that do not belong to any group (e.g. they were registered by
@@ -142,26 +152,30 @@ def _build_command_groups(
         if blocks:
             blocks.append('')
         tree = _GroupTree(
-            rich.text.Text(' ungrouped', style=_GROUP_NAME_STYLE),
-            guide_style=color.dim,
+            rich.text.Text(' ungrouped', style=palette.groups.name),
+            guide_style=palette.groups.guide,
         )
         for f in leftovers:
-            tree.add(_build_command_leaf(f, name_width))
+            tree.add(_build_command_leaf(f, name_width, palette))
         blocks.append(tree)
 
     return rich.console.Group(*blocks)
 
 
-def _build_command_leaf(func_info: FuncInfo, name_width: int) -> rich.text.Text:
+def _build_command_leaf(
+    func_info: FuncInfo, name_width: int, palette: Palette
+) -> rich.text.Text:
     """
     One command of a group: its name, padded so that the descriptions of all
     groups line up, followed by its description.
     """
     line = rich.text.Text()
-    line.append(func_info.name.ljust(name_width), style=color.cyan)
+    line.append(func_info.name.ljust(name_width), style=palette.groups.command)
     line.append('  ')
     line.append_text(
-        _render_text(func_info.desc, color.gray2, _resolve_markup(func_info))
+        _render_text(
+            func_info.desc, palette.groups.desc, _resolve_markup(func_info)
+        )
     )
     return line
 
@@ -169,6 +183,7 @@ def _build_command_leaf(func_info: FuncInfo, name_width: int) -> rich.text.Text:
 def render_function_parameters(
     argv: Argv, func_info: FuncInfo, *, show_func_name_in_title: bool = True
 ) -> None:
+    palette = _palette()
     has_any_args = bool(func_info.args or func_info.kwargs)
     use_markup = _resolve_markup(func_info)
 
@@ -178,10 +193,7 @@ def render_function_parameters(
     if has_any_args:
         title_parts.append('...')
     console.print(
-        _simple_gradient(
-            ' '.join(title_parts),
-            (0xFF0000, 0xFFFF00),  # red -> yellow
-        ),
+        _gradient(' '.join(title_parts), palette.title.gradient),
         justify='center' if has_any_args else None,
         style='bold',
     )
@@ -189,7 +201,7 @@ def render_function_parameters(
     if func_info.desc:
         console.print(
             rich.padding.Padding(
-                _render_text(func_info.desc, color.gray2, use_markup),
+                _render_text(func_info.desc, palette.param.desc, use_markup),
                 (0, 2, 0, 2),
             )
         )
@@ -202,25 +214,25 @@ def render_function_parameters(
 
     if plan['stacked']:
         table = _render_stacked_table(
-            rows, plan['omit_default_prefix'], use_markup
+            rows, plan['omit_default_prefix'], use_markup, palette
         )
     else:
         table = _render_grid_table(
-            rows, plan['omit_default_prefix'], use_markup
+            rows, plan['omit_default_prefix'], use_markup, palette
         )
 
     if table.rows:
         console.print(
             rich.panel.Panel(
                 table,
-                border_style=color.blue,
+                border_style=palette.panel.border.parameters,
                 padding=(0, 2),
                 title='PARAMETERS',
                 title_align='right',
             )
         )
         if config.POST_LOGO_IN_HELP_INTERFACE:
-            _post_logo(color_seed='blue')
+            _post_logo(palette.logo.parameters)
 
 
 def _resolve_markup(func_info: FuncInfo) -> bool:
@@ -454,7 +466,10 @@ def _make_layout_plan(rows: t.List[dict]) -> t.Dict[str, bool]:
 
 
 def _render_grid_table(
-    rows: t.List[dict], omit_default_prefix: bool, use_markup: bool
+    rows: t.List[dict],
+    omit_default_prefix: bool,
+    use_markup: bool,
+    palette: Palette,
 ) -> rich.table.Table:
     table = rich.table.Table.grid(expand=True, padding=(0, 1))
     #   padding=(0, 1): cell's padding, (vertical, horizontal).
@@ -466,13 +481,13 @@ def _render_grid_table(
     #       set expand to True, so that columns can use `ratio` to decide -
     #       their widths. currently we only set `desc` column to be -
     #       expanded.
-    table.add_column('required', style=color.red)
-    table.add_column('index', style=color.yellow)
-    table.add_column('param', style=color.blue + ' bold')
-    table.add_column('short', style=color.green + ' bold')
-    table.add_column('type', style='dim')
-    table.add_column('description', style=None, ratio=1)
-    table.add_column('default', style=color.scarlet)
+    table.add_column('required', style=palette.param.required)
+    table.add_column('index', style=palette.param.index)
+    table.add_column('param', style=palette.param.name)
+    table.add_column('short', style=palette.param.short)
+    table.add_column('type', style=palette.param.type)
+    table.add_column('description', style=palette.param.desc, ratio=1)
+    table.add_column('default', style=palette.param.default)
 
     for row in rows:
         cells = _cell_texts(row, omit_default_prefix)
@@ -489,7 +504,10 @@ def _render_grid_table(
 
 
 def _render_stacked_table(
-    rows: t.List[dict], omit_default_prefix: bool, use_markup: bool
+    rows: t.List[dict],
+    omit_default_prefix: bool,
+    use_markup: bool,
+    palette: Palette,
 ) -> rich.table.Table:
     """
     in this layout, each parameter takes two (or more) lines:
@@ -522,6 +540,7 @@ def _render_stacked_table(
                 w_type,
                 omit_default_prefix,
                 use_markup,
+                palette,
             )
         )
         prev_has_desc = bool(row['desc'])
@@ -538,29 +557,30 @@ def _build_stacked_block(
     w_type: int,
     omit_default_prefix: bool,
     use_markup: bool,
+    palette: Palette,
 ) -> rich.console.Group:
     head = rich.text.Text()
-    head.append(row['required'], style=color.red)
+    head.append(row['required'], style=palette.param.required)
     head.append(' ')
-    head.append(row['index'].ljust(w_index), style=color.yellow)
+    head.append(row['index'].ljust(w_index), style=palette.param.index)
     head.append(' ')
-    head.append(row['name'].ljust(w_name), style=color.blue + ' bold')
+    head.append(row['name'].ljust(w_name), style=palette.param.name)
     head.append(' ')
-    head.append(row['short'].ljust(w_short), style=color.green + ' bold')
+    head.append(row['short'].ljust(w_short), style=palette.param.short)
     head.append(' ')
-    head.append(row['type'].ljust(w_type), style='dim')
+    head.append(row['type'].ljust(w_type), style=palette.param.type)
 
     default_value = _render_default_value(row['default'], omit_default_prefix)
     if default_value:
         gap = panel_width - len(head) - len(default_value)
         head.append(' ' * max(2, gap))
-        head.append(default_value, style=color.scarlet)
+        head.append(default_value, style=palette.param.default)
 
     if row['desc']:
         return rich.console.Group(
             head,
             rich.padding.Padding(
-                _render_text(row['desc'], color.gray2, use_markup),
+                _render_text(row['desc'], palette.param.desc, use_markup),
                 (0, 0, 0, indent),
             ),
         )
@@ -602,81 +622,40 @@ def _detect_program_name(argv: Argv) -> str:
     return ' '.join(parts)
 
 
-# FIXME
-def _gradient(text: str, colors: t.Sequence[int]):
-    if len(colors) == 2:
-        return _simple_gradient(text, colors)  # noqa
-    else:
-        text_parts = []
-        substr_len = math.ceil(len(text) / len(colors))
-        for i in range(len(colors) - 1):
-            text_parts.append(
-                _simple_gradient(
-                    text[(i * substr_len) : ((i + 1) * substr_len)],
-                    (colors[i], colors[i + 1]),
-                )
-            )
-        return rich.text.Text.assemble(*text_parts)
+def _gradient(text: str, gradient: Gradient) -> rich.text.Text:
+    """
+    Draw a title in its gradient.
+
+    A legacy palette hands a single color instead of a pair, because such a
+    terminal can not blend two colors into a readable ramp. The text is then
+    drawn flat, in that color.
+    """
+    if isinstance(gradient, str):
+        return rich.text.Text(text, style='bold ' + gradient)
+
+    start, end = gradient
+    r1, g1, b1 = rich.color.Color.parse(start).get_truecolor()
+    r2, g2, b2 = rich.color.Color.parse(end).get_truecolor()
+    rich_text = rich.text.Text(text, style='bold')
+    size = len(rich_text)
+    for index in range(size):
+        blend = index / size
+        rich_text.stylize(
+            '#{:02X}{:02X}{:02X}'.format(
+                int(r1 + (r2 - r1) * blend),
+                int(g1 + (g2 - g1) * blend),
+                int(b1 + (b2 - b1) * blend),
+            ),
+            index,
+            index + 1,
+        )
+    return rich_text
 
 
-def _post_logo(color_seed: str = 'white') -> None:
+def _post_logo(gradient: Gradient) -> None:
     console.print(
-        _simple_gradient(
-            '🔥 powered by argsense',
-            (0x0A87EE, 0x9294F0)
-            if color_seed == 'blue'
-            else (0xF38CFD, 0xCE628C)
-            if color_seed == 'magenta'
-            else (0xF47FA4, 0xF49364)
-            if color_seed == 'tan'
-            else (0xFFFFFF, 0x909090)
-            if color_seed == 'white'
-            else _roll_color_pair(),
-        ),
+        _gradient('🔥 powered by argsense', gradient),
         justify='right',
         style='bold',
         end=' \n',
     )
-
-
-def _roll_color_pair() -> t.Tuple[int, int]:
-    start = int(
-        '{:02x}{:02x}{:02x}'.format(
-            randint(128, 255), randint(128, 255), randint(128, 255)
-        ),
-        16,
-    )
-    end = int(
-        '{:02x}{:02x}{:02x}'.format(
-            randint(0, 127), randint(0, 127), randint(0, 127)
-        ),
-        16,
-    )
-    np.show(
-        ':r',
-        '[#{:06x}]#{:06x}[/] -> [#{:06x}]#{:06x}[/]'.format(
-            start, start, end, end
-        ),
-    )
-    return start, end
-
-
-def _simple_gradient(text: str, colors: t.Tuple[int, int]) -> rich.text.Text:
-    color1, color2 = colors
-    # np.show('{:06X}, {:06X}'.format(color1, color2), ':pv')
-    rich_text = rich.text.Text(text, style='bold')
-    r1, g1, b1 = (color1 >> 16) & 0xFF, (color1 >> 8) & 0xFF, color1 & 0xFF
-    r2, g2, b2 = (color2 >> 16) & 0xFF, (color2 >> 8) & 0xFF, color2 & 0xFF
-    dr = r2 - r1
-    dg = g2 - g1
-    db = b2 - b1
-    size = len(rich_text)
-    for index in range(size):
-        blend = index / size
-        color = '#{}{}{}'.format(
-            f'{int(r1 + dr * blend):02X}',
-            f'{int(g1 + dg * blend):02X}',
-            f'{int(b1 + db * blend):02X}',
-        )
-        rich_text.stylize(color, index, index + 1)
-    return rich_text
