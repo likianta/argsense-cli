@@ -223,7 +223,7 @@ async def test_sidebar_structure() -> None:
         check(
             'the buttons are stacked without a gap',
             [x.region.y for x in group_items(app)],
-            [0, 3],
+            [1, 4],
         )
         rows = painted(app)
         check(
@@ -257,12 +257,21 @@ async def test_sidebar_structure() -> None:
                 app.query_one('#main').size.height,
                 app.query_one('#sidebar').size.height,
             ),
-            (20, 20),
+            (18, 18),
         )
         check(
             'and the form gives the first two rows to the tab bar',
             (app.query_one(Tabs).region.y, app.query_one('#params').region.y),
-            (0, 2),
+            (1, 3),
+        )
+        check(
+            'both live inside the panel above the run buttons',
+            (
+                app.query_one('#body').parent is app.query_one('#panel'),
+                app.query_one('#panel').region.bottom
+                < app.query_one('#actions').region.y,
+            ),
+            (True, True),
         )
 
 

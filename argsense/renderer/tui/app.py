@@ -71,16 +71,26 @@ def collect_rows(func_info: FuncInfo) -> t.List[T.Row]:
     ]
 
 
-# The width of the name column, and the width that a small widget asks for.
-# They are what the CSS below produces (a label is 18 wide, a switch takes 10,
-# and a number input is 8), and they are used to pack widgets into one row.
+# The width of the name column of a normal row, which is also what the first
+# item of a compact row takes. A name that comes after another small widget
+# only takes the room its own text needs, plus `NAME_PAD` for its widget (see
+# the CSS below).
 NAME_WIDTH = 18
-SWITCH_WIDTH = 10
-NUMBER_WIDTH = 8
+NAME_PAD = 1
 
-# What the form cannot hand to a row: its own horizontal padding (2 + 2) plus
-# the space the params scrollbar reserves.
-ROW_MARGIN = 6
+# The width of the widgets that get a narrow box of their own: a switch is 10
+# wide, and a number input is 12 - eight of which can be typed in (the `tall`
+# border and the padding take two cells each).
+SWITCH_WIDTH = 10
+NUMBER_WIDTH = 12
+
+# The fixed gap that a small widget leaves after itself in a compact row.
+ITEM_GAP = 3
+
+# What the form cannot hand to a row: its own horizontal padding (2 + 2), the
+# border of the panel that wraps the form (2), plus the space the params
+# scrollbar reserves.
+ROW_MARGIN = 8
 
 
 def is_small(info: dict) -> bool:
@@ -96,6 +106,15 @@ def widget_width(info: dict) -> int:
     if info['ctype'] is ParamType.FLAG:
         return SWITCH_WIDTH
     return NUMBER_WIDTH
+
+
+def item_width(name: str, info: dict, first: bool) -> int:
+    """
+    How much of a compact row one parameter takes: its name, its widget, and
+    the gap that follows it.
+    """
+    label = NAME_WIDTH if first else len(name) + NAME_PAD
+    return label + widget_width(info) + ITEM_GAP
 
 
 def plan_layout(rows: t.Sequence[T.Row], width: int) -> t.List[t.List[T.Row]]:
@@ -123,10 +142,12 @@ def plan_layout(rows: t.Sequence[T.Row], width: int) -> t.List[t.List[T.Row]]:
                 run, used = [], 0
             plan.append([row])
             continue
-        step = NAME_WIDTH + widget_width(info)
+        step = item_width(name, info, first=not run)
         if run and used + step > width:
             plan.append(run)
             run, used = [], 0
+            # the wrapped item opens the new row, so it takes the name column.
+            step = item_width(name, info, first=True)
         run.append(row)
         used += step
     if run:
@@ -375,9 +396,14 @@ class ArgsenseTuiApp(App[t.Any]):
         height: 100%;
         padding: 0 2;
     }
+    #panel {
+        /* everything above the run buttons lives in a bordered panel. */
+        height: 1fr;
+        border: round $primary;
+    }
     #body {
         layout: horizontal;
-        height: 1fr;
+        height: 100%;
     }
     #sidebar {
         width: 22;
@@ -443,17 +469,28 @@ class ArgsenseTuiApp(App[t.Any]):
         text-align: right;
         color: $text-muted;
     }
+    .row > .name-inline {
+        /* a name that comes after a small widget: it only takes the room its
+           own text needs, so that the widgets around it keep an even gap. */
+        width: auto;
+        padding: 1 1 0 0;
+        color: $text-muted;
+    }
     .row > Input {
         width: 1fr;
     }
     .row > .number {
-        width: 8;
-        /* `Input` pads by 2, which would leave only 2 visible characters in
-           such a narrow box. */
+        /* eight cells to type in. the `tall` border and the padding take two
+           cells each, so the box itself is twelve wide. */
+        width: 12;
         padding: 0 1;
     }
     .row > Switch {
         width: auto;
+    }
+    .row > .small {
+        /* the gap between two small widgets of the same row. */
+        margin-right: 3;
     }
     #actions {
         layout: horizontal;
@@ -477,7 +514,7 @@ class ArgsenseTuiApp(App[t.Any]):
            taller than the parameter area (the tab bar takes those two rows from
            the form). the form, as `1fr`, takes whatever is left. */
         height: 40%;
-        min-height: 5;
+        min-height: 7;
         margin-top: 1;
         border: round $primary;
         padding: 0 1;
@@ -524,35 +561,38 @@ class ArgsenseTuiApp(App[t.Any]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id='form'):
-            with Horizontal(id='body'):
-                if self.groups:
-                    # the sidebar picks the group; the tab bar next to it shows
-                    # the commands of that group (see `activate`).
-                    yield ListView(
-                        *(GroupItem(x) for x, _ in self.groups), id='sidebar'
-                    )
-                with Vertical(id='main'):
-                    if self.has_tabs:
-                        # `active` is not passed here: `on_mount` takes care of
-                        # it, once the layout is known (`Tabs` can only scroll
-                        # the active tab into view when the tabs have a
-                        # region).
-                        yield Tabs(
-                            *(
-                                Tab(x.name, id=tab_id(x.name))
-                                for x in self.func_infos
-                            ),
-                            id='tabs',
+            with Vertical(id='panel'):
+                with Horizontal(id='body'):
+                    if self.groups:
+                        # the sidebar picks the group; the tab bar next to it
+                        # shows the commands of that group (see `activate`).
+                        yield ListView(
+                            *(GroupItem(x) for x, _ in self.groups),
+                            id='sidebar',
                         )
-                    with VerticalScroll(id='params'):
-                        with ContentSwitcher(
-                            id='panes', initial=pane_id(self.active)
-                        ):
-                            for func_info in self.func_infos:
-                                with Vertical(
-                                    id=pane_id(func_info.name), classes='pane'
-                                ):
-                                    yield from self._compose_pane(func_info)
+                    with Vertical(id='main'):
+                        if self.has_tabs:
+                            # `active` is not passed here: `on_mount` takes
+                            # care of it, once the layout is known (`Tabs` can
+                            # only scroll the active tab into view when the
+                            # tabs have a region).
+                            yield Tabs(
+                                *(
+                                    Tab(x.name, id=tab_id(x.name))
+                                    for x in self.func_infos
+                                ),
+                                id='tabs',
+                            )
+                        with VerticalScroll(id='params'):
+                            with ContentSwitcher(
+                                id='panes', initial=pane_id(self.active)
+                            ):
+                                for func_info in self.func_infos:
+                                    with Vertical(
+                                        id=pane_id(func_info.name),
+                                        classes='pane',
+                                    ):
+                                        yield from self._compose_pane(func_info)
             with Horizontal(id='actions'):
                 yield Button('Run', id='run', variant='primary')
                 yield Button('Run and exit', id='run-exit')
@@ -565,16 +605,23 @@ class ArgsenseTuiApp(App[t.Any]):
             yield Static(func_info.desc, classes='desc')
         width = max(1, self.size.width - ROW_MARGIN)
         for group in plan_layout(collect_rows(func_info), width):
+            # a row that several small widgets share. The first one keeps the
+            # name column (so that it lines up with the rows around it), the
+            # others only take what their own name needs, and every widget
+            # leaves the same gap after itself (see the CSS).
+            compact = len(group) > 1
             with Horizontal(classes='row'):
-                for name, info in group:
+                for index, (name, info) in enumerate(group):
                     yield Label(
                         _label_markup(info),
-                        classes='name',
+                        classes='name' if index == 0 else 'name-inline',
                         id=label_id(func_info.name, name),
                     )
+                    extra = ' small' if compact else ''
                     if info['ctype'] is ParamType.FLAG:
                         yield Switch(
                             value=bool(initial.get(name, _default_flag(info))),
+                            classes=extra.strip(),
                             id=widget_id(func_info.name, name),
                         )
                     else:
@@ -586,7 +633,7 @@ class ArgsenseTuiApp(App[t.Any]):
                         yield Input(
                             value=str(initial.get(name, _default_text(info))),
                             placeholder=info['desc'],
-                            classes=classes,
+                            classes=(classes + extra).strip(),
                             id=widget_id(func_info.name, name),
                         )
 
@@ -602,13 +649,14 @@ class ArgsenseTuiApp(App[t.Any]):
                 widget.tooltip = _tooltip(info)
         if self.inline:
             # inline mode: the form is a fixed-height block, so nothing
-            # scrolls and the log panel gets 3 lines of content (plus the two
+            # scrolls and the log panel gets 5 lines of content (plus the two
             # border rows).
             self.query_one('#form').styles.height = 'auto'
+            self.query_one('#panel').styles.height = 'auto'
             self.query_one('#body').styles.height = 'auto'
             self.query_one('#main').styles.height = 'auto'
             self.query_one('#params').styles.height = 'auto'
-            self.query_one('#log', RichLog).styles.height = 5
+            self.query_one('#log', RichLog).styles.height = 7
         # the command line may have picked a command of a group that is not the
         # first one, so the sidebar and the tab bar have to catch up. it is
         # deferred by one refresh, because scrolling to a tab or to a group

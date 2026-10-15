@@ -314,8 +314,8 @@ async def test_log_height() -> None:
     async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
         log = app.query_one('#log')
-        # 3 lines of content + 2 border rows.
-        check('inline: fixed to 3 inner lines', log.region.height, 5)
+        # 5 lines of content + 2 border rows.
+        check('inline: fixed to 5 inner lines', log.region.height, 7)
 
 
 async def test_run() -> None:
@@ -564,7 +564,7 @@ async def test_many_params_scroll() -> None:
             True,
         )
         check(
-            'the log panel keeps >= 3 inner lines', log.region.height >= 5, True
+            'the log panel keeps >= 5 inner lines', log.region.height >= 7, True
         )
         check(
             'the log reaches the bottom',
@@ -1134,10 +1134,16 @@ async def test_compact_numbers() -> None:
     app = build_app(numbers)
     async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
+        count = app.query_one('#param-numbers-count', Input)
         check(
-            'the number input is 8 wide',
-            app.query_one('#param-numbers-count', Input).outer_size.width,
+            'the number input has room for 8 characters',
+            count.content_region.width,
             8,
+        )
+        check(
+            'its box is 12 wide (the border and the padding take 4)',
+            count.outer_size.width,
+            12,
         )
         check(
             'its default is still readable',
@@ -1148,6 +1154,24 @@ async def test_compact_numbers() -> None:
             'the text input takes what is left',
             app.query_one('#param-numbers-name', Input).outer_size.width > 60,
             True,
+        )
+        check(
+            'every small widget leaves the same gap after it',
+            [
+                app.query_one('#label-numbers-rate').region.x
+                - app.query_one('#param-numbers-count').region.right,
+                app.query_one('#label-numbers-limit').region.x
+                - app.query_one('#param-numbers-rate').region.right,
+            ],
+            [3, 3],
+        )
+        check(
+            'the names after the first one only take their text',
+            [
+                app.query_one('#label-numbers-rate').outer_size.width,
+                app.query_one('#label-numbers-limit').outer_size.width,
+            ],
+            [len('rate') + 1, len('limit') + 1],
         )
 
 
