@@ -1,6 +1,6 @@
 # Changelog
 
-### 2.0.0 (WIP)
+### 2.0.0 (2026-10-15)
 
 - A text user interface (TUI).
 - A new color palette based on the Catppuccin theme,

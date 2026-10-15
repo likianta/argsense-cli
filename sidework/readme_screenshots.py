@@ -1,15 +1,14 @@
 """
 Regenerate every screenshot that the README shows.
 
-The scene definitions live in `sidework/readme_scenes.py`. There are three kinds
-of figures:
+The scene definitions live in `sidework/readme_scenes.py`, and the recording
+engine in `sidework/figure_recorder.py`. There are three kinds of figures:
 
 - `script`: run a scenario script with a help request and record its help
   interface, e.g. `test/depsland_mock.py -h`.
 - `console`: run a console scene: a simulated shell session, or a bare help
   interface. The scene owns the printing (see `readme_scenes.py`).
-- `tui`: drive a textual form headlessly with `Pilot`, export its layout to an
-  svg, and rasterize it like the console ones.
+- `tui`: drive a textual form headlessly with `Pilot`, then take a screenshot.
 
 Every figure is written to `docs/images/<name>.png`, using a stable name, so
 refreshing never leaves an orphan image behind.
@@ -22,27 +21,16 @@ Usage (run from the project root):
 
 from __future__ import annotations
 
-import asyncio
-import os
-import re
-import runpy
 import shutil
-import sys
 import tempfile
 import typing as t
 from dataclasses import dataclass
 from pathlib import Path
 
-import argsense
-from rich.console import Console
-
-import argsense.renderer.rich.render as R
 from argsense import cli
-from argsense.cli import CommandLineInterface
-
-import screenshot_console_output as shot
-from readme_scenes import CONSOLE_SCENES
-from readme_scenes import TUI_SCENES
+from sidework import figure_recorder as fr
+from sidework.readme_scenes import CONSOLE_SCENES
+from sidework.readme_scenes import TUI_SCENES
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -125,126 +113,29 @@ def main(names: str = '') -> None:
         staging = Path(tempfile.mkdtemp(prefix='argsense-shot-'))
         svg = staging / '{}.svg'.format(figure.name)
         try:
-            if figure.kind == 'tui':
-                _record_tui(figure, svg)
-            else:
-                _record_console(figure, svg)
-            shot._svg_to_png(svg, png)
+            _record(figure, svg)
+            fr.rasterize(svg, png)
         finally:
             shutil.rmtree(staging, ignore_errors=True)
         print('wrote {}'.format(png.relative_to(ROOT)))
 
 
-# ------------------------------------------------------------------------------
-# console
-
-
-def _record_console(figure: Figure, svg: Path) -> None:
-    # argparse / click / typer / cyclopts wrap their help text to the terminal
-    # width; pin it, so that the recorded image is stable.
-    os.environ.setdefault('COLUMNS', '80')
-
-    console = Console(
-        width=shot.WIDTH,
-        record=True,
-        force_terminal=True,
-        color_system='truecolor',
-        # keep the rounded panels (`rich.box.ROUNDED`) that a modern terminal
-        # shows. without this, rich substitutes them for a "safe" square
-        # variant, because `safe_box` defaults to true.
-        safe_box=False,
-        file=open(os.devnull, 'w', encoding='utf-8'),
-    )
-    R.console = console
-
-    # a fresh interface per figure: a scenario script registers its commands
-    # into the module level `cli` singleton, and we don't want one script's
-    # commands to leak into the next figure - nor the `main` function of this
-    # tool to appear in the recorded help interface.
-    origin_cli = argsense.cli
-    argsense.cli = CommandLineInterface()
-
-    origin_argv = sys.argv
-    origin_stdout = sys.stdout
-    origin_stderr = sys.stderr
-    # `_ConsoleStream` forwards whatever a scene writes to `sys.stdout` (plain
-    # `print()`, neoprint, click, ...) into the recording console.
-    sys.stdout = shot._ConsoleStream(console)
-    sys.stderr = sys.stdout
-    try:
-        if figure.kind == 'script':
-            target = ROOT / figure.script
-            sys.argv = [str(target), *figure.argv.split()]
-            runpy.run_path(str(target), run_name='__main__')
-        else:
-            CONSOLE_SCENES[figure.scene]()
-    except SystemExit:
-        # `-h` handlers (argparse, click, typer, ...) exit the process; that is
-        # the expected way for them to end, so it must not abort the recording.
-        pass
-    finally:
-        sys.stdout.flush()
-        sys.argv = origin_argv
-        sys.stdout = origin_stdout
-        sys.stderr = origin_stderr
-        argsense.cli = origin_cli
-        R.console = shot._ORIGIN_CONSOLE
-
-    console.save_svg(str(svg), title=figure.title)
-    shot._use_local_font(svg)
-
-
-# ------------------------------------------------------------------------------
-# tui
-
-
-def _record_tui(figure: Figure, svg: Path) -> None:
-    scene = TUI_SCENES[figure.scene]
-
-    interface = CommandLineInterface()
-    for func in scene.commands:
-        interface.add_cmd(func)
-    interface.resolve_doc_references()
-    func_infos = [interface.commands[id(x)] for x in scene.commands]
-
-    # a scene names its functions the python way; the form knows them by their
-    # command name (the converted, dashed one).
-    initials = {
-        interface.commands[id(x)].name: scene.initials[getattr(x, '__name__')]
-        for x in scene.commands
-        if getattr(x, '__name__') in scene.initials
-    }
-
-    from argsense.renderer.tui import ArgsenseTuiApp
-
-    app = ArgsenseTuiApp(func_infos, initials=initials, groups=scene.groups)
-    app.animation_level = 'none'
-
-    async def run() -> str:
-        async with app.run_test(size=scene.size) as pilot:
-            await pilot.pause()
-            if scene.prepare is not None:
-                await scene.prepare(app, pilot)
-                await pilot.pause()
-            return app.export_screenshot()
-
-    svg.write_text(asyncio.run(run()), encoding='utf-8')
-    _use_local_font_tui(svg)
-
-
-def _use_local_font_tui(svg: Path) -> None:
-    """
-    Point the exported svg at a locally installed font, the same way the
-    console images do - textual also references a font by name, and falls back
-    to whatever the browser picks when it is missing.
-    """
-    text = svg.read_text(encoding='utf-8')
-    svg.write_text(
-        re.sub(r'font-family: [^;]+;', _FONT_DECL, text), encoding='utf-8'
-    )
-
-
-_FONT_DECL = "font-family: '{}', monospace;".format(shot.FONT)
+def _record(figure: Figure, svg: Path) -> None:
+    if figure.kind == 'script':
+        fr.record_script(ROOT / figure.script, figure.argv, svg)
+    elif figure.kind == 'console':
+        fr.record_console(CONSOLE_SCENES[figure.scene], svg)
+    else:
+        assert figure.kind == 'tui'
+        scene = TUI_SCENES[figure.scene]
+        fr.record_tui(
+            scene.commands,
+            svg,
+            groups=scene.groups,
+            initials=scene.initials,
+            size=scene.size,
+            prepare=scene.prepare,
+        )
 
 
 if __name__ == '__main__':
