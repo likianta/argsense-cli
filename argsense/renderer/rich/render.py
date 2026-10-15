@@ -14,7 +14,6 @@ import rich.tree
 from rich import get_console
 
 from .style import color
-from .style import palette
 from ... import config
 from ...converter import val_2_cval
 from ...parser import Argv
@@ -80,6 +79,34 @@ def _build_func_table(funcs: t.List[FuncInfo]) -> rich.table.Table:
     return table
 
 
+# the tree guides used by the command groups help interface. the branches are
+# rounded, borrowed from `rich.box.ROUNDED`.
+_TREE_GUIDE_H = rich.box.ROUNDED.row_horizontal
+_TREE_GUIDE_FORK = rich.box.ROUNDED.row_left
+_TREE_GUIDE_LAST = rich.box.ROUNDED.bottom_left
+
+
+class _GroupTree(rich.tree.Tree):
+    """
+    The tree used by the command groups help interface. Its branches take the
+    rounded corners of `rich.box.ROUNDED`, so the last command of a group is
+    drawn as "╰──" instead of "└──".
+    """
+
+    TREE_GUIDES = [
+        (
+            '    ',
+            ' │  ',
+            ' {}{} '.format(_TREE_GUIDE_FORK, _TREE_GUIDE_H),
+            ' {}{} '.format(_TREE_GUIDE_LAST, _TREE_GUIDE_H),
+        ),
+        *rich.tree.Tree.TREE_GUIDES[1:],
+    ]
+
+
+_GROUP_NAME_STYLE = 'bold {}'.format(color.magenta)
+
+
 def _build_command_groups(
     funcs: t.List[FuncInfo], groups: t.Sequence[t.Tuple[str, t.Sequence[str]]]
 ) -> rich.console.Group:
@@ -100,8 +127,8 @@ def _build_command_groups(
 
         if blocks:
             blocks.append('')
-        tree = rich.tree.Tree(
-            rich.text.Text(' {} '.format(group_name), style=_GROUP_BADGE_STYLE),
+        tree = _GroupTree(
+            rich.text.Text(group_name, style=_GROUP_NAME_STYLE),
             guide_style=color.dim,
         )
         for name in names:
@@ -114,8 +141,8 @@ def _build_command_groups(
     if leftovers:
         if blocks:
             blocks.append('')
-        tree = rich.tree.Tree(
-            rich.text.Text(' ungrouped ', style=_GROUP_BADGE_STYLE),
+        tree = _GroupTree(
+            rich.text.Text(' ungrouped', style=_GROUP_NAME_STYLE),
             guide_style=color.dim,
         )
         for f in leftovers:
@@ -131,15 +158,12 @@ def _build_command_leaf(func_info: FuncInfo, name_width: int) -> rich.text.Text:
     groups line up, followed by its description.
     """
     line = rich.text.Text()
-    line.append(func_info.name.ljust(name_width), style=color.magenta)
+    line.append(func_info.name.ljust(name_width), style=color.cyan)
     line.append('  ')
     line.append_text(
         _render_text(func_info.desc, color.gray2, _resolve_markup(func_info))
     )
     return line
-
-
-_GROUP_BADGE_STYLE = 'bold black on {}'.format(palette.panel.border.group)
 
 
 def render_function_parameters(
