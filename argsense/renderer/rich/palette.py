@@ -27,10 +27,10 @@ import typing as tp
 from rich import get_console
 from rich.console import Console
 
-MODERN_COLOR_SYSTEM = 'truecolor'
-#   what `Console.color_system` reports for a terminal that can show
-#   truecolor. every other value ('standard', '256', 'windows', or `None`
-#   when the output is not a terminal) falls back to the legacy palette.
+MODERN_COLOR_SYSTEM = ('truecolor', '256')
+#   what `Console.color_system` reports for a terminal that can show truecolor.
+#   every other value ('standard', 'windows', or `None` when the output is not 
+#   a terminal) falls back to the legacy palette.
 
 Gradient = tp.Union[str, tp.Tuple[str, str]]
 #   a two-stop gradient in a modern terminal, or a single color in a legacy
@@ -45,7 +45,8 @@ class ModernPalette:
 
     class title:
         # the program banner, and the title of the parameters panel
-        gradient = ('#fab387', '#f9e2af')  # peach -> yellow
+        # gradient = ('#f38ba8', '#f9e2af')  # red -> yellow
+        gradient = ('#ff0000', '#ffff00')  # custom-red -> custom-yellow
 
     class panel:
         class border:
@@ -77,13 +78,13 @@ class ModernPalette:
         #   the function (drawn above the panel), the description column of
         #   the parameters table, and the description line of the stacked
         #   layout. all three share this color.
-        default = '#fab387'  # peach
+        default = '#f38ba8'  # red
 
     class logo:
         # 'powered by argsense'. the gradient echoes the border of the panel
         # it follows.
-        commands = ('#cba6f7', '#f5c2e7')  # mauve -> pink
-        parameters = ('#89b4fa', '#b4befe')  # blue -> lavender
+        commands = ('#cba6f7', '#c4364a')  # mauve -> custom-dark-red
+        parameters = ('#89b4fa', '#7f849c')  # blue -> overlay1
 
 
 class LegacyPalette:
@@ -144,6 +145,6 @@ def get_palette(console: tp.Optional[Console] = None) -> Palette:
     """
     if console is None:
         console = get_console()
-    if console.color_system == MODERN_COLOR_SYSTEM:
+    if console.color_system in MODERN_COLOR_SYSTEM:
         return ModernPalette()
     return LegacyPalette()

@@ -11,9 +11,9 @@ import rich.text
 import rich.tree
 from rich import get_console
 
-from .style import get_palette
-from .style import Gradient
-from .style import Palette
+from .palette import get_palette
+from .palette import Gradient
+from .palette import Palette
 from ... import config
 from ...converter import val_2_cval
 from ...parser import Argv
