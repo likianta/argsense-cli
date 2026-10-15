@@ -20,6 +20,8 @@ from argsense.parser import FuncInfo
 from argsense.renderer.tui import ArgsenseTuiApp
 from argsense.renderer.tui import CliRunRequest
 from argsense.renderer.tui import collect_initial_values
+from argsense.renderer.tui import collect_rows
+from argsense.renderer.tui import plan_layout
 from argsense.renderer.tui import resolve_initials
 from argsense.tui import TuiInterface
 from textual.containers import VerticalScroll
@@ -115,6 +117,31 @@ def many_params(
     print('configure {} v{}'.format(project_name, version))
 
 
+def mixed(a: str, b: bool, c: bool, d: str, e: bool) -> None:
+    """
+    only neighbours may share a row.
+
+    params:
+        a: some text.
+        b: a flag.
+        c: another flag.
+        d: some text.
+        e: a third flag.
+    """
+
+
+def numbers(name: str, count: int = 1, rate: float = 1.0, limit: int = 5):
+    """
+    numbers do not need a whole row.
+
+    params:
+        name: the name.
+        count: how many.
+        rate: how fast.
+        limit: how far.
+    """
+
+
 def func_info_of(func) -> FuncInfo:
     cli = CommandLineInterface()
     cli.add_cmd(func)
@@ -142,11 +169,9 @@ def log_of(app: ArgsenseTuiApp) -> str:
     return '\n'.join(strip.text for strip in lines)
 
 
-def rendered_label(widget: Input) -> Content:
-    """The painted content of the name label that sits in `widget`'s row."""
-    row = widget.parent
-    assert row is not None
-    label = row.query_one('.name', Label)
+def rendered_label(app: ArgsenseTuiApp, command: str, param: str) -> Content:
+    """The painted content of a parameter's name label."""
+    label = app.query_one('#label-{}-{}'.format(command, param), Label)
     return t.cast('Content', label.render())
 
 
@@ -1024,7 +1049,7 @@ async def test_required_marker() -> None:
     app = build_app()
     async with app.run_test(size=SIZE) as pilot:
         await pilot.pause()
-        rendered = rendered_label(app.query_one('#param-install-appid', Input))
+        rendered = rendered_label(app, 'install', 'appid')
         check('the marker precedes the name', rendered.plain, '* appid')
         check('only the marker is styled', len(rendered.spans), 1)
         span = rendered.spans[0]
@@ -1035,9 +1060,87 @@ async def test_required_marker() -> None:
             '*',
         )
 
-        other = rendered_label(app.query_one('#param-install-version', Input))
+        other = rendered_label(app, 'install', 'version')
         check('an optional param has no marker', other.plain, 'version')
         check('and carries no style', len(other.spans), 0)
+
+
+def group_names(rows: t.Sequence, width: int) -> t.List[t.List[str]]:
+    """The parameter names of each planned row."""
+    return [[name for name, _ in group] for group in plan_layout(rows, width)]
+
+
+def test_plan_layout() -> None:
+    print('[29] the layout planner only groups neighbours')
+    info = func_info_of(mixed)
+    plan = plan_layout(collect_rows(info), 200)
+    check(
+        'b and c share a row, the rest do not',
+        [[name for name, _ in group] for group in plan],
+        [['a'], ['b', 'c'], ['d'], ['e']],
+    )
+
+    rows = collect_rows(func_info_of(numbers))
+    check(
+        'a wide terminal fits the whole run',
+        group_names(rows, 200),
+        [['name'], ['count', 'rate', 'limit']],
+    )
+    check(
+        'a half-empty line wraps',
+        group_names(rows, 60),
+        [['name'], ['count', 'rate'], ['limit']],
+    )
+    check(
+        'a single column stacks them',
+        group_names(rows, 1),
+        [['name'], ['count'], ['rate'], ['limit']],
+    )
+
+
+async def test_compact_layout() -> None:
+    print('[30] small widgets are laid out side by side')
+    app = build_app(mixed)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        check('five params take four rows', len(app.query('.row')), 4)
+        b = app.query_one('#param-mixed-b', Switch)
+        c = app.query_one('#param-mixed-c', Switch)
+        d = app.query_one('#param-mixed-d', Input)
+        check('b and c share a row', b.parent is c.parent, True)
+        check('d does not join them', d.parent is not c.parent, True)
+        check(
+            'e gets a row of its own',
+            app.query_one('#param-mixed-e', Switch).parent is not d.parent,
+            True,
+        )
+        check(
+            'so five params cost twelve lines, not fifteen',
+            [row.size.height for row in app.query('.row')],
+            [3, 3, 3, 3],
+        )
+
+
+async def test_compact_numbers() -> None:
+    print('[31] a number gets a narrow input, a text fills the row')
+    app = build_app(numbers)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        check(
+            'the number input is 8 wide',
+            app.query_one('#param-numbers-count', Input).outer_size.width,
+            8,
+        )
+        check(
+            'its default is still readable',
+            app.query_one('#param-numbers-rate', Input).value,
+            '1.0',
+        )
+        check(
+            'the text input takes what is left',
+            app.query_one('#param-numbers-name', Input).outer_size.width > 60,
+            True,
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -1072,6 +1175,9 @@ async def run_all() -> None:
     await test_default_prefill()
     await test_cleared_input_is_reported()
     await test_required_marker()
+    test_plan_layout()
+    await test_compact_layout()
+    await test_compact_numbers()
 
     print()
     if FAILURES:

@@ -66,6 +66,69 @@ def collect_rows(func_info: FuncInfo) -> t.List[T.Row]:
     ]
 
 
+# The width of the name column, and the width that a small widget asks for.
+# They are what the CSS below produces (a label is 18 wide, a switch takes 10,
+# and a number input is 8), and they are used to pack widgets into one row.
+NAME_WIDTH = 18
+SWITCH_WIDTH = 10
+NUMBER_WIDTH = 8
+
+# What the form cannot hand to a row: its own horizontal padding (2 + 2) plus
+# the space the params scrollbar reserves.
+ROW_MARGIN = 6
+
+
+def is_small(info: dict) -> bool:
+    """
+    Tell whether a parameter needs so little room that it can share its row
+    with the parameters around it.
+    """
+    return info['ctype'] in (ParamType.FLAG, ParamType.NUMBER)
+
+
+def widget_width(info: dict) -> int:
+    """How much of a row a small parameter's widget takes."""
+    if info['ctype'] is ParamType.FLAG:
+        return SWITCH_WIDTH
+    return NUMBER_WIDTH
+
+
+def plan_layout(rows: t.Sequence[T.Row], width: int) -> t.List[t.List[T.Row]]:
+    """
+    Group parameters into layout rows, so that the form wastes less space.
+    Each group becomes one `Horizontal`.
+
+    A small parameter (a flag or a number) is put next to the small parameters
+    that follow it, for as long as they stay neighbours and the line is not
+    full. Any other parameter takes a row of its own, which also breaks the
+    run - so two flags that are not neighbours never share a line.
+
+    A group that no longer fits is closed and the next one starts on a new
+    line: wrapping is done by starting a new row rather than by `flex-wrap`,
+    which textual does not support.
+    """
+    plan: t.List[t.List[T.Row]] = []
+    run: t.List[T.Row] = []
+    used = 0
+    for name, info in rows:
+        row = (name, info)
+        if not is_small(info):
+            if run:
+                plan.append(run)
+                run, used = [], 0
+            plan.append([row])
+            continue
+        step = NAME_WIDTH + widget_width(info)
+        if run and used + step > width:
+            plan.append(run)
+            run, used = [], 0
+        run.append(row)
+        used += step
+    if run:
+        plan.append(run)
+    return plan
+
+
 def tab_id(command_name: str) -> str:
     return 'tab-{}'.format(command_name)
 
@@ -76,6 +139,10 @@ def pane_id(command_name: str) -> str:
 
 def widget_id(command_name: str, param_name: str) -> str:
     return 'param-{}-{}'.format(command_name, param_name)
+
+
+def label_id(command_name: str, param_name: str) -> str:
+    return 'label-{}-{}'.format(command_name, param_name)
 
 
 def front_matter(func_info: FuncInfo) -> dict:
@@ -275,6 +342,12 @@ class ArgsenseTuiApp(App[t.Any]):
     .row > Input {
         width: 1fr;
     }
+    .row > .number {
+        width: 8;
+        /* `Input` pads by 2, which would leave only 2 visible characters in
+           such a narrow box. */
+        padding: 0 1;
+    }
     .row > Switch {
         width: auto;
     }
@@ -357,20 +430,32 @@ class ArgsenseTuiApp(App[t.Any]):
         initial = self.initials.get(func_info.name, {})
         if func_info.desc:
             yield Static(func_info.desc, classes='desc')
-        for name, info in collect_rows(func_info):
+        width = max(1, self.size.width - ROW_MARGIN)
+        for group in plan_layout(collect_rows(func_info), width):
             with Horizontal(classes='row'):
-                yield Label(_label_markup(info), classes='name')
-                if info['ctype'] is ParamType.FLAG:
-                    yield Switch(
-                        value=bool(initial.get(name, _default_flag(info))),
-                        id=widget_id(func_info.name, name),
+                for name, info in group:
+                    yield Label(
+                        _label_markup(info),
+                        classes='name',
+                        id=label_id(func_info.name, name),
                     )
-                else:
-                    yield Input(
-                        value=str(initial.get(name, _default_text(info))),
-                        placeholder=info['desc'],
-                        id=widget_id(func_info.name, name),
-                    )
+                    if info['ctype'] is ParamType.FLAG:
+                        yield Switch(
+                            value=bool(initial.get(name, _default_flag(info))),
+                            id=widget_id(func_info.name, name),
+                        )
+                    else:
+                        classes = (
+                            'number'
+                            if info['ctype'] is ParamType.NUMBER
+                            else ''
+                        )
+                        yield Input(
+                            value=str(initial.get(name, _default_text(info))),
+                            placeholder=info['desc'],
+                            classes=classes,
+                            id=widget_id(func_info.name, name),
+                        )
 
     def on_mount(self) -> None:
         self.query_one('#log', RichLog).border_title = 'log'

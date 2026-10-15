@@ -61,13 +61,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-all = [
-    { name = "streamlit-canary", marker = "python_full_version >= '3.11'" },
-    { name = "textual" },
-]
-gui = [
-    { name = "streamlit-canary", marker = "python_full_version >= '3.11'" },
-]
 tui = [
     { name = "textual" },
 ]
@@ -88,14 +81,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "neoprint", specifier = ">=0.1.13a3", index = "http://localhost:2131/" },
+    { name = "neoprint", specifier = ">=0.1.13", index = "http://localhost:2131/" },
     { name = "rich", specifier = ">=14.0.0" },
-    { name = "streamlit-canary", marker = "python_full_version >= '3.11' and extra == 'all'", specifier = ">=0.4.0a69", index = "http://localhost:2131/" },
-    { name = "streamlit-canary", marker = "python_full_version >= '3.11' and extra == 'gui'", specifier = ">=0.4.0a69", index = "http://localhost:2131/" },
-    { name = "textual", marker = "extra == 'all'", specifier = ">=8.2.8" },
     { name = "textual", marker = "extra == 'tui'", specifier = ">=8.2.8" },
 ]
-provides-extras = ["all", "gui", "tui"]
+provides-extras = ["tui"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -724,13 +714,13 @@ wheels = [
 
 [[package]]
 name = "neoprint"
-version = "0.1.13a3"
+version = "0.1.13"
 source = { registry = "http://localhost:2131/" }
 dependencies = [
     { name = "rich" },
 ]
 wheels = [
-    { url = "http://localhost:2131/neoprint/neoprint-0.1.13a3-py3-none-any.whl" },
+    { url = "http://localhost:2131/neoprint/neoprint-0.1.13-py3-none-any.whl" },
 ]
 
 [[package]]
