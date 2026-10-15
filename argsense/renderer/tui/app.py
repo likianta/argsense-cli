@@ -281,7 +281,12 @@ class ArgsenseTuiApp(App[t.Any]):
     }
     """
 
-    BINDINGS = [('escape', 'quit', 'Quit')]
+    BINDINGS = [
+        ('escape', 'quit', 'Quit'),
+        # pressing enter is a shortcut for the "Run" button; see
+        # `action_enter_run`.
+        ('enter', 'enter_run', 'Run'),
+    ]
 
     def __init__(
         self,
@@ -381,6 +386,37 @@ class ArgsenseTuiApp(App[t.Any]):
             self.exit(CliRunRequest(self.active, tuple(self.collect_tokens())))
         elif event.button.id == 'exit':
             self.exit()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        # an input consumes the enter key itself, so the key binding above
+        # never sees it - handle the message instead.
+        self.action_enter_run()
+
+    def action_enter_run(self) -> None:
+        """
+        Enter acts as the "Run" button, but only when the form is complete.
+        Otherwise nothing happens (not even a message is logged).
+        """
+        if self.ready_to_run():
+            self.execute()
+
+    def ready_to_run(self) -> bool:
+        """
+        Tell whether every required parameter of the active command holds a
+        value. Optional parameters may stay empty - their default applies.
+        """
+        func_info = self.active_func_info
+        for name, info in collect_rows(func_info):
+            if info['ctype'] is ParamType.FLAG:
+                continue
+            if info.get('default', ...) is not ...:
+                continue
+            widget = self.query_one(
+                '#{}'.format(widget_id(func_info.name, name))
+            )
+            if isinstance(widget, Input) and not widget.value.strip():
+                return False
+        return True
 
     def execute(self) -> None:
         func_info = self.active_func_info

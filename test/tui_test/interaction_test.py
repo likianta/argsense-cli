@@ -798,6 +798,115 @@ async def test_tooltips() -> None:
         )
 
 
+async def test_enter_runs_when_ready() -> None:
+    print('[22] Enter runs the command once the form is complete')
+    CALLS.clear()
+    app = build_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.click('#param-install-appid')
+        await pilot.press('enter')
+        await pilot.pause()
+        check('an incomplete form ignores Enter', len(CALLS), 0)
+        check('and writes nothing to the log', log_of(app), '')
+
+        await pilot.press(*'Alice')
+        await pilot.press('enter')
+        await pilot.pause()
+        check('a complete form runs on Enter', len(CALLS), 1)
+        check(
+            'with the values filled in the form',
+            CALLS[0],
+            ('Alice', '', True, 1),
+        )
+
+
+async def test_enter_needs_every_required_param() -> None:
+    print('[23] Enter waits until every required parameter is filled')
+    app = build_app(main)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.click('#param-main-name')
+        await pilot.press(*'Alice')
+        await pilot.press('enter')
+        await pilot.pause()
+        check('a missing required param blocks Enter', log_of(app), '')
+
+        await pilot.press('tab')
+        await pilot.press(*'22')
+        await pilot.press('enter')
+        await pilot.pause()
+        check('once filled, Enter runs it', 'Alice 22' in log_of(app), True)
+
+
+async def test_enter_without_input_focus() -> None:
+    print('[24] Enter also works when no input is focused')
+    CALLS.clear()
+    app = build_app()
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.click('#param-install-appid')
+        await pilot.press(*'Alice')
+        app.query_one('#params', VerticalScroll).focus()
+        await pilot.pause()
+        await pilot.press('enter')
+        await pilot.pause()
+        check('the app-level binding runs the command', len(CALLS), 1)
+
+
+def test_help_request_skips_the_form() -> None:
+    print('[25] -h shows the help interface instead of the form')
+    import argsense.renderer as renderer
+    import argsense.renderer.tui as tui_renderer
+
+    calls: t.Dict[str, t.Any] = {'form': 0, 'params': [], 'functions': 0}
+    original_form = tui_renderer.run_form
+    original_params = renderer.render_function_parameters
+    original_functions = renderer.render_functions
+
+    def fake_form(*args: t.Any, **kwargs: t.Any) -> str:
+        calls['form'] += 1
+        return 'form'
+
+    def fake_params(argv: Argv, func_info: FuncInfo, **kwargs: t.Any) -> None:
+        calls['params'].append(func_info.name)
+
+    def fake_functions(*args: t.Any, **kwargs: t.Any) -> None:
+        calls['functions'] += 1
+
+    tui_renderer.run_form = fake_form  # type: ignore
+    renderer.render_function_parameters = fake_params  # type: ignore
+    renderer.render_functions = fake_functions  # type: ignore
+    original_argv = sys.argv
+    try:
+        # a single command: `-h` renders that command's help.
+        sys.argv = ['prog', '-h']
+        CommandLineInterface().run(install, mode='tui')
+        check('the form is not started', calls['form'], 0)
+        check('the command help is rendered', calls['params'], ['install'])
+
+        # a group of commands: `-h` renders the command list.
+        interface = CommandLineInterface()
+        interface.add_cmd(install)
+        interface.add_cmd(uninstall)
+        calls['functions'] = 0
+        sys.argv = ['prog', '-h']
+        interface.run(mode='tui')
+        check('the form is still not started', calls['form'], 0)
+        check('the command list is rendered', calls['functions'], 1)
+
+        # ... and `<command> -h` renders the help of that command.
+        calls['params'] = []
+        sys.argv = ['prog', 'uninstall', '-h']
+        interface.run(mode='tui')
+        check('the form is not started either', calls['form'], 0)
+        check(
+            'the named command help is rendered', calls['params'], ['uninstall']
+        )
+    finally:
+        tui_renderer.run_form = original_form
+        renderer.render_function_parameters = original_params
+        renderer.render_functions = original_functions
+        sys.argv = original_argv
+
+
 # -----------------------------------------------------------------------------
 
 
@@ -823,6 +932,10 @@ async def run_all() -> None:
     test_mode_tokens()
     await test_initial_tab_and_prefill()
     await test_tooltips()
+    await test_enter_runs_when_ready()
+    await test_enter_needs_every_required_param()
+    await test_enter_without_input_focus()
+    test_help_request_skips_the_form()
 
     print()
     if FAILURES:

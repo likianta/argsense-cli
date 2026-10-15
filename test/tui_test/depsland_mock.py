@@ -6,16 +6,18 @@ each with a couple of options), but without any real dependency: every command
 just prints what it would do. It is meant to be a playground for the tui.
 
 Usage:
-    python test/tui_test/depsland_like.py             # open the tui
-    python test/tui_test/depsland_like.py :cli -h     # the plain cli instead
-    python test/tui_test/depsland_like.py :itui       # an inline tui
+    python test/tui_test/depsland_mock.py             # open the tui
+    python test/tui_test/depsland_mock.py -h          # the cli help instead
+    python test/tui_test/depsland_mock.py runx -h     # one command's help
+    python test/tui_test/depsland_mock.py :itui       # an inline tui
 
 note:
-    Because it defaults to `mode='tui'`, pass the `:cli` token to get the
-    familiar command line behavior (including `-h`).
+    Because it defaults to `mode='tui'`, run it with `:cli` to force the
+    command line, and with a help request (-h / :help) to get the cli help
+    interface instead of the form.
 """
 
-import typing as t
+import typing as tp
 from pathlib import Path
 
 from argsense import cli
@@ -58,7 +60,7 @@ def install(appid: str, upgrade: bool = True, reinstall: bool = False) -> None:
 
 
 @cli
-def uninstall(appid: str, version: t.Optional[str] = None) -> None:
+def uninstall(appid: str, version: tp.Optional[str] = None) -> None:
     """
     Uninstall an application.
 

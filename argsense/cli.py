@@ -69,6 +69,11 @@ _MODE_TOKENS: tp.Dict[str, T.Mode] = {
     ':tui': 'tui',
 }
 
+# tokens that ask for the help interface. when they appear in the command
+# line, the tui / gui modes fall back to the plain cli help instead of
+# opening the form (see `run_tui`).
+_HELP_REQUEST_TOKENS: tp.Tuple[str, ...] = (':h', ':help', '-h', '--help')
+
 
 class CommandLineInterface:
     def __init__(self, name: tp.Optional[str] = None) -> None:
@@ -382,10 +387,20 @@ class CommandLineInterface:
         presses "Run and exit", the assembled command line is handed back to
         this interface and executed through the cli path (see `exec_argv`), so
         that the target function's prints go to the real console.
+
+        Note:
+            A help request (-h / :help / ...) does not start the form: it is
+            forwarded to the cli path, which renders the usual help interface.
         """
         func_infos = self.resolve_commands(entrance, caller_frame)
         if argv is None:
             argv = Argv.from_sys_argv()
+
+        if any(x in _HELP_REQUEST_TOKENS for x in argv.args):
+            single = len(func_infos) == 1
+            return self.exec_argv(
+                argv, preset_func=func_infos[0].target if single else None
+            )
 
         from .renderer.tui import CliRunRequest
         from .renderer.tui import run_form
