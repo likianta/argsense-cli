@@ -24,16 +24,21 @@ from argsense.renderer.gui import param_field
 from argsense.renderer.gui import plan_rows
 from argsense.renderer.gui import read_param
 from argsense.renderer.gui import resolve_groups
+from argsense.renderer.gui import row_slots
 from argsense.renderer.gui import spec_of
 from argsense.renderer.gui import value_of
+from argsense.renderer.gui.fields import LONG
+from argsense.renderer.gui.fields import SHORT
+from argsense.renderer.gui.fields import VARIABLE
+from argsense.renderer.gui.fields import WIDTH_CLASS_OF_KIND
 from argsense.renderer.gui.fields import double_index_of
 from argsense.renderer.gui.fields import triple_index_of
+from argsense.renderer.gui.layout import QUARTERS_PER_ROW
 from argsense.renderer.gui.layout import chrome_height
 from argsense.renderer.gui.layout import estimate_window_size
 from argsense.renderer.gui.layout import log_panel_height
 from argsense.renderer.gui.layout import param_rows_height
 from argsense.renderer.gui.layout import screen_size_in_css_px
-from argsense.renderer.gui.layout import window_row_capacity
 from argsense.renderer.gui.spec import FLAG
 from argsense.renderer.gui.spec import MAYBE_NUMBER
 from argsense.renderer.gui.spec import NUMBER
@@ -293,48 +298,133 @@ def test_helpers() -> None:
 
 def test_plan_rows() -> None:
     print('[3] packing the rows')
-    spec = specs_of(build, serve, fetch)['build']
+    params = specs_of(build, serve, fetch)['build'].params
 
-    wide = plan_rows(spec.params, 4)
-    check('wide: row count', len(wide), 4)
-    check('wide: sizes', [len(row) for row in wide], [1, 1, 4, 4])
+    rows = plan_rows(params)
+    check('row count', len(rows), 4)
+    check('row sizes', [len(row) for row in rows], [1, 1, 4, 4])
     check(
-        'wide: the first row is the text input',
-        [p.name for p in wide[0]],
+        'the first row is the text input',
+        [p.name for p in rows[0]],
         ['project'],
     )
     check(
-        'wide: four numbers share a row',
-        [p.name for p in wide[2]],
+        'four numbers share a row',
+        [p.name for p in rows[2]],
         ['jobs', 'retries', 'rate', 'timeout'],
     )
     check(
-        'wide: four flags share a row',
-        [p.name for p in wide[3]],
+        'four flags share a row',
+        [p.name for p in rows[3]],
         ['wheel', 'sdist', 'clean', 'verbose'],
     )
 
-    narrow = plan_rows(spec.params, 2)
-    check('narrow: row count', len(narrow), 6)
-    check('narrow: sizes', [len(row) for row in narrow], [1, 1, 2, 2, 2, 2])
-    check(
-        'narrow: numbers pair up',
-        [p.name for p in narrow[2]],
-        ['jobs', 'retries'],
-    )
-
-    serve_rows = plan_rows(specs_of(serve)['serve'].params, 4)
+    serve_rows = plan_rows(specs_of(serve)['serve'].params)
     check(
         'a text input ends the run before it',
         [len(row) for row in serve_rows],
         [1, 1, 3],
     )
 
-    fetch_rows = plan_rows(specs_of(fetch)['fetch'].params, 4)
+    fetch_rows = plan_rows(specs_of(fetch)['fetch'].params)
     check(
         'a text input ends the run after it',
         [len(row) for row in fetch_rows],
         [1, 3, 1],
+    )
+
+
+def test_row_slots() -> None:
+    print('[3b] sharing a row out in quarters')
+    classes = {
+        'text': TEXT,
+        'number': NUMBER,
+        'maybe': MAYBE_NUMBER,
+        'flag': FLAG,
+        'triple': TRIPLE,
+    }
+    check('text -> long', WIDTH_CLASS_OF_KIND[TEXT], LONG)
+    check('number -> variable', WIDTH_CLASS_OF_KIND[NUMBER], VARIABLE)
+    check(
+        'maybe-number -> variable', WIDTH_CLASS_OF_KIND[MAYBE_NUMBER], VARIABLE
+    )
+    check('flag -> short', WIDTH_CLASS_OF_KIND[FLAG], SHORT)
+    check('triple -> short', WIDTH_CLASS_OF_KIND[TRIPLE], SHORT)
+
+    def row(*names: str) -> t.List[Param]:
+        return [
+            Param('p{}'.format(i), classes[name], '', None, '', False, '')
+            for i, name in enumerate(names)
+        ]
+
+    def slots(*names: str) -> t.Tuple[t.List[int], int]:
+        return row_slots(row(*names))
+
+    check(
+        'four numbers: 1:1:1:1',
+        slots('number', 'number', 'number', 'number'),
+        ([1, 1, 1, 1], 0),
+    )
+    check(
+        'one number, two switches: 2:1:1',
+        slots('number', 'flag', 'flag'),
+        ([2, 1, 1], 0),
+    )
+    check(
+        'two numbers, two switches: 1:1:1:1',
+        slots('number', 'number', 'flag', 'flag'),
+        ([1, 1, 1, 1], 0),
+    )
+    check('two numbers: 2:2', slots('number', 'number'), ([2, 2], 0))
+    check(
+        'two numbers, one switch: 1:1:1 and a spare',
+        slots('number', 'number', 'flag'),
+        ([1, 1, 1], 1),
+    )
+    check(
+        'the order does not matter',
+        slots('flag', 'number', 'flag'),
+        ([1, 2, 1], 0),
+    )
+    check(
+        'the spare sits at the end',
+        slots('flag', 'number', 'number'),
+        ([1, 1, 1], 1),
+    )
+    check('one number alone takes the line', slots('number'), ([4], 0))
+    check('one switch alone takes a quarter', slots('flag'), ([1], 3))
+    check(
+        'four switches fill the line',
+        slots('flag', 'triple', 'flag', 'triple'),
+        ([1, 1, 1, 1], 0),
+    )
+    check(
+        'three switches leave a spare',
+        slots('flag', 'flag', 'triple'),
+        ([1, 1, 1], 1),
+    )
+    check(
+        'a maybe-number counts as a number', slots('maybe', 'flag'), ([3, 1], 0)
+    )
+    check(
+        'three numbers leave a spare',
+        slots('number', 'number', 'number'),
+        ([1, 1, 1], 1),
+    )
+    check('a lone text input takes the line', slots('text'), ([4], 0))
+    check(
+        'every rule fills or spares exactly four quarters',
+        all(
+            sum(s) + spare == QUARTERS_PER_ROW
+            for s, spare in (
+                slots('number', 'number', 'number', 'number'),
+                slots('number', 'flag', 'flag'),
+                slots('flag', 'flag', 'triple'),
+                slots('number'),
+                slots('flag'),
+            )
+        ),
+        True,
     )
 
 
@@ -395,8 +485,7 @@ def test_resolve_groups() -> None:
 
 def test_layout() -> None:
     print('[5] the sizes')
-    check('row capacity: wide', window_row_capacity(True), 4)
-    check('row capacity: narrow', window_row_capacity(False), 2)
+    check('a row is four quarters wide', QUARTERS_PER_ROW, 4)
     check('one row is 60', param_rows_height(1), 60)
     check('two rows add one gap', param_rows_height(2), 136)
     check('four rows', param_rows_height(4), 288)
@@ -431,7 +520,6 @@ def test_scene() -> None:
     scene = GuiScene(resolve_groups(structure, commands))
 
     check('several groups -> a wide window', scene.wide, True)
-    check('wide -> four widgets per row', scene.max_per_row, 4)
     check('the tallest command decides the rows', scene.max_param_rows, 4)
     check('a tall form -> the tall log panel', scene.log_height, 300)
     check('the window width', scene.window_size[0], 980)
@@ -466,8 +554,7 @@ def test_scene() -> None:
 
     flat = GuiScene(resolve_groups(None, commands))
     check('one group -> a narrow window', flat.wide, False)
-    check('narrow -> two widgets per row', flat.max_per_row, 2)
-    check('which makes for more rows', flat.max_param_rows, 6)
+    check('the same rows as the wide form', flat.max_param_rows, 4)
     check('the window width', flat.window_size[0], 700)
     check('no tab bar for a group of one command', flat.tabs, {})
 
@@ -664,7 +751,26 @@ def test_fetch_absences() -> None:
 
 def test_cli_wiring() -> None:
     print('[10] the cli wiring')
-    check("':gui' is a mode token", _MODE_TOKENS.get(':gui'), 'gui')
+    check(
+        "':gui' -> gui, a browser tab",
+        _MODE_TOKENS.get(':gui'),
+        ('gui', {'window': False}),
+    )
+    check(
+        "':guiw' -> gui, a native window",
+        _MODE_TOKENS.get(':guiw'),
+        ('gui', {'window': True}),
+    )
+    check(
+        "':tui' -> tui, full screen",
+        _MODE_TOKENS.get(':tui'),
+        ('tui', {'inline': False}),
+    )
+    check(
+        "':itui' -> tui, inline",
+        _MODE_TOKENS.get(':itui'),
+        ('tui', {'inline': True}),
+    )
     check('the default port', DEFAULT_GUI_PORT, 2026)
 
     import argsense
@@ -711,6 +817,7 @@ def run_all() -> None:
     test_spec()
     test_helpers()
     test_plan_rows()
+    test_row_slots()
     test_resolve_groups()
     test_layout()
     test_scene()

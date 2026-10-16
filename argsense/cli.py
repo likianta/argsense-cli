@@ -61,12 +61,17 @@ _ARGDOC_REF_PATTERN = re.compile(r'[Ss]ee\s+`@(\w+):(\w+)`\.?')
 
 # special values that select the interface at run time; they are read from
 # `sys.argv`, and they win over the `mode` argument of `cli.run(...)`.
-#   ':itui' means an inline tui.
-_MODE_TOKENS: tp.Dict[str, T.Mode] = {
-    ':cli': 'cli',
-    ':gui': 'gui',
-    ':itui': 'tui',
-    ':tui': 'tui',
+# A mode that can be shown in two ways has a token for each, and the token
+# carries the option that tells them apart:
+#   ':tui' / ':itui'  a full screen tui / an inline one (`inline`)
+#   ':gui' / ':guiw'  the form served for a browser tab / opened in a native
+#                     window (`window`)
+_MODE_TOKENS: tp.Dict[str, tp.Tuple[T.Mode, tp.Dict[str, tp.Any]]] = {
+    ':cli': ('cli', {}),
+    ':gui': ('gui', {'window': False}),
+    ':guiw': ('gui', {'window': True}),
+    ':itui': ('tui', {'inline': True}),
+    ':tui': ('tui', {'inline': False}),
 }
 
 # tokens that ask for the help interface. when they appear in the command
@@ -339,9 +344,11 @@ class CommandLineInterface:
             here is registered on the fly, and a bare `cli.run()` scans the
             caller's module (only when nothing was registered explicitly).
 
-            The command line can override the mode: `:cli`, `:gui`, `:tui` or
-            `:itui` (an inline tui) in `sys.argv` wins over the `mode`
-            argument. The token is removed from the arguments.
+            The command line can override the mode: `:cli`, `:gui` / `:guiw`
+            (a browser tab / a native window) or `:tui` / `:itui` (a full
+            screen / an inline form) in `sys.argv` wins over the `mode`
+            argument, and brings the option that goes with it. The token is
+            removed from the arguments.
         """
         config.apply_changes()
 
@@ -353,9 +360,8 @@ class CommandLineInterface:
                 argv.target,
                 tuple(x for x in argv.args if x != token),
             )
-            mode = _MODE_TOKENS[token]
-            if token == ':itui':
-                kwargs['inline'] = True
+            mode, options = _MODE_TOKENS[token]
+            kwargs.update(options)
 
         if mode == 'cli':
             preset_func = self.prepare_entrance(entrance, sys._getframe(1))
@@ -543,7 +549,7 @@ class CommandLineInterface:
             the gui list them in a sidebar.
 
             The mode can be overridden on the command line by `:cli`, `:gui`,
-            `:tui` or `:itui`, the same as `cli.run(...)`.
+            `:guiw`, `:tui` or `:itui`, the same as `cli.run(...)`.
         """
         config.apply_changes()
         group_structure = self._add_command_groups(groups)
@@ -556,9 +562,8 @@ class CommandLineInterface:
                 argv.target,
                 tuple(x for x in argv.args if x != token),
             )
-            mode = _MODE_TOKENS[token]
-            if token == ':itui':
-                kwargs['inline'] = True
+            mode, options = _MODE_TOKENS[token]
+            kwargs.update(options)
 
         if mode == 'cli':
             return self.exec_argv(

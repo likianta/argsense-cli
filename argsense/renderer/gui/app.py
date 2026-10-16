@@ -18,10 +18,10 @@ from .fields import SKIP
 from .fields import param_field
 from .fields import plan_rows
 from .fields import read_param
+from .fields import row_slots
 from .layout import chrome_height
 from .layout import estimate_window_size
 from .layout import log_panel_height
-from .layout import window_row_capacity
 from .spec import Command
 from .spec import Param
 from .spec import resolve_groups
@@ -69,14 +69,13 @@ class GuiScene:
 
         # The sidebar is what makes the window wide: with a single group there
         # is nothing to pick, so the form drops it and the window turns
-        # narrow -- which also means fewer widgets to a row, and so more rows.
+        # narrow. The widgets are packed the same either way (see
+        # `QUARTERS_PER_ROW` in `layout`).
         self.wide = len(groups) > 1
-        self.max_per_row = window_row_capacity(self.wide)
         # the command that needs the most rows is the one that decides, since
         # the app shows one at a time.
         self.max_param_rows = max(
-            len(plan_rows(command.params, self.max_per_row))
-            for command in self.commands
+            len(plan_rows(command.params)) for command in self.commands
         )
         self.log_height = log_panel_height(self.max_param_rows)
         self.window_size = estimate_window_size(
@@ -172,28 +171,34 @@ class GuiScene:
         """One command's pane: its description over its parameters."""
         v3.Caption(command.desc)
         fields = self.fields.setdefault(command.name, {})
-        for row in plan_rows(command.params, self.max_per_row):
+        for row in plan_rows(command.params):
             if len(row) == 1:
                 param = row[0]
                 fields[param.name] = param_field(
                     param, self._change_handler(command, param)
                 )
                 continue
+            slots, leftover = row_slots(row)
             # `bottom` alignment puts the boxes of a shared row on one line
             # even though the labels above them differ in height. Every field
-            # also gets a `weight=1` column of its own, because a
+            # also gets a `weight`ed column of its own, because a
             # `width='stretch'` widget inside a row still grows from its
             # type's basis (`8rem` for the input-like ones) -- four number
             # boxes would not fit one line at that basis and the fourth would
             # wrap onto a line of its own, stretching across it. The columns
-            # divide the line up front instead (basis 0), which is the even
-            # split the row is after.
+            # divide the line up front instead (basis 0), in the quarters
+            # `row_slots` hands out.
             with v3.Row('bottom'):
-                for param in row:
-                    with v3.Column(weight=1):
+                for param, weight in zip(row, slots):
+                    with v3.Column(weight=weight):
                         fields[param.name] = param_field(
                             param, self._change_handler(command, param)
                         )
+                if leftover:
+                    # the quarters the row leaves over stay empty, but held:
+                    # without something to take them the flex layout would
+                    # widen the widgets that are there until the line was full
+                    v3.Column(weight=leftover)
 
     def _change_handler(
         self, command: Command, param: Param

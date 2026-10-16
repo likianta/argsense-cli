@@ -10,8 +10,8 @@ one `--st-vgap` apart, so every row comes to 60 no matter what it holds. The
 window is then that many rows plus everything stacked around them.
 
 Note:
-    `plan_rows` (in `fields.py`) packs the form with `window_row_capacity`,
-    and `estimate_window_size` counts the rows with it as well, so the form
+    `plan_rows` (in `fields.py`) packs the form with `QUARTERS_PER_ROW`, and
+    `estimate_window_size` counts the rows that come out of it, so the form
     and the window agree on the shape. Change one, look at the other.
 """
 
@@ -20,9 +20,15 @@ import typing as tp
 NARROW_WINDOW_WIDTH = 700
 WIDE_WINDOW_WIDTH = 980
 #   A form that is all there is to show (no command-group sidebar) gets the
-#   narrow window; one with the sidebar gets the wide one -- and the width
-#   also decides how many small widgets share a row (see
-#   `window_row_capacity`).
+#   narrow window; one with the sidebar gets the wide one. The width decides
+#   nothing else -- the widgets are packed the same way in either (see
+#   `QUARTERS_PER_ROW`).
+
+QUARTERS_PER_ROW = 4
+#   A parameter row is four quarter-width slots wide. A switch fills one of
+#   them, a number box takes as many as its row leaves it, a text input takes
+#   the whole row (`fields.WIDTH_CLASS_OF_KIND`). It is also the most widgets
+#   one row can hold, since even the narrowest one needs a slot of its own.
 
 MIN_WINDOW_HEIGHT = 600
 MAX_WINDOW_HEIGHT_RATIO = 0.9
@@ -52,11 +58,6 @@ DOCK_BOTTOM_HEIGHT = 16
 #   first row (the page's 32px top padding, the title band, the group row,
 #   the command's caption, the card's own padding), 17px of card padding
 #   below the last one, then the dock and the 16px it keeps below itself.
-
-
-def window_row_capacity(wide: bool) -> int:
-    """How many small widgets share a row: 2 when narrow, 4 when wide."""
-    return 4 if wide else 2
 
 
 def param_rows_height(rows: int) -> int:
@@ -95,9 +96,8 @@ def estimate_window_size(
     Args:
         rows:
             the most rows any one command needs -- that one decides, since
-            the app shows one at a time. Count them with
-            `window_row_capacity(wide)`, so the form and the window agree on
-            the shape.
+            the app shows one at a time. Count them with `plan_rows` (in
+            `fields.py`), so the form and the window agree on the shape.
         wide:
             whether the app has a command-group sidebar.
         extra_height:

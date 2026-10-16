@@ -1,24 +1,51 @@
 """
 Drawing one parameter, and reading it back.
 
-`param_field` turns a `Param` into the canary widget that suits its kind, and
-`read_param` turns that widget back into the value the command is called with,
-at the moment Run is pressed (see `app.GuiScene.run_command`).
+`param_field` turns a `Param` into the canary widget that suits its kind,
+`plan_rows` and `row_slots` decide how those widgets share the form's lines,
+and `read_param` turns a widget back into the value the command is called
+with, at the moment Run is pressed (see `app.GuiScene.run_command`).
 """
 
 import typing as tp
 
 from streamlit_canary import components_v3 as v3
 
+from .layout import QUARTERS_PER_ROW
 from .spec import FLAG
 from .spec import MAYBE_NUMBER
 from .spec import MARK_FALSE
 from .spec import MARK_NONE
 from .spec import MARK_TRUE
 from .spec import NUMBER
-from .spec import SMALL_KINDS
 from .spec import TEXT
+from .spec import TRIPLE
 from .spec import Param
+
+# ---------------------------------------------------------------------------
+# How much of a row a widget asks for
+# ---------------------------------------------------------------------------
+# A row is `QUARTERS_PER_ROW` quarter-width slots wide, and a widget's kind
+# says how it takes them -- which is what the shared rows are built from (see
+# `plan_rows` and `row_slots`).
+
+LONG = 'long'
+#   The row to itself: a text box is wide enough that sharing a line would
+#   leave every box on it too narrow to read.
+VARIABLE = 'variable'
+#   An equal share of the line, whatever its neighbours leave it -- a number
+#   box reads fine at any width.
+SHORT = 'short'
+#   One quarter, always: a switch is a fixed rail of two or three marks, so it
+#   is the same width wherever it sits.
+
+WIDTH_CLASS_OF_KIND: tp.Dict[str, str] = {
+    TEXT: LONG,
+    NUMBER: VARIABLE,
+    MAYBE_NUMBER: VARIABLE,
+    FLAG: SHORT,
+    TRIPLE: SHORT,
+}
 
 
 class _Skip:
@@ -36,34 +63,60 @@ class _Skip:
 SKIP = _Skip()
 
 
-def plan_rows(
-    params: tp.Sequence[Param], max_per_row: int
-) -> tp.List[tp.List[Param]]:
+def plan_rows(params: tp.Sequence[Param]) -> tp.List[tp.List[Param]]:
     """
-    Split the parameters into rows, the way the tui packs them.
+    Split the parameters into rows, `QUARTERS_PER_ROW` widgets to a row.
 
-    A run of consecutive small widgets (numbers and switches) shares one row,
-    up to `max_per_row` of them; past that the run continues on the next row,
-    so no box ends up narrower than the others. A text input takes a row of
-    its own, which also ends the run before it -- so two small widgets that
-    are not neighbours never end up together.
+    A run of consecutive sharing widgets (numbers and switches) fills one row
+    after another; a long widget (a text input) takes a row of its own, which
+    also ends the run before it -- so two widgets that are not neighbours
+    never end up together.
     """
     rows: tp.List[tp.List[Param]] = []
     run: tp.List[Param] = []
     for param in params:
-        if param.kind not in SMALL_KINDS:
+        if WIDTH_CLASS_OF_KIND[param.kind] == LONG:
             if run:
                 rows.append(run)
                 run = []
             rows.append([param])
             continue
         run.append(param)
-        if len(run) == max_per_row:
+        if len(run) == QUARTERS_PER_ROW:
             rows.append(run)
             run = []
     if run:
         rows.append(run)
     return rows
+
+
+def row_slots(row: tp.Sequence[Param]) -> tp.Tuple[tp.List[int], int]:
+    """
+    The quarter-width slots each widget of a row takes, and the ones left
+    over.
+
+    A switch always takes one. The number boxes share what the switches leave
+    of the four between them, equally and rounded down -- the odd slot of an
+    uneven share stays empty rather than stretching them, so one box beside
+    two switches comes out 2:1:1, and two boxes beside one switch comes out
+    1:1:1 with a quarter to spare.
+
+    The leftover is handed back rather than spent: a row that does not fill
+    its four slots has to say so, or the flex layout would widen the widgets
+    that are in it until it did.
+    """
+    classes = [WIDTH_CLASS_OF_KIND[param.kind] for param in row]
+    if len(row) == 1 and classes[0] == LONG:
+        # a long widget is alone in its row, and the whole line is its
+        return [QUARTERS_PER_ROW], 0
+    shorts = classes.count(SHORT)
+    variables = len(row) - shorts
+    if variables == 0:
+        slots = [1] * len(row)
+    else:
+        share = (QUARTERS_PER_ROW - shorts) // variables
+        slots = [1 if x == SHORT else share for x in classes]
+    return slots, QUARTERS_PER_ROW - sum(slots)
 
 
 def param_field(

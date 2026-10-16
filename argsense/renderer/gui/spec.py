@@ -30,9 +30,6 @@ KIND_OF_PLAIN_TYPE: tp.Dict[str, str] = {
     'optional-flag': TRIPLE,
 }
 
-# the kinds small enough to share a row (mirrors the tui's `is_small`).
-SMALL_KINDS: tp.Tuple[str, ...] = (NUMBER, MAYBE_NUMBER, FLAG, TRIPLE)
-
 # A switch has no room for words, so each state wears a coloured material
 # icon instead: a red cross for False, an orange "blocked" for None, a green
 # tick for True. A `bool` switch shows the first and the last; a
