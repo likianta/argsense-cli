@@ -2,7 +2,8 @@
 
 [![PyPI version](https://badge.fury.io/py/argsense.svg)](https://badge.fury.io/py/argsense) [![Downloads](https://static.pepy.tech/badge/argsense)](https://pepy.tech/project/argsense) [![Downloads](https://static.pepy.tech/badge/argsense/month)](https://pepy.tech/project/argsense)
 
-[中文版](https://blog.csdn.net/Likianta/article/details/144585120)
+- [中文版 (v1.x)](https://blog.csdn.net/Likianta/article/details/144585120)
+- [中文版 (v2.x)](https://blog.csdn.net/Likianta/article/details/168032135)
 
 **ArgSense** is a command line interface (CLI) toolkit for Python programmers.
 
@@ -757,7 +758,9 @@ Then fill the command in, instead of typing it.
 
 ![](docs/images/tui-widgets.png)
 
-**Compact layout.** Consecutive small widgets — flags and numbers — are packed into a single row, so a long form wastes far less vertical space.
+**Compact layout.** Consecutive small widgets — flags, numbers and triple switches — are packed into a single row, so a long form wastes far less vertical space.
+
+A `bool | None` parameter (i.e. `typing.Optional[bool]`) is drawn as a **triple switch**: the command line can only spell the two boolean states of a flag (`--xxx` / `--no-xxx`), so its third state, `None`, needs a widget of its own. The knob rests on the left for `False` (red), in the middle for `None` (yellow) and on the right for `True` (green).
 
 ![](docs/images/tui-compact-layout.png)
 
@@ -964,13 +967,14 @@ To represent `False`, the following are equivalent:
 python test.py :false :false
 python test.py --no-foo --no-bar
 python test.py --not-foo --not-bar
+python test.py -F -B
 ```
 
 This is parsed as `main(foo=False, bar=False)`.
 
-Note the `--no-foo` / `--not-foo` syntax.
+Note the `--no-foo` / `--not-foo` syntax, both "--no" and "--not" prefixes are accepted, they mean the same thing.
 
-The abbreviation in `foo (-f)` must be lowercase (otherwise ArgSense reports a parsing error), so the docstring never mixes uppercase and lowercase. Uppercase is reserved to mean "not".
+The abbreviation in `foo (-f)` must be lowercase (otherwise ArgSense reports a parsing error), so the docstring never mixes uppercase and lowercase. Uppercase (`-F` `-B`) is reserved to mean "not", i.e. the False value.
 
 Downside: because of this design, ArgSense cannot handle certain parameter names. For example, `def main(no_alpha: bool)` makes `--no-alpha` parse incorrectly and raise an error.
 

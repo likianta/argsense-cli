@@ -1,9 +1,29 @@
+import types
 import typing as t
 from inspect import getfullargspec
 
 from .args_parser import ParamType
 from .docs_parser import T as T0
 from .. import config
+
+
+_UNION_ORIGINS = tuple(
+    x for x in (t.Union, getattr(types, 'UnionType', None)) if x is not None
+)
+#   the values of `__origin__` that mark a union: `typing.Union[...]` and the
+#   PEP 604 `X | Y`. Python 3.14 folds the two into one, the versions below it
+#   keep them apart.
+
+
+def _is_optional_bool(type_: t.Any) -> bool:
+    """
+    Tell `Optional[bool]` (i.e. `typing.Union[bool, None]`) and `bool | None`
+    apart from the other unions. Both spellings mean the same thing, and both
+    are recognized here.
+    """
+    if getattr(type_, '__origin__', None) not in _UNION_ORIGINS:
+        return False
+    return set(getattr(type_, '__args__', ())) == {bool, type(None)}
 
 
 class T:
@@ -21,6 +41,7 @@ class T:
         'int',
         'list',
         'none',
+        'optional-flag',  # `Optional[bool]` / `bool | None`
         'set',
         'str',
         'tuple',
@@ -34,6 +55,7 @@ class T:
                 'cname': str,
                 'ctype': ParamType,
                 'desc': str,
+                'plain_type': PlainParamType,
             },
         ),
     ]
@@ -46,6 +68,7 @@ class T:
                 'ctype': ParamType,
                 'desc': str,
                 'default': t.Any,
+                'plain_type': PlainParamType,
             },
         ),
     ]
@@ -124,6 +147,7 @@ class FuncInfo:
             #   for example, when user inputs in command line:
             #       `argsense xxx.py -h`  # -> True
             #       `argsense xxx.py`     # -> False
+            'plain_type': 'flag',
         }
     }
 
@@ -149,6 +173,7 @@ class FuncInfo:
                 'cname': name_2_cname(name, style='arg'),
                 'ctype': type_2_ctype(type),
                 'desc': '',
+                'plain_type': type,
             }
 
         self.args1 = {}
@@ -159,6 +184,7 @@ class FuncInfo:
                 'ctype': type_2_ctype(type),
                 'desc': '',
                 'default': default,
+                'plain_type': type,
             }
 
         self.args2 = {}
@@ -168,6 +194,7 @@ class FuncInfo:
                 'cname': name_2_cname(name, style='arg'),
                 'ctype': type_2_ctype(type),
                 'desc': '',
+                'plain_type': type,
             }
 
         self.args3 = {}
@@ -178,6 +205,7 @@ class FuncInfo:
                 'ctype': type_2_ctype(type),
                 'desc': '',
                 'default': default,
+                'plain_type': type,
             }
 
         self.args4 = {}
@@ -187,6 +215,7 @@ class FuncInfo:
                 'cname': name_2_cname(name, style='arg'),
                 'ctype': type_2_ctype(type),
                 'desc': '',
+                'plain_type': type,
             }
 
     @property
@@ -256,6 +285,7 @@ class FuncInfo:
                         'ctype': ParamType.ANY,
                         'desc': value['desc'],
                         'default': ...,
+                        'plain_type': 'any',
                     }
                 else:
                     self.args3[name] = {
@@ -263,6 +293,7 @@ class FuncInfo:
                         'ctype': ParamType.ANY,
                         'desc': value['desc'],
                         'default': ...,
+                        'plain_type': 'any',
                     }
 
     def _register_cname(self, cname: str, for_name: str) -> None:
@@ -425,6 +456,10 @@ class Annotations:
                     #   sometype = typing.Literal['A', 'B', 'C']
                     #   type(sometype)  # -> typing._LiteralGenericAlias
                     return 'str'
+                elif _is_optional_bool(type_):
+                    # `Optional[bool]` / `bool | None`: a flag with a third,
+                    # `None` state. The tui draws it as a triple switch.
+                    return 'optional-flag'
                 elif isinstance(type_, t._UnionGenericAlias):
                     # e.g.
                     #   sometype = typing.Union[str, None]

@@ -1,5 +1,11 @@
 # Changelog
 
+### 2.1.0 (2026-10-16)
+
+- Triple switch on TUI for `bool | None` type.
+
+  ![](docs/images/261016-110554.png)
+
 ### 2.0.0 (2026-10-15)
 
 - A text user interface (TUI).

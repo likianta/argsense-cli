@@ -6,3 +6,4 @@ from .app import GroupItem
 from .app import plan_layout
 from .app import resolve_initials
 from .app import run_form
+from .triple_switch import TripleSwitch

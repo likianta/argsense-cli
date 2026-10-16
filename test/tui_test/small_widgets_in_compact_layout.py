@@ -1,8 +1,9 @@
 from argsense import cli
+from typing import Optional
 
 
 def whois_using_port(
-    port: int, preview: bool = True, kill: bool = False
+    port: int, preview: Optional[bool] = None, kill: bool = False
 ) -> None:
     print(locals())
 

@@ -21,6 +21,7 @@ from textual.widgets import Switch
 from textual.widgets import Tab
 from textual.widgets import Tabs
 
+from .triple_switch import TripleSwitch
 from ...converter import args_2_cargs
 from ...parser import Argv
 from ...parser import FuncInfo
@@ -79,9 +80,11 @@ NAME_WIDTH = 18
 NAME_PAD = 1
 
 # The width of the widgets that get a narrow box of their own: a switch is 10
-# wide, and a number input is 12 - eight of which can be typed in (the `tall`
-# border and the padding take two cells each).
+# wide, a triple switch is 12 (two more content cells, for its three
+# positions), and a number input is 12 - eight of which can be typed in (the
+# `tall` border and the padding take two cells each).
 SWITCH_WIDTH = 10
+TRIPLE_SWITCH_WIDTH = 12
 NUMBER_WIDTH = 12
 
 # The fixed gap that a small widget leaves after itself in a compact row.
@@ -91,6 +94,19 @@ ITEM_GAP = 3
 # border of the panel that wraps the form (2), plus the space the params
 # scrollbar reserves.
 ROW_MARGIN = 8
+
+# The columns that the sidebar takes, when the form lists command groups: see
+# `#sidebar` in the CSS below (its width, plus its right margin).
+SIDEBAR_WIDTH = 23
+
+
+def is_triple_switch(info: dict) -> bool:
+    """
+    Tell whether a parameter is a `bool | None` one, i.e. an `Optional[bool]`.
+    The form gives it a `TripleSwitch`, so that its third state - which the
+    command line has no spelling for - can be picked.
+    """
+    return info.get('plain_type') == 'optional-flag'
 
 
 def is_small(info: dict) -> bool:
@@ -103,6 +119,8 @@ def is_small(info: dict) -> bool:
 
 def widget_width(info: dict) -> int:
     """How much of a row a small parameter's widget takes."""
+    if is_triple_switch(info):
+        return TRIPLE_SWITCH_WIDTH
     if info['ctype'] is ParamType.FLAG:
         return SWITCH_WIDTH
     return NUMBER_WIDTH
@@ -360,7 +378,7 @@ def _tooltip(info: dict) -> Text:
         text.append(desc)
         text.append('\n\n')
     text.append('type: ', style='dim')
-    text.append(info['ctype'].name)
+    text.append('bool | None' if is_triple_switch(info) else info['ctype'].name)
     default = _default_repr(info)
     if default is not None:
         text.append('\ndefault: ', style='dim')
@@ -603,7 +621,11 @@ class ArgsenseTuiApp(App[t.Any]):
         initial = self.initials.get(func_info.name, {})
         if func_info.desc:
             yield Static(func_info.desc, classes='desc')
-        width = max(1, self.size.width - ROW_MARGIN)
+        width = self.size.width - ROW_MARGIN
+        if self.groups:
+            # the sidebar eats into the room the form has left.
+            width -= SIDEBAR_WIDTH
+        width = max(1, width)
         for group in plan_layout(collect_rows(func_info), width):
             # a row that several small widgets share. The first one keeps the
             # name column (so that it lines up with the rows around it), the
@@ -618,7 +640,16 @@ class ArgsenseTuiApp(App[t.Any]):
                         id=label_id(func_info.name, name),
                     )
                     extra = ' small' if compact else ''
-                    if info['ctype'] is ParamType.FLAG:
+                    if is_triple_switch(info):
+                        # a `bool | None` parameter: three states, the middle
+                        # one being `None` (see `TripleSwitch`).
+                        state = initial.get(name, info.get('default'))
+                        yield TripleSwitch(
+                            value=state if isinstance(state, bool) else None,
+                            classes=extra.strip(),
+                            id=widget_id(func_info.name, name),
+                        )
+                    elif info['ctype'] is ParamType.FLAG:
                         yield Switch(
                             value=bool(initial.get(name, _default_flag(info))),
                             classes=extra.strip(),
@@ -861,7 +892,14 @@ class ArgsenseTuiApp(App[t.Any]):
             widget = self.query_one(
                 '#{}'.format(widget_id(func_info.name, name))
             )
-            if isinstance(widget, Switch):
+            if isinstance(widget, TripleSwitch):
+                # a flag has no command line spelling for `None`, so that state
+                # is left out here - the signature default applies. `parse_form`
+                # re-applies the exact state when the command runs inside the
+                # form.
+                if widget.value is not None:
+                    tokens += args_2_cargs(**{name: widget.value})
+            elif isinstance(widget, Switch):
                 tokens += args_2_cargs(**{name: widget.value})
             elif isinstance(widget, Input):
                 text = widget.value.strip()
@@ -884,7 +922,18 @@ class ArgsenseTuiApp(App[t.Any]):
             raise_on_error=True,
         )
         assert result is not None
-        return tuple(result['args'].values()), result['kwargs']
+        kwargs = dict(result['kwargs'])
+        # a triple switch holds its state as a value, and the `None` state has
+        # no token to travel in (see `collect_tokens`), so it is applied here.
+        for name, info in collect_rows(func_info):
+            if not is_triple_switch(info):
+                continue
+            widget = self.query_one(
+                '#{}'.format(widget_id(func_info.name, name))
+            )
+            assert isinstance(widget, TripleSwitch)
+            kwargs[name] = widget.value
+        return tuple(result['args'].values()), kwargs
 
 
 def run_form(

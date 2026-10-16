@@ -14,14 +14,16 @@ Two kinds of scenes live here:
 They are driven by `sidework/readme_screenshots.py`.
 """
 
-from __future__ import annotations
-
 import sys
 import typing as t
 from dataclasses import dataclass
 from dataclasses import field
 
 from rich.pretty import pretty_repr
+
+# note: the annotations of the demo functions below are deliberately real
+# objects, not strings - argsense reads them at runtime to tell the parameter
+# types apart, so `from __future__ import annotations` must not be used here.
 
 # ------------------------------------------------------------------------------
 # console scenes
@@ -524,10 +526,10 @@ def widgets() -> TuiScene:
 
 @tui_scene
 def compact() -> TuiScene:
-    """a small number input and two switches share one row."""
+    """a small number input, a triple switch and a switch share one row."""
 
     def whois_using_port(
-        port: int, preview: bool = True, kill: bool = False
+        port: int, preview: t.Optional[bool] = None, kill: bool = False
     ) -> None:
         """
         Find out which process is using the given port.
@@ -535,6 +537,8 @@ def compact() -> TuiScene:
         params:
             port: The port to look up.
             preview: Show what would be done.
+                It is a `bool | None`, so the form draws a triple switch for
+                it: red for `False`, yellow for `None` and green for `True`.
             kill: Kill the process that holds the port.
         """
         print('port={} preview={} kill={}'.format(port, preview, kill))

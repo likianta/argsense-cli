@@ -114,6 +114,9 @@ def type_2_ctype(type_: T.ParamType1) -> T.ParamType2:
         'int': ParamType.NUMBER,
         'list': ParamType.LIST,
         'none': ParamType.NONE,
+        # an `Optional[bool]` is a flag on the command line (the `None` state
+        # is a form-only thing, see `renderer/tui/triple_switch.py`).
+        'optional-flag': ParamType.FLAG,
         'set': ParamType.LIST,
         'str': ParamType.TEXT,
         'tuple': ParamType.LIST,

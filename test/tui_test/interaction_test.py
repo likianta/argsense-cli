@@ -23,6 +23,7 @@ from argsense.renderer.tui import collect_initial_values
 from argsense.renderer.tui import collect_rows
 from argsense.renderer.tui import plan_layout
 from argsense.renderer.tui import resolve_initials
+from argsense.renderer.tui import TripleSwitch
 from argsense.tui import TuiInterface
 from textual.containers import VerticalScroll
 from textual.content import Content
@@ -140,6 +141,34 @@ def numbers(name: str, count: int = 1, rate: float = 1.0, limit: int = 5):
         rate: how fast.
         limit: how far.
     """
+
+
+def preview(
+    port: int, show: t.Optional[bool] = None, live: bool = False
+) -> None:
+    """
+    a `bool | None` parameter gets a triple switch.
+
+    params:
+        port: the port to watch.
+        show: draw a preview.
+        live: keep watching.
+    """
+    print(locals())
+    CALLS.append((port, show, live))
+
+
+# `bool | None` asks for python 3.10, but argsense has to know the spelling.
+def cache(url: str, reload: bool | None = True) -> None:  # type: ignore
+    """
+    the PEP 604 spelling of the same thing.
+
+    params:
+        url: where to fetch.
+        reload: use the cached copy.
+    """
+    print(locals())
+    CALLS.append((url, reload))
 
 
 def func_info_of(func) -> FuncInfo:
@@ -1175,6 +1204,112 @@ async def test_compact_numbers() -> None:
         )
 
 
+async def test_triple_switch() -> None:
+    print('[32] a `bool | None` parameter gets a triple switch')
+    info = func_info_of(preview)
+    check(
+        'Optional[bool] is marked as an optional flag',
+        (info.args1['show']['plain_type'], info.args1['show']['ctype'].name),
+        ('optional-flag', 'FLAG'),
+    )
+    check(
+        'bool | None is marked the same way',
+        func_info_of(cache).args1['reload']['plain_type'],
+        'optional-flag',
+    )
+    check(
+        'a plain bool keeps its ordinary flag',
+        func_info_of(preview).args1['live']['plain_type'],
+        'flag',
+    )
+
+    app = build_app(preview)
+    async with app.run_test(size=SIZE) as pilot:
+        await pilot.pause()
+        show = app.query_one('#param-preview-show', TripleSwitch)
+        live = app.query_one('#param-preview-live', Switch)
+        check('one triple switch', len(app.query(TripleSwitch)), 1)
+        check('one plain switch', len(app.query(Switch)), 1)
+        check('it starts on None', show.value, None)
+        check('the plain switch starts off', live.value, False)
+        check('they share a row', show.parent is live.parent, True)
+        check('its box is 12 wide', show.outer_size.width, 12)
+        check('the plain switch is 10 wide', live.outer_size.width, 10)
+
+        cells = show.content_region
+        row = cells.y - show.region.y
+        knob_colors = []
+        for offset, expected, class_ in (
+            (3, False, '-off'),
+            (5, None, '-none'),
+            (7, True, '-on'),
+        ):
+            await pilot.click(show, offset=(offset, row))
+            await pilot.pause()
+            check(
+                'clicking a third picks {!r}'.format(expected),
+                show.value,
+                expected,
+            )
+            check(
+                '{!r} is highlighted as {}'.format(expected, class_),
+                [x for x in ('-off', '-none', '-on') if show.has_class(x)],
+                [class_],
+            )
+            knob_style = show.get_component_rich_style('triple-switch--slider')
+            assert knob_style.color is not None
+            knob_colors.append(knob_style.color.triplet)
+        check('the three states get three colors', len(set(knob_colors)), 3)
+
+        # the knob slides from state to state, as the stock `Switch` does.
+        await pilot.click(show, offset=(3, row))  # True -> False
+        positions = set()
+        for _ in range(5):
+            await asyncio.sleep(0.04)
+            positions.add(round(show._slider_position, 3))
+        check('the knob passes through the middle', len(positions) > 1, True)
+        await pilot.wait_for_scheduled_animations()
+        check('and it lands on False', show._slider_position, 0.0)
+
+        show.focus()
+        await pilot.pause()
+        await pilot.press('space')
+        await pilot.pause()
+        check('space slides it forward', show.value, None)
+
+        await pilot.click(show, offset=(7, row))
+        await pilot.pause()
+        check('True travels as --show', '--show' in app.collect_tokens(), True)
+        await pilot.click(show, offset=(3, row))
+        await pilot.pause()
+        check(
+            'False travels as --no-show',
+            '--no-show' in app.collect_tokens(),
+            True,
+        )
+        await pilot.click(show, offset=(5, row))
+        await pilot.pause()
+        check(
+            'None has no token, so the default applies',
+            set(app.collect_tokens()) & {'--show', '--no-show'},
+            set(),
+        )
+
+        CALLS.clear()
+        await pilot.click('#param-preview-port')
+        await pilot.press(*'8080')
+        await pilot.click(show, offset=(7, row))
+        await pilot.pause()
+        await pilot.click('#run')
+        await pilot.pause()
+        check('Run hands True to the function', CALLS[0], (8080, True, False))
+        await pilot.click(show, offset=(5, row))
+        await pilot.pause()
+        await pilot.click('#run')
+        await pilot.pause()
+        check('Run hands None to the function', CALLS[1], (8080, None, False))
+
+
 # -----------------------------------------------------------------------------
 
 
@@ -1210,6 +1345,7 @@ async def run_all() -> None:
     test_plan_layout()
     await test_compact_layout()
     await test_compact_numbers()
+    await test_triple_switch()
 
     print()
     if FAILURES:
