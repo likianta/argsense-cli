@@ -1,5 +1,11 @@
 # Changelog
 
+### 3.0.0 (WIP)
+
+- A graphical user interface (GUI), based on [streamlit-canary](https://github.com/likianta/streamlit-canary).
+
+---
+
 ### 2.1.0 (2026-10-16)
 
 - Triple switch on TUI for `bool | None` type.
@@ -10,6 +16,8 @@
 
 - A text user interface (TUI).
 - A new color palette based on the Catppuccin theme,
+
+---
 
 ### 1.4.0 (2026-10-15)
 
