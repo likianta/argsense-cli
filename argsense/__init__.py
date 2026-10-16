@@ -21,6 +21,8 @@ from .cli import cli
 from .converter import args_2_cargs
 from .converter import name_2_cname
 from .converter import type_2_ctype
+from .gui import GuiInterface
+from .gui import gui
 from .parser import parse_argstring
 from .parser import parse_argv
 from .parser import parse_docstring

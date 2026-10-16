@@ -74,6 +74,9 @@ _MODE_TOKENS: tp.Dict[str, T.Mode] = {
 # opening the form (see `run_tui`).
 _HELP_REQUEST_TOKENS: tp.Tuple[str, ...] = (':h', ':help', '-h', '--help')
 
+# the port a gui app is served on when the caller names no other.
+DEFAULT_GUI_PORT = 2026
+
 
 class CommandLineInterface:
     def __init__(self, name: tp.Optional[str] = None) -> None:
@@ -328,6 +331,7 @@ class CommandLineInterface:
             **kwargs:
                 options for the given mode.
                     - cli: `transport_help`
+                    - gui: `window`, `port`, `title`
                     - tui: `inline`
 
         Note:
@@ -369,9 +373,63 @@ class CommandLineInterface:
                 argv=argv,
             )
 
+        if mode == 'gui':
+            return self.run_gui(entrance, sys._getframe(1), argv=argv, **kwargs)
+
         raise NotImplementedError(
             'the [{}] mode is not implemented yet.'.format(mode)
         )
+
+    def run_gui(
+        self,
+        entrance: T.Entrance,
+        caller_frame: types.FrameType,
+        argv: tp.Optional[Argv] = None,
+        **kwargs: tp.Any,
+    ) -> tp.Any:
+        """
+        Run the gui interface on the commands carried by `entrance`.
+
+        Every registered command gets a pane of its own, and the Run button
+        calls the one on show with the values the form holds. The app keeps
+        running, so there is no "run and exit" here: what the target function
+        prints is captured by the log panel (see `renderer.gui.run_form`).
+
+        params:
+            kwargs: options for the form, passed to `renderer.gui.run_form`:
+                `window` (open a native window instead of serving the form
+                for a browser tab), `port`, `title`.
+        """
+        func_infos = self.resolve_commands(entrance, caller_frame)
+        return self._run_gui_form(func_infos, argv=argv, **kwargs)
+
+    def _run_gui_form(
+        self,
+        func_infos: tp.List['T.FuncInfo'],
+        argv: tp.Optional[Argv],
+        groups: tp.Optional['T.GroupStructure'] = None,
+        **kwargs: tp.Any,
+    ) -> tp.Any:
+        """
+        Open the gui form on `func_infos`.
+
+        When `groups` is given, the commands are listed in a sidebar instead
+        of the tab bar - see `run_group`.
+        """
+        if argv is None:
+            argv = Argv.from_sys_argv()
+
+        if any(x in _HELP_REQUEST_TOKENS for x in argv.args):
+            single = len(func_infos) == 1 and not groups
+            return self.exec_argv(
+                argv,
+                preset_func=func_infos[0].target if single else None,
+                group_structure=groups,
+            )
+
+        from .renderer.gui import run_form
+
+        return run_form(func_infos, groups=groups, **kwargs)
 
     def run_tui(
         self,
@@ -470,8 +528,9 @@ class CommandLineInterface:
 
         params:
             mode:
-                'cli' (default) or 'tui'.
+                'cli' (default), 'gui' or 'tui'.
                     - cli: `transport_help`
+                    - gui: `window`, `port`, `title`
                     - tui: `inline`
             transport_help:
                 passed to the cli interface.
@@ -480,11 +539,11 @@ class CommandLineInterface:
             The command line works exactly like `cli.run(...)`: every command
             is invoked by its own name (the group name is NOT part of the
             command line). The only difference is the interface: the cli shows
-            the commands as a tree grouped by their group names, and the tui
-            lists them in a sidebar.
+            the commands as a tree grouped by their group names, the tui and
+            the gui list them in a sidebar.
 
-            The mode can be overridden on the command line by `:cli`, `:tui`
-            or `:itui`, the same as `cli.run(...)`.
+            The mode can be overridden on the command line by `:cli`, `:gui`,
+            `:tui` or `:itui`, the same as `cli.run(...)`.
         """
         config.apply_changes()
         group_structure = self._add_command_groups(groups)
@@ -514,6 +573,14 @@ class CommandLineInterface:
                 inline=kwargs.get('inline', False),
                 argv=argv,
                 groups=group_structure,
+            )
+
+        if mode == 'gui':
+            return self._run_gui_form(
+                list(self.commands.values()),
+                argv=argv,
+                groups=group_structure,
+                **kwargs,
             )
 
         raise NotImplementedError(

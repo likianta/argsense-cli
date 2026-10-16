@@ -798,19 +798,28 @@ def test_mode_tokens() -> None:
         check(':cli overrides mode="tui"', captured, {})
         check('  ... and the cli path ran', CALLS[0], ('Zoe', '', True, 1))
 
+        # `mode='gui'` goes to the gui renderer. That renderer is patched at
+        # the dispatch point rather than imported, so that this test does not
+        # pull streamlit in -- importing it mid-run disturbs the driver below.
+        original_run_gui = CommandLineInterface.run_gui
+        gui_seen: t.Dict[str, t.Any] = {}
+
+        def fake_run_gui(self, entrance, caller_frame, **kwargs):
+            gui_seen['entrance'] = entrance
+            return 'gui-stub'
+
+        CommandLineInterface.run_gui = fake_run_gui  # type: ignore
         try:
             sys.argv = ['prog']
-            CommandLineInterface().run(install, mode='gui')
-        except NotImplementedError as exc:
+            result = CommandLineInterface().run(install, mode='gui')
             check(
-                'mode="gui" raises NotImplementedError', 'gui' in str(exc), True
+                'mode="gui" goes to the gui renderer',
+                gui_seen.get('entrance'),
+                install,
             )
-        else:
-            check(
-                'mode="gui" raises NotImplementedError',
-                'nothing raised',
-                'NotImplementedError',
-            )
+            check('  ... and its result comes back', result, 'gui-stub')
+        finally:
+            CommandLineInterface.run_gui = original_run_gui
     finally:
         renderer.run_form = original_form
         sys.argv = original_argv
