@@ -752,14 +752,14 @@ def test_fetch_absences() -> None:
 def test_cli_wiring() -> None:
     print('[10] the cli wiring')
     check(
-        "':gui' -> gui, a browser tab",
+        "':gui' -> gui, a native window",
         _MODE_TOKENS.get(':gui'),
-        ('gui', {'window': False}),
+        ('gui', {'window': True}),
     )
     check(
-        "':guiw' -> gui, a native window",
+        "':guiw' -> gui, windowless (a browser tab)",
         _MODE_TOKENS.get(':guiw'),
-        ('gui', {'window': True}),
+        ('gui', {'window': False}),
     )
     check(
         "':tui' -> tui, full screen",
@@ -777,7 +777,7 @@ def test_cli_wiring() -> None:
     import argsense.renderer.gui as gui_renderer
 
     check('the gui interface is exported', hasattr(argsense, 'gui'), True)
-    check('and its class', hasattr(argsense, 'GuiInterface'), True)
+    check('and its class', hasattr(argsense, 'GraphicalUserInterface'), True)
 
     captured: t.Dict[str, t.Any] = {}
     original_form = gui_renderer.run_form

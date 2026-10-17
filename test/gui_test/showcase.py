@@ -6,9 +6,10 @@ Run it (from the project root) and open the address it prints:
     python test/gui_test/showcase.py
 
 The commands are the ones of `examples/07_tui_showcase.py`, so the two
-interfaces can be compared side by side. `:gui` is the only difference from a
-normal command line app: drop it (or pass `:cli`) to get the shell prompt
-back.
+interfaces can be compared side by side. The script asks for the gui on its
+own (served as a browser tab); on the command line, `:gui` asks for the same
+form in a native window, `:guiw` for the tab (`w` is for "windowless"), and
+`:cli` for the shell prompt instead:
 
     python test/gui_test/showcase.py :cli build my-project -h
 
@@ -19,8 +20,8 @@ What to look at:
 - each supported parameter type gets a widget of its own: a text input, a
   number box, a switch, and - for a `bool | None` - a two-mark switch with a
   middle "unset" mark;
-- consecutive small widgets (numbers and switches) share a single row -- up
-  to four of them, since the window is wide;
+- consecutive numbers and switches share a single row -- up to four of them,
+  packed into quarter-width slots;
 - Run calls the command on show, and prints land in the log panel below.
 """
 

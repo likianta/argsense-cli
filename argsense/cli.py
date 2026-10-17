@@ -64,12 +64,15 @@ _ARGDOC_REF_PATTERN = re.compile(r'[Ss]ee\s+`@(\w+):(\w+)`\.?')
 # A mode that can be shown in two ways has a token for each, and the token
 # carries the option that tells them apart:
 #   ':tui' / ':itui'  a full screen tui / an inline one (`inline`)
-#   ':gui' / ':guiw'  the form served for a browser tab / opened in a native
-#                     window (`window`)
+#   ':gui' / ':guiw'  a gui in its own window / one served for a browser tab
+#                     (`window`)
+# The `w` follows the convention of `pythonw`: it means "windowless", not
+# "window". A window is what a user usually wants from a gui, so the plain
+# spelling gets it and the one without it is the exception.
 _MODE_TOKENS: tp.Dict[str, tp.Tuple[T.Mode, tp.Dict[str, tp.Any]]] = {
     ':cli': ('cli', {}),
-    ':gui': ('gui', {'window': False}),
-    ':guiw': ('gui', {'window': True}),
+    ':gui': ('gui', {'window': True}),
+    ':guiw': ('gui', {'window': False}),
     ':itui': ('tui', {'inline': True}),
     ':tui': ('tui', {'inline': False}),
 }
@@ -345,7 +348,7 @@ class CommandLineInterface:
             caller's module (only when nothing was registered explicitly).
 
             The command line can override the mode: `:cli`, `:gui` / `:guiw`
-            (a browser tab / a native window) or `:tui` / `:itui` (a full
+            (a native window / a browser tab) or `:tui` / `:itui` (a full
             screen / an inline form) in `sys.argv` wins over the `mode`
             argument, and brings the option that goes with it. The token is
             removed from the arguments.

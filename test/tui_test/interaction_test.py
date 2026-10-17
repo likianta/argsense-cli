@@ -24,7 +24,7 @@ from argsense.renderer.tui import collect_rows
 from argsense.renderer.tui import plan_layout
 from argsense.renderer.tui import resolve_initials
 from argsense.renderer.tui import TripleSwitch
-from argsense.tui import TuiInterface
+from argsense.tui import TextualUserInterface
 from textual.containers import VerticalScroll
 from textual.content import Content
 from textual.widgets import Button
@@ -667,7 +667,7 @@ def test_single_command_is_still_enforced() -> None:
 
     def f2() -> None: ...
 
-    interface = TuiInterface()
+    interface = TextualUserInterface()
     try:
         interface._interface.resolve_single_command(  # noqa: SLF001
             (f1, f2), sys._getframe(0)
@@ -702,7 +702,7 @@ def test_run_delegates_to_the_form() -> None:
     original_argv = sys.argv
     try:
         sys.argv = ['prog', 'Alice', '22']
-        result = TuiInterface().run(install, inline=True)
+        result = TextualUserInterface().run(install, inline=True)
     finally:
         renderer.run_form = original
         sys.argv = original_argv
