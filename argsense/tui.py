@@ -7,7 +7,7 @@ from .cli import T as T0
 from .parser import Argv
 
 
-class TuiInterface:
+class TextualUserInterface:
     """
     The textual (TUI) form of the command line interface.
 
@@ -51,4 +51,4 @@ class TuiInterface:
         )
 
 
-tui = TuiInterface(name='argsense-tui')
+tui = TextualUserInterface(name='argsense-tui')

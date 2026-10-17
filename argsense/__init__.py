@@ -21,13 +21,13 @@ from .cli import cli
 from .converter import args_2_cargs
 from .converter import name_2_cname
 from .converter import type_2_ctype
-from .gui import GuiInterface
+from .gui import GraphicalUserInterface
 from .gui import gui
 from .parser import parse_argstring
 from .parser import parse_argv
 from .parser import parse_docstring
 from .parser import parse_function
-from .tui import TuiInterface
+from .tui import TextualUserInterface
 from .tui import tui
 
 __version__ = '3.0.0'

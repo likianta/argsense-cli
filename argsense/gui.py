@@ -8,7 +8,7 @@ from .cli import T as T0
 from .parser import Argv
 
 
-class GuiInterface:
+class GraphicalUserInterface:
     """
     The graphical (GUI) form of the command line interface.
 
@@ -65,4 +65,4 @@ class GuiInterface:
         )
 
 
-gui = GuiInterface(name='argsense-gui')
+gui = GraphicalUserInterface(name='argsense-gui')
