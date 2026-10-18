@@ -3,6 +3,7 @@
 /dist/
 /docs/advertisement/
 /docs/images/svg/
+/lib/
 /references/
 /test/temp/
 __pycache__/

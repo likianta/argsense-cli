@@ -6,3 +6,4 @@ ArgSense TUI 和 GUI 在布局细节上存在一些区别, 这是由于二者的
 - GUI 对于 "小组件" 最多支持四个排一行.
 - GUI 对于横排的小组件, 按照宽度均分来分配尺寸; TUI 的每个小组件使用自身的宽度
 - GUI TextInput:placeholder 不设置; TUI TextInput:placeholder 显示帮助信息 (如果帮助信息为多行, 则只显示第一行)
+- GUI 对输入组件按下回车不会触发运行; TUI 会尝试检查参数是否就绪, 并在就绪时自动触发运行.

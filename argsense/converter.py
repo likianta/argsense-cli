@@ -141,7 +141,7 @@ def val_2_cval(value: tp.Any, type_: ParamType = ParamType.ANY) -> str:
     else:
         if isinstance(value, str):
             if value == '':
-                return '""'
+                return ':empty'
             else:
                 return value
         if type_ in (ParamType.ANY, ParamType.NUMBER):
