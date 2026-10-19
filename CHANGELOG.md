@@ -1,6 +1,6 @@
 # Changelog
 
-### 3.0.0 (WIP)
+### 3.0.0 (2026-10-19)
 
 - A graphical user interface (GUI), based on [streamlit-canary](https://github.com/likianta/streamlit-canary).
 

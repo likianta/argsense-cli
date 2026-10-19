@@ -1,6 +1,6 @@
 [project]
 name = "argsense"
-version = "3.0.0a4"
+version = "3.0.0"
 description = "New command line interface based on Rich library."
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"
@@ -17,7 +17,6 @@ requires = ["hatchling>=1.29.0"]
 
 [dependency-groups]
 dev = [
-    # "cairosvg>=2.9.1; python_version >= '3.12'",
     "click>=8.5.0; python_version >= '3.12'",
     "clize>=5.0.1",
     "cyclopts>=5.2.0; python_version >= '3.12'",
@@ -27,18 +26,19 @@ dev = [
     "fire>=0.7.1",
     "playwright>=1.63.0; python_version >= '3.12'",
     # "streamlit>=1.65.0; python_version >= '3.12'",
-    "streamlit-canary>=0.4.0a70; python_version >= '3.11'",
+    "streamlit-canary>=0.4.0; python_version >= '3.11'",
     "textual>=8.2.8",
-    # "textual-web>=0.8.0; python_version >= '3.14'",
+    "trogon>=0.6.0",
     "typer>=0.27.3; python_version >= '3.12'",
+    "yapx>=0.5.2",
 ]
 
 [project.optional-dependencies]
-# all = [
-#     "streamlit-canary>=0.4.0a69; python_version >= '3.11'",
-#     "textual>=8.2.8",
-# ]
-# gui = ["streamlit-canary>=0.4.0a69; python_version >= '3.11'"]
+all = [
+    "streamlit-canary>=0.4.0; python_version >= '3.11'",
+    "textual>=8.2.8",
+]
+gui = ["streamlit-canary>=0.4.0; python_version >= '3.11'"]
 tui = ["textual>=8.2.8"]
 
 # [project.scripts]
