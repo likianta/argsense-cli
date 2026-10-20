@@ -9,7 +9,7 @@ with, at the moment Run is pressed (see `app.GuiScene.run_command`).
 
 import typing as tp
 
-from streamlit_canary import components_v3 as v3
+import streamlit_canary as sc
 
 from .layout import QUARTERS_PER_ROW
 from .spec import FLAG
@@ -135,10 +135,10 @@ def param_field(
         # "leave this parameter out" (see `read_param`), which is why it is
         # not a number box: that one cannot be emptied.
         value = '' if param.default is None else str(param.default)
-        return v3.TextInput(param.label, value, help=param.desc)
+        return sc.TextInput(param.label, value, help=param.desc)
 
     if param.kind == NUMBER:
-        field = v3.NumberInput(
+        field = sc.NumberInput(
             param.label, param.seed, width='stretch', help=param.desc
         )
         if on_change is not None:
@@ -146,7 +146,7 @@ def param_field(
         return field
 
     if param.kind == FLAG:
-        return v3.SegmentedControl(
+        return sc.SegmentedControl(
             param.label,
             (MARK_FALSE, MARK_TRUE),
             index=double_index_of(param.default),
@@ -154,7 +154,7 @@ def param_field(
             help=param.desc,
         )
 
-    return v3.SegmentedControl(
+    return sc.SegmentedControl(
         param.label,
         (MARK_FALSE, MARK_NONE, MARK_TRUE),
         index=triple_index_of(param.default),

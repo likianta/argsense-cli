@@ -12,7 +12,6 @@ from datetime import datetime
 from functools import partial
 
 import streamlit_canary as sc
-from streamlit_canary import components_v3 as v3
 
 from .fields import SKIP
 from .fields import param_field
@@ -36,7 +35,7 @@ SceneGroups = tp.List[tp.Tuple[str, tp.Tuple[Command, ...]]]
 Layout = tp.Literal['centered', 'wide']
 
 
-class _State(sc.StateV2):
+class _State(sc.State):
     """What the gui itself remembers: which command group is on show."""
 
     group: sc.Property[str]
@@ -90,7 +89,7 @@ class GuiScene:
         self.fields: tp.Dict[str, tp.Dict[str, tp.Any]] = {}
         self.tabs: tp.Dict[str, tp.Any] = {}
         self.touched: tp.Set[str] = set()
-        self.logger: tp.Optional[v3.LogPanel] = None
+        self.logger: tp.Optional[sc.LogPanel] = None
 
         self.state = _State()
         self.state.group.set(groups[0][0])
@@ -103,21 +102,21 @@ class GuiScene:
         Build the whole form. The runtime calls this once, and only once.
         """
         if title:
-            v3.PageTitle(title, layout=layout)
+            sc.PageTitle(title, layout=layout)
 
         if self.wide:
             self._setup_sidebar()
         else:
             # one group: its pane is the whole form
-            with v3.Container(border=True):
+            with sc.Container(border=True):
                 self._group_pane(self.groups[0][0])
 
-        with v3.BottomContainer():
-            with v3.Row('center'):
-                run = v3.Button('Run', type='primary', width='stretch')
+        with sc.BottomContainer():
+            with sc.Row('center'):
+                run = sc.Button('Run', type='primary', width='stretch')
             # the panel captures what the app prints, and carries its own
             # "clear" button, so it only holds this hint until then
-            self.logger = v3.LogPanel(
+            self.logger = sc.LogPanel(
                 height=self.log_height, placeholder='No output yet.'
             )
         run.on_click.connect(self.run_command)
@@ -130,9 +129,9 @@ class GuiScene:
         hidden -- a canary component cannot be created after the runtime has
         built the tree, so nothing here is built on demand.
         """
-        with v3.Container(border=True):
-            with v3.Row('top'):
-                with v3.Column(
+        with sc.Container(border=True):
+            with sc.Row('top'):
+                with sc.Column(
                     border=True,
                     # hug the radio group's own width, kept inside 150..250
                     width='content',
@@ -140,15 +139,15 @@ class GuiScene:
                     max_width=250,
                     height='stretch',
                 ):
-                    v3.RadioGroup(
+                    sc.RadioGroup(
                         'Select group',
                         tuple(name for name, _ in self.groups),
                         value=sc.bbind(self.state.group),
                         width='stretch',
                     )
-                with v3.Column(weight=1):
+                with sc.Column(weight=1):
                     for name, _ in self.groups:
-                        with v3.Column(
+                        with sc.Column(
                             visible=sc.bind(self.state.group, _equals(name))
                         ):
                             self._group_pane(name)
@@ -161,7 +160,7 @@ class GuiScene:
             # leaves it out too.
             self._command_pane(commands[0])
             return
-        with v3.Tabs(tuple(command.name for command in commands)) as tabs:
+        with sc.Tabs(tuple(command.name for command in commands)) as tabs:
             self.tabs[group_name] = tabs
             for command in commands:
                 with next(tabs):
@@ -169,7 +168,7 @@ class GuiScene:
 
     def _command_pane(self, command: Command) -> None:
         """One command's pane: its description over its parameters."""
-        v3.Caption(command.desc)
+        sc.Caption(command.desc)
         fields = self.fields.setdefault(command.name, {})
         for row in plan_rows(command.params):
             if len(row) == 1:
@@ -188,9 +187,9 @@ class GuiScene:
             # wrap onto a line of its own, stretching across it. The columns
             # divide the line up front instead (basis 0), in the quarters
             # `row_slots` hands out.
-            with v3.Row('bottom'):
+            with sc.Row('bottom'):
                 for param, weight in zip(row, slots):
-                    with v3.Column(weight=weight):
+                    with sc.Column(weight=weight):
                         fields[param.name] = param_field(
                             param, self._change_handler(command, param)
                         )
@@ -198,7 +197,7 @@ class GuiScene:
                     # the quarters the row leaves over stay empty, but held:
                     # without something to take them the flex layout would
                     # widen the widgets that are there until the line was full
-                    v3.Column(weight=leftover)
+                    sc.Column(weight=leftover)
 
     def _change_handler(
         self, command: Command, param: Param

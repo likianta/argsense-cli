@@ -1,6 +1,6 @@
 [project]
 name = "argsense"
-version = "3.0.0"
+version = "3.0.1a0"
 description = "New command line interface based on Rich library."
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"
@@ -25,8 +25,7 @@ dev = [
     "faker>=40.43.0; python_version >= '3.12'",
     "fire>=0.7.1",
     "playwright>=1.63.0; python_version >= '3.12'",
-    # "streamlit>=1.65.0; python_version >= '3.12'",
-    "streamlit-canary>=0.4.0; python_version >= '3.11'",
+    "streamlit-canary>=0.5.0; python_version >= '3.11'",
     "textual>=8.2.8",
     "trogon>=0.6.0",
     "typer>=0.27.3; python_version >= '3.12'",
@@ -35,10 +34,14 @@ dev = [
 
 [project.optional-dependencies]
 all = [
-    "streamlit-canary>=0.4.0; python_version >= '3.11'",
+    "pyapp-window>=2.3.0; python_version >= '3.11'",
+    "streamlit-canary>=0.5.0; python_version >= '3.11'",
     "textual>=8.2.8",
 ]
-gui = ["streamlit-canary>=0.4.0; python_version >= '3.11'"]
+gui = [
+    "pyapp-window>=2.3.0; python_version >= '3.11'", 
+    "streamlit-canary>=0.5.0; python_version >= '3.11'"
+]
 tui = ["textual>=8.2.8"]
 
 # [project.scripts]
