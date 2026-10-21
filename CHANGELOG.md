@@ -1,8 +1,8 @@
 # Changelog
 
-### 3.0.1 (WIP)
+### 3.1.0 (WIP)
 
-- Tweak GUI horizontal layout.
+- Create desktop shortcuts for ArgSense GUI ports.
 
 ### 3.0.0 (2026-10-19)
 
