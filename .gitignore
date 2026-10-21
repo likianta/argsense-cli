@@ -1,5 +1,6 @@
 /.idea/
 /.trae/
+/argsense/launcher/assets/*
 /dist/
 /docs/advertisement/
 /docs/images/svg/
@@ -9,3 +10,4 @@
 __pycache__/
 *.pyc
 .DS_Store
+!**/.gitkeep

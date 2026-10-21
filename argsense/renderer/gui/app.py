@@ -7,6 +7,7 @@ front here -- every command's pane, all but the picked one hidden -- and the
 scene is the registry that build fills in and Run reads back.
 """
 
+import socket
 import typing as tp
 from datetime import datetime
 from functools import partial
@@ -297,6 +298,7 @@ def run_form(
     title: str = 'argsense',
     port: int = DEFAULT_GUI_PORT,
     window: bool = False,
+    options: tp.Optional[tp.Dict[str, str]] = None,
 ) -> None:
     """
     Open the form on `func_infos` and serve it.
@@ -309,11 +311,33 @@ def run_form(
         title:
             the page's title, and the native window's title bar.
         port:
-            the port the app is served on.
+            the port the app is served on. 0 picks a free one.
         window:
             whether to open the form in a native window, sized to the form
             itself, instead of serving it for a browser tab.
+        options:
+            what a desktop launcher passed on the command line, if this app
+            was started by one (see `cli._take_launcher_options`): `port`,
+            `window-size`, `window-title`, `window-icon` and `log`. They win
+            over the arguments above.
     """
+    overrides = options or {}
+
+    log_file = overrides.get('log', '')
+    if log_file:
+        from ...launcher import boot
+
+        boot.setup(log_file)
+
+    if 'port' in overrides:
+        port = int(overrides['port'])
+    port = claim_port(port)
+
+    if overrides.get('window-title'):
+        title = overrides['window-title']
+    window_icon = overrides.get('window-icon') or None
+    window_size = parse_size(overrides.get('window-size', ''))
+
     commands = [spec_of(func_info) for func_info in func_infos]
     scene = GuiScene(resolve_groups(groups, commands))
     layout: Layout = 'wide' if window else 'centered'
@@ -321,6 +345,38 @@ def run_form(
         partial(scene.setup_ui, title, layout),
         port=port,
         show_window=window,
-        window_size=scene.window_size,
+        window_size=window_size or scene.window_size,
+        window_icon=window_icon,
         window_title=title or None,
     )
+
+
+def claim_port(port: int) -> int:
+    """
+    Reserve the port to serve on: 0 asks for a free one.
+
+    Checking here, instead of letting the server fail on its own, is what
+    gives a launcher's error dialog something readable to show -- a silent
+    exit would leave a double-click looking like nothing happened.
+    """
+    if port == 0:
+        with socket.socket() as probe:
+            probe.bind(('', 0))
+            return int(probe.getsockname()[1])
+
+    with socket.socket() as probe:
+        try:
+            probe.bind(('', port))
+        except OSError:
+            raise RuntimeError(
+                'the port {} is already in use.'.format(port)
+            ) from None
+    return port
+
+
+def parse_size(text: str) -> tp.Optional[tp.Tuple[int, int]]:
+    """`'980x820'` -> `(980, 820)`; an empty string -> `None`."""
+    if not text:
+        return None
+    width, _, height = text.lower().partition('x')
+    return int(width), int(height)

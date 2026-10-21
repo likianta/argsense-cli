@@ -19,6 +19,11 @@ def cli() -> None:
             function name in target module.
             `*args` and `**kwargs` will be passed to this function.
     """
+    if len(sys.argv) >= 2 and sys.argv[1] == 'create-launcher':
+        from .launcher.cli import main as create_launcher
+
+        raise SystemExit(create_launcher(sys.argv[2:]))
+
     if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1] == '-h'):
         np.markdown(
             """

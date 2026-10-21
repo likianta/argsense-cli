@@ -25,9 +25,10 @@ dev = [
     "docopt>=0.6.2",
     "faker>=40.43.0; python_version >= '3.12'",
     "fire>=0.7.1",
+    "lk-utils>=3.8.3b2; python_version >= '3.11'",
     "pillow>=13.0.0; python_version >= '3.11'",
     "playwright>=1.63.0; python_version >= '3.12'",
-    "streamlit-canary>=0.5.0; python_version >= '3.11'",
+    "streamlit-canary>=0.5.2a0; python_version >= '3.11'",
     "textual>=8.2.8",
     "trogon>=0.6.0",
     "typer>=0.27.3; python_version >= '3.12'",
@@ -38,12 +39,12 @@ dev = [
 all = [
     "pillow>=13.0.0; python_version >= '3.11'",
     "pyapp-window>=2.3.0; python_version >= '3.11'",
-    "streamlit-canary>=0.5.0; python_version >= '3.11'",
+    "streamlit-canary>=0.5.1; python_version >= '3.11'",
     "textual>=8.2.8",
 ]
 gui = [
     "pyapp-window>=2.3.0; python_version >= '3.11'", 
-    "streamlit-canary>=0.5.0; python_version >= '3.11'"
+    "streamlit-canary>=0.5.1; python_version >= '3.11'"
 ]
 tui = ["textual>=8.2.8"]
 
@@ -87,9 +88,10 @@ default = true
 [[tool.uv.index]]
 name = "likianta"
 url = "http://localhost:2131/"
-# explicit = true
+explicit = true
 
 [tool.uv.sources]
 # neoprint = { index = "likianta" }
+lk-utils = { index = "likianta" }
 pyapp-window = { index = "likianta" }
 streamlit-canary = { index = "likianta" }

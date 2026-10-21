@@ -82,8 +82,53 @@ _MODE_TOKENS: tp.Dict[str, tp.Tuple[T.Mode, tp.Dict[str, tp.Any]]] = {
 # opening the form (see `run_tui`).
 _HELP_REQUEST_TOKENS: tp.Tuple[str, ...] = (':h', ':help', '-h', '--help')
 
+# what a desktop launcher tells the app, on the command line. a windows
+# shortcut can pass arguments but cannot set environment variables, so the
+# launcher's settings have to travel this way. the prefix keeps them out of
+# the command's own parameter space, and they are taken off the line before
+# the command ever sees it.
+_LAUNCHER_PREFIX = '--argsense-'
+_LAUNCHER_OPTIONS: tp.Tuple[str, ...] = (
+    'port',
+    'window-size',
+    'window-title',
+    'window-icon',
+    'log',
+)
+
 # the port a gui app is served on when the caller names no other.
 DEFAULT_GUI_PORT = 2026
+
+
+def _take_launcher_options(argv: Argv) -> tp.Tuple[Argv, tp.Dict[str, str]]:
+    """
+    Split the launcher's options off the command line.
+
+    They are consumed here rather than by the command parser, so a launcher
+    can hand its settings to an app whose commands know nothing about them.
+    Returns the remaining arguments, and the options keyed by name (without
+    the prefix).
+    """
+    options: tp.Dict[str, str] = {}
+    kept: tp.List[str] = []
+    args = list(argv.args)
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        name = (
+            arg[len(_LAUNCHER_PREFIX) :]
+            if arg.startswith(_LAUNCHER_PREFIX)
+            else ''
+        )
+        if name in _LAUNCHER_OPTIONS:
+            if index + 1 >= len(args):
+                raise ValueError('{} needs a value.'.format(arg))
+            options[name] = args[index + 1]
+            index += 2
+        else:
+            kept.append(arg)
+            index += 1
+    return Argv(argv.launcher, argv.target, tuple(kept)), options
 
 
 class CommandLineInterface:
@@ -366,6 +411,8 @@ class CommandLineInterface:
             mode, options = _MODE_TOKENS[token]
             kwargs.update(options)
 
+        argv, launcher_options = _take_launcher_options(argv)
+
         if mode == 'cli':
             preset_func = self.prepare_entrance(entrance, sys._getframe(1))
             return self.exec_argv(
@@ -383,6 +430,7 @@ class CommandLineInterface:
             )
 
         if mode == 'gui':
+            kwargs['options'] = launcher_options
             return self.run_gui(entrance, sys._getframe(1), argv=argv, **kwargs)
 
         raise NotImplementedError(
@@ -568,6 +616,8 @@ class CommandLineInterface:
             mode, options = _MODE_TOKENS[token]
             kwargs.update(options)
 
+        argv, launcher_options = _take_launcher_options(argv)
+
         if mode == 'cli':
             return self.exec_argv(
                 argv=argv,
@@ -584,6 +634,7 @@ class CommandLineInterface:
             )
 
         if mode == 'gui':
+            kwargs['options'] = launcher_options
             return self._run_gui_form(
                 list(self.commands.values()),
                 argv=argv,

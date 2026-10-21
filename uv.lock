@@ -62,15 +62,14 @@ dependencies = [
 
 [package.optional-dependencies]
 all = [
+    { name = "pillow", marker = "python_full_version >= '3.11'" },
     { name = "pyapp-window", marker = "python_full_version >= '3.11'" },
-    { name = "streamlit-canary", version = "0.5.0", source = { registry = "http://localhost:2131/" }, marker = "python_full_version == '3.11.*'" },
-    { name = "streamlit-canary", version = "0.5.1", source = { registry = "http://localhost:2131/" }, marker = "python_full_version >= '3.12'" },
+    { name = "streamlit-canary", marker = "python_full_version >= '3.11'" },
     { name = "textual" },
 ]
 gui = [
     { name = "pyapp-window", marker = "python_full_version >= '3.11'" },
-    { name = "streamlit-canary", version = "0.5.0", source = { registry = "http://localhost:2131/" }, marker = "python_full_version == '3.11.*'" },
-    { name = "streamlit-canary", version = "0.5.1", source = { registry = "http://localhost:2131/" }, marker = "python_full_version >= '3.12'" },
+    { name = "streamlit-canary", marker = "python_full_version >= '3.11'" },
 ]
 tui = [
     { name = "textual" },
@@ -85,10 +84,10 @@ dev = [
     { name = "docopt" },
     { name = "faker", marker = "python_full_version >= '3.12'" },
     { name = "fire" },
+    { name = "lk-utils", marker = "python_full_version >= '3.11'" },
     { name = "pillow", marker = "python_full_version >= '3.11'" },
     { name = "playwright", marker = "python_full_version >= '3.12'" },
-    { name = "streamlit-canary", version = "0.5.0", source = { registry = "http://localhost:2131/" }, marker = "python_full_version == '3.11.*'" },
-    { name = "streamlit-canary", version = "0.5.1", source = { registry = "http://localhost:2131/" }, marker = "python_full_version >= '3.12'" },
+    { name = "streamlit-canary", marker = "python_full_version >= '3.11'" },
     { name = "textual" },
     { name = "trogon" },
     { name = "typer", marker = "python_full_version >= '3.12'" },
@@ -98,11 +97,12 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "neoprint", specifier = ">=1.0.0" },
+    { name = "pillow", marker = "python_full_version >= '3.11' and extra == 'all'", specifier = ">=13.0.0" },
     { name = "pyapp-window", marker = "python_full_version >= '3.11' and extra == 'all'", specifier = ">=2.3.0", index = "http://localhost:2131/" },
     { name = "pyapp-window", marker = "python_full_version >= '3.11' and extra == 'gui'", specifier = ">=2.3.0", index = "http://localhost:2131/" },
     { name = "rich", specifier = ">=14.0.0" },
-    { name = "streamlit-canary", marker = "python_full_version >= '3.11' and extra == 'all'", specifier = ">=0.5.0", index = "http://localhost:2131/" },
-    { name = "streamlit-canary", marker = "python_full_version >= '3.11' and extra == 'gui'", specifier = ">=0.5.0", index = "http://localhost:2131/" },
+    { name = "streamlit-canary", marker = "python_full_version >= '3.11' and extra == 'all'", specifier = ">=0.5.1", index = "http://localhost:2131/" },
+    { name = "streamlit-canary", marker = "python_full_version >= '3.11' and extra == 'gui'", specifier = ">=0.5.1", index = "http://localhost:2131/" },
     { name = "textual", marker = "extra == 'all'", specifier = ">=8.2.8" },
     { name = "textual", marker = "extra == 'tui'", specifier = ">=8.2.8" },
 ]
@@ -117,9 +117,10 @@ dev = [
     { name = "docopt", specifier = ">=0.6.2" },
     { name = "faker", marker = "python_full_version >= '3.12'", specifier = ">=40.43.0" },
     { name = "fire", specifier = ">=0.7.1" },
+    { name = "lk-utils", marker = "python_full_version >= '3.11'", specifier = ">=3.8.3b2", index = "http://localhost:2131/" },
     { name = "pillow", marker = "python_full_version >= '3.11'", specifier = ">=13.0.0" },
     { name = "playwright", marker = "python_full_version >= '3.12'", specifier = ">=1.63.0" },
-    { name = "streamlit-canary", marker = "python_full_version >= '3.11'", specifier = ">=0.5.0", index = "http://localhost:2131/" },
+    { name = "streamlit-canary", marker = "python_full_version >= '3.11'", specifier = ">=0.5.2a0", index = "http://localhost:2131/" },
     { name = "textual", specifier = ">=8.2.8" },
     { name = "trogon", specifier = ">=0.6.0" },
     { name = "typer", marker = "python_full_version >= '3.12'", specifier = ">=0.27.3" },
@@ -659,7 +660,7 @@ wheels = [
 
 [[package]]
 name = "lk-utils"
-version = "3.8.2"
+version = "3.8.3b2"
 source = { registry = "http://localhost:2131/" }
 dependencies = [
     { name = "argsense", marker = "python_full_version >= '3.11'" },
@@ -669,7 +670,7 @@ dependencies = [
     { name = "rich", marker = "python_full_version >= '3.11'" },
 ]
 wheels = [
-    { url = "http://localhost:2131/lk-utils/lk_utils-3.8.2-py3-none-any.whl" },
+    { url = "http://localhost:2131/lk-utils/lk_utils-3.8.3b2-py3-none-any.whl" },
 ]
 
 [[package]]
@@ -794,12 +795,12 @@ wheels = [
 [[package]]
 name = "neoprint"
 version = "1.0.0"
-source = { registry = "http://localhost:2131/" }
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple/" }
 dependencies = [
     { name = "rich" },
 ]
 wheels = [
-    { url = "http://localhost:2131/neoprint/neoprint-1.0.0-py3-none-any.whl" },
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/80/7b/1c1300093c5c762c52714d866201525f4c3e2e02908470737ae51c4b4ce9/neoprint-1.0.0-py3-none-any.whl", hash = "sha256:b4687d0b33cc839708c6d0f7388b60fb5ada00927e30efe3be04ec7a942c0cd4", size = 46993, upload-time = "2026-10-21T07:03:56.509Z" },
 ]
 
 [[package]]
@@ -1315,58 +1316,19 @@ wheels = [
 
 [[package]]
 name = "streamlit-canary"
-version = "0.5.0"
+version = "0.5.2a0"
 source = { registry = "http://localhost:2131/" }
-resolution-markers = [
-    "python_full_version == '3.11.*' and sys_platform != 'linux'",
-    "python_full_version == '3.11.*' and sys_platform == 'linux'",
-]
 dependencies = [
-    { name = "argsense", marker = "python_full_version == '3.11.*'" },
-    { name = "lk-utils", marker = "python_full_version == '3.11.*'" },
-    { name = "neoprint", marker = "python_full_version == '3.11.*'" },
-    { name = "pyapp-window", marker = "python_full_version == '3.11.*'" },
-    { name = "starlette", marker = "python_full_version == '3.11.*'" },
-    { name = "uvicorn", extra = ["standard"], marker = "python_full_version == '3.11.*'" },
-    { name = "watchdog", marker = "python_full_version == '3.11.*'" },
+    { name = "argsense", marker = "python_full_version >= '3.11'" },
+    { name = "lk-utils", marker = "python_full_version >= '3.11'" },
+    { name = "neoprint", marker = "python_full_version >= '3.11'" },
+    { name = "pyapp-window", marker = "python_full_version >= '3.11'" },
+    { name = "starlette", marker = "python_full_version >= '3.11'" },
+    { name = "uvicorn", extra = ["standard"], marker = "python_full_version >= '3.11'" },
+    { name = "watchdog", marker = "python_full_version >= '3.11'" },
 ]
 wheels = [
-    { url = "http://localhost:2131/streamlit-canary/streamlit_canary-0.5.0-py3-none-any.whl" },
-]
-
-[[package]]
-name = "streamlit-canary"
-version = "0.5.1"
-source = { registry = "http://localhost:2131/" }
-resolution-markers = [
-    "python_full_version == '3.14.*' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32'",
-    "python_full_version >= '3.15' and sys_platform == 'win32' and 'freebsd' in sys_platform",
-    "python_full_version >= '3.14' and sys_platform == 'emscripten' and 'freebsd' in sys_platform",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32' and 'freebsd' in sys_platform",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and 'freebsd' in sys_platform",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32' and 'freebsd' in sys_platform",
-    "python_full_version >= '3.15' and sys_platform == 'win32' and 'freebsd' not in sys_platform",
-    "python_full_version >= '3.14' and sys_platform == 'emscripten' and 'freebsd' not in sys_platform",
-    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32' and 'freebsd' not in sys_platform",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and 'freebsd' not in sys_platform",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'linux' and sys_platform != 'win32' and 'freebsd' not in sys_platform",
-    "python_full_version >= '3.14' and sys_platform == 'linux' and 'freebsd' in sys_platform",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'linux' and 'freebsd' in sys_platform",
-    "python_full_version >= '3.14' and sys_platform == 'linux' and 'freebsd' not in sys_platform",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'linux' and 'freebsd' not in sys_platform",
-]
-dependencies = [
-    { name = "argsense", marker = "python_full_version >= '3.12'" },
-    { name = "lk-utils", marker = "python_full_version >= '3.12'" },
-    { name = "neoprint", marker = "python_full_version >= '3.12'" },
-    { name = "pyapp-window", marker = "python_full_version >= '3.12'" },
-    { name = "starlette", marker = "python_full_version >= '3.12'" },
-    { name = "uvicorn", extra = ["standard"], marker = "python_full_version >= '3.12'" },
-    { name = "watchdog", marker = "python_full_version >= '3.12'" },
-]
-wheels = [
-    { url = "http://localhost:2131/streamlit-canary/streamlit_canary-0.5.1-py3-none-any.whl" },
+    { url = "http://localhost:2131/streamlit-canary/streamlit_canary-0.5.2a0-py3-none-any.whl" },
 ]
 
 [[package]]
