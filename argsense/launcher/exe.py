@@ -13,6 +13,7 @@ from pathlib import Path
 from .config import Built
 from .config import LaunchConfig
 from .config import append_payload
+from .probes import require_assets
 
 ASSETS = Path(__file__).parent / 'assets'
 STUB = ASSETS / 'stub.exe'
@@ -25,11 +26,7 @@ def make_exe(
     """Copy the stub to `file_o`, append `config`, then paint the icon on."""
     target = Path(file_o)
     target.parent.mkdir(parents=True, exist_ok=True)
-    if not STUB.exists():
-        raise FileNotFoundError(
-            'the launcher stub is missing, run '
-            '`python -m argsense.launcher.src.build`: {}'.format(STUB)
-        )
+    require_assets('stub.exe')
 
     shutil.copy2(STUB, target)
 
@@ -37,8 +34,7 @@ def make_exe(
     # section, and in doing so throws away anything appended after the last
     # section -- which is exactly where the payload lives.
     if icon:
-        if not RCEDIT.exists():
-            raise FileNotFoundError('rcedit is missing: {}'.format(RCEDIT))
+        require_assets('rcedit.exe')
         _rcedit(target, '--set-icon', icon)
 
     append_payload(target, config)

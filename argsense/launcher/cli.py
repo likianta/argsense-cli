@@ -18,7 +18,9 @@ from .config import LaunchConfig
 from .exe import make_exe
 from .icon import to_ico
 from .lnk import make_lnk
+from .probes import assets_hint
 from .probes import ensure_gui_pythonw
+from .probes import missing_assets
 
 DEFAULT_ARGS = (':gui',)
 
@@ -32,6 +34,7 @@ def main(argv: tp.Optional[tp.Sequence[str]] = None) -> int:
 
     name = args.name or target.stem
     out_dir = Path(args.out) if args.out else desktop_dir()
+    _require_assets(args.kind, with_icon=bool(args.window_icon))
     icon = _prepare_icon(args.window_icon, name)
     log = _app_dir() / 'logs' / '{}.log'.format(name)
 
@@ -116,6 +119,22 @@ def _parser() -> argparse.ArgumentParser:
         '--cwd', default='', help='the directory to run in (default: here).'
     )
     return parser
+
+
+def _require_assets(kind: str, *, with_icon: bool) -> None:
+    """
+    Fail early, and with instructions, when a binary is not there.
+
+    They are not part of the wheel (see `probes`), so a plain `pip install`
+    starts out without them -- checking before the icon is converted keeps
+    the message the first thing the caller sees.
+    """
+    if kind != 'exe':
+        return
+    needed = ['stub.exe'] + (['rcedit.exe'] if with_icon else [])
+    missing = missing_assets(*needed)
+    if missing:
+        raise SystemExit(assets_hint(missing))
 
 
 def _interpreter(show_console: bool) -> Path:

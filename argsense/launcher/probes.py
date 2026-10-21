@@ -1,8 +1,9 @@
 """
 Checks the launcher runs before it builds anything.
 
-The important one is `ensure_gui_pythonw`: a venv's `pythonw.exe` is not
-always the windowed interpreter it promises to be.
+`ensure_gui_pythonw` fixes a venv whose `pythonw.exe` is not the windowed
+interpreter it promises to be; `require_assets` explains what to do when the
+binaries that are deliberately *not* shipped with argsense are missing.
 """
 
 import shutil
@@ -10,6 +11,14 @@ import struct
 import sys
 import typing as tp
 from pathlib import Path
+
+ASSETS = Path(__file__).parent / 'assets'
+
+# the binaries live outside the package (and outside the wheel): they are
+# ~2.5 MB, and a `.lnk` launcher does not need them at all, so paying for
+# them on every `pip install` was judged a bad trade.
+MISC_URL = 'https://github.com/likianta/argsense-cli/tree/main/misc'
+RCEDIT_URL = 'https://github.com/electron/rcedit/releases'
 
 
 def pe_subsystem(file: tp.Union[str, Path]) -> int:
@@ -91,3 +100,35 @@ def ensure_gui_pythonw(
     if not dry_run:
         shutil.copy2(source, target)
     return target, True
+
+
+def missing_assets(*names: str) -> tp.List[str]:
+    """Which of `names` are not sitting in the package's `assets` folder."""
+    return [name for name in names if not (ASSETS / name).is_file()]
+
+
+def assets_hint(missing: tp.Iterable[str]) -> str:
+    """What to tell someone whose `assets` folder is empty."""
+    names = ', '.join(missing)
+    return (
+        'argsense does not ship these binaries, so {names} is missing.\n'
+        '\n'
+        'either download it from the repository\n'
+        '    {misc}\n'
+        'and put it in\n'
+        '    {assets}\n'
+        '\n'
+        'or build / fetch it yourself\n'
+        '    stub.exe    compile src/stub.v with v:\n'
+        '                python -m argsense.launcher.src.build\n'
+        '    rcedit.exe  {rcedit}\n'
+        '\n'
+        'a `.lnk` launcher (--kind lnk) needs neither of them.'
+    ).format(names=names, misc=MISC_URL, assets=ASSETS, rcedit=RCEDIT_URL)
+
+
+def require_assets(*names: str) -> None:
+    """Raise with the instructions above when a binary is missing."""
+    missing = missing_assets(*names)
+    if missing:
+        raise RuntimeError(assets_hint(missing))
