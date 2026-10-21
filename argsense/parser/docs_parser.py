@@ -192,7 +192,22 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
             'options:',
         )
 
-    for i, line in enumerate(doc.splitlines()):
+    def continues_after_blank(index: int, indent: int) -> bool:
+        """
+        Whether the text after a blank line still belongs to the same field.
+
+        A blank line usually ends the params section -- what follows is a new
+        section, such as `Note:`, at the left margin. But a parameter may have
+        several paragraphs of its own, and those keep the indentation of the
+        text above the blank line, which is how the two cases are told apart.
+        """
+        for follow in lines[index + 1 :]:
+            if follow.strip():
+                return follow.startswith(' ' * indent)
+        return False
+
+    lines = doc.splitlines()
+    for i, line in enumerate(lines):
         if flag == 'INIT':
             if line:
                 if is_new_field(line):
@@ -215,7 +230,9 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
                 flag = 'PARAMS'
 
         elif flag == 'EXTRA_PARAM_DESC':
-            if not line.startswith(' '):
+            if line == '' and continues_after_blank(i, 12):
+                accumulate_lines('')
+            elif not line.startswith(' '):
                 finalize_param_desc()
                 flag = 'OVER'
                 break
@@ -247,7 +264,9 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
                     flag = 'EXTRA_PARAM_DESC'
 
         elif flag == 'PARAM_DESC':
-            if not line.startswith(' '):
+            if line == '' and continues_after_blank(i, 8):
+                accumulate_lines('')
+            elif not line.startswith(' '):
                 finalize_param_desc()
                 flag = 'OVER'
                 break

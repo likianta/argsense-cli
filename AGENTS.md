@@ -17,7 +17,7 @@ argsense 是一个基于 [Rich](https://github.com/Textualize/rich) 的 Python �
 argsense-cli/
 ├── argsense/                 # 源码包
 │   ├── __init__.py           # 对外导出的公共 API
-│   ├── __main__.py           # `python -m argsense <target>` 入口 (cli / tui / gui)
+│   ├── __main__.py           # 命令行入口: `python -m argsense create_launcher ...`
 │   ├── cli.py                # CommandLineInterface: 命令注册, 运行, docstring 引用解析
 │   ├── config.py             # 全局配置项
 │   ├── converter.py          # 名称/类型转换

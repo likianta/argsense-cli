@@ -1,5 +1,10 @@
 """
-Build a desktop launcher (a `.exe` or a `.lnk`) out of a `:gui` command.
+Build a desktop launcher (a `.exe` or a `.lnk`) out of a script.
 
-Only the probes are written so far; see `.trae/specs/gui-desktop-launcher`.
+The entry point is `python -m argsense create_launcher`; see
+`.trae/specs/gui-desktop-launcher` for the design notes.
 """
+
+from .api import create
+
+__all__ = ('create',)

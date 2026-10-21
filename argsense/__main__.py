@@ -1,134 +1,65 @@
-import os
-import sys
-from textwrap import dedent
-
-import neoprint as np
-
+from . import launcher
 from .cli import CommandLineInterface
-from .parser import Argv
 
 
-def cli() -> None:
+def create_launcher(
+    script: str,
+    result: str = '',
+    kind: str = 'auto',
+    title: str = '',
+    size: str = '',
+    icon: str = '',
+    port: int = 0,
+    show_console: bool = False,
+    add_to_desktop_shortcut: bool = True,
+) -> None:
     """
-    run target module in command line.
+    Wrap a script in a launcher that can be double-clicked.
 
-    params:
-        target:
-            a ".py" file path, or a directory that contains "__main__.py".
-        func:
-            function name in target module.
-            `*args` and `**kwargs` will be passed to this function.
+    Args:
+        script (-s): The path of the ".py" file to start.
+        result (-t):
+            Where to write the launcher.
+
+            If left empty, it goes next to the script and takes the script's -
+            name. Given just ".exe" or ".lnk", it does the same, with that -
+            suffix. Given a path ending in ".exe" or ".lnk", it is created or -
+            overwritten exactly there. Given a directory, it becomes -
+            `<directory>/<script name>.<kind>`, and that directory has to -
+            exist already.
+        kind (-k):
+            'exe' or 'lnk'. 'auto', the default, follows the suffix of -
+            `result` when there is one. Otherwise it prefers 'exe' when an -
+            icon was given, and when the two binaries are in place; without -
+            either, it falls back to 'lnk'.
+
+            Naming a kind that contradicts the suffix of `result` is an error.
+        title: The text in the window's title bar.
+        size (-z): The window size, written as "980x820".
+        icon (-i): A ".png" or ".ico" file. Both for launcher and window.
+        port (-p):
+            The port to serve on. The default, 0, picks a free one, which is -
+            what you want when two launchers may run at once.
+        show_console (-c): Keep a console window open, for debugging.
+        add_to_desktop_shortcut (-d):
+            Also leave a shortcut on the desktop, unless `result` already -
+            points there. This is on by default, so pass `-D` to turn it off.
     """
-    if len(sys.argv) >= 2 and sys.argv[1] == 'create-launcher':
-        from .launcher.cli import main as create_launcher
-
-        raise SystemExit(create_launcher(sys.argv[2:]))
-
-    if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1] == '-h'):
-        np.markdown(
-            """
-            ## Argsense CLI Usage
-
-            ```sh
-            {} <target> ...
-            ```
-
-            The `<target>` can be a ".py" file path, or a directory that 
-            contains "__main__.py".
-            """.format(
-                'python -m argsense'
-                if sys.argv[0].endswith('__main__.py')
-                else os.path.basename(sys.argv[0]).replace('.exe', '')
-            )
-        )
-    else:
-        assert len(sys.argv) >= 2 and not sys.argv[1].startswith('-')
-        _execfile(
-            (
-                sys.argv[1]
-                if sys.argv[1].endswith('.py')
-                else sys.argv[1] + '/__main__.py'  # TODO: not tested
-            ),
-            *sys.argv[2:],
-        )
-
-
-def tui(*_) -> None:
-    """
-    run target module in textual interface.
-    """
-    os.environ['ARGSENSE_UI_MODE'] = 'TUI'
-    _run()
-
-
-def gui(*_) -> None:
-    """
-    run target module in graphical interface.
-    """
-    os.environ['ARGSENSE_UI_MODE'] = 'GUI'
-    _run()
-
-
-# _cli = CommandLineInterface('argsense-launcher')
-# _cli.add_cmd(cli, name='cli', transfer_help=True)
-# _cli.add_cmd(cli, name='run', transfer_help=True)
-# _cli.add_cmd(tui, name='tui', transfer_help=True)
-# _cli.add_cmd(gui, name='gui', transfer_help=True)
-
-
-# FIXME or DELETE
-def _run() -> None:
-    # np.show(sys.argv, ':vf2')
-    #   e.g. ['<argsense>/__main__.py', 'tui', ...]
-    sys.argv.pop(0)
-    sys.argv.pop(0)
-    # np.show(':f2sl', loads(sys.argv[0], 'plain'))
-    with open(sys.argv[0], 'r') as f:
-        code = f.read()
-    exec(
-        code, {'__name__': '__main__', '__file__': os.path.abspath(sys.argv[0])}
-    )
-
-
-def _execfile(target: str, *c_args: str) -> None:
-    subcli = CommandLineInterface('argsense-subcli')
-
-    with open(target, 'r', encoding='utf-8') as f:
-        # init subcli commands
-        exec(
-            '{}\n{}'.format(
-                f.read(),
-                dedent(
-                    """
-                    from types import FunctionType
-                    public_funcs = tuple(
-                        v
-                        for k, v in locals().items()
-                        if not k.startswith('_')
-                        and type(v) is FunctionType
-                    )
-                    # np.show(':l', public_funcs)
-                    for f in public_funcs:
-                        __cli__.add_cmd(f)
-                    """
-                ),
-            ),
-            {
-                '__name__': '__main__',
-                '__file__': os.path.abspath(target),
-                '__cli__': subcli,
-            },
-        )
-
-        subcli.exec_argv(
-            argv=Argv(
-                launcher=('argsense', 'run'), target=(target,), args=c_args
-            )
-        )
+    for path in launcher.create(
+        script,
+        result=result,
+        kind=kind,
+        window_title=title,
+        window_size=size,
+        window_icon=icon,
+        port=port,
+        show_console=show_console,
+        add_to_desktop_shortcut=add_to_desktop_shortcut,
+    ):
+        print(path)
 
 
 if __name__ == '__main__':
     # python -m argsense -h
-    # python -m argsense <target>
-    # _cli.run(transport_help=True)
-    cli()
+    # python -m argsense create_launcher -h
+    CommandLineInterface().run((create_launcher,))
