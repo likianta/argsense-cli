@@ -179,13 +179,15 @@ def create_launcher(
     window_size: tp.Optional[tp.Tuple[int, int]] = None,
     port: int = 0,
     show_console: bool = False,
+    args: tp.Sequence[str] = (':gui',),
 ) -> tp.Tuple[str, LaunchConfig]:
     """
     Write the launcher (and, optionally, a shortcut to it on the desktop).
     Returns the files written, in the order they were created.
 
     `source` is either a ".py" file to start, or a dotted module to run with
-    `-m` (the form of `python -m foo.bar`).
+    `-m` (the form of `python -m foo.bar`). `args` are handed to the target
+    after its script / module name, and default to the `:gui` token.
     """
     is_module = is_module_source(source)
     if target:
@@ -210,7 +212,7 @@ def create_launcher(
         python=get_interpreter_path(show_console),
         script='' if is_module else source,
         cwd=os.getcwd(),
-        args=(':gui',),
+        args=tuple(args),
         name=name,
         module=source if is_module else '',
         icon=icon,

@@ -176,7 +176,10 @@ def _walking_through_argv(
                 return False
 
     def feed_special_arg() -> None:
-        assert arg in SPECIAL_ARGS
+        if arg not in SPECIAL_ARGS:
+            # a `:word` that is none of the special values (a stale mode
+            # token, say) is a parse error, not a crash.
+            raise e.ParamNotFound(index, arg, SPECIAL_ARGS.keys())
         if arg in (':h', ':help'):
             assert ':help' not in out['kwargs']
             out['kwargs'][':help'] = True

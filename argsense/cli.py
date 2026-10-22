@@ -403,10 +403,13 @@ class CommandLineInterface:
         argv = Argv.from_sys_argv()
         token = next((x for x in argv.args if x in _MODE_TOKENS), None)
         if token is not None:
+            # drop every mode token, not just the first one: a launcher may
+            # append its own `:gui` after the one the user gave, and the
+            # leftover would otherwise reach the command's parser.
             argv = Argv(
                 argv.launcher,
                 argv.target,
-                tuple(x for x in argv.args if x != token),
+                tuple(x for x in argv.args if x not in _MODE_TOKENS),
             )
             mode, options = _MODE_TOKENS[token]
             kwargs.update(options)
@@ -486,7 +489,7 @@ class CommandLineInterface:
 
         from .renderer.gui import run_form
 
-        return run_form(func_infos, groups=groups, **kwargs)
+        return run_form(func_infos, groups=groups, argv=argv, **kwargs)
 
     def run_tui(
         self,
@@ -608,10 +611,11 @@ class CommandLineInterface:
         argv = Argv.from_sys_argv()
         token = next((x for x in argv.args if x in _MODE_TOKENS), None)
         if token is not None:
+            # see `run`: every mode token goes, not only the chosen one.
             argv = Argv(
                 argv.launcher,
                 argv.target,
-                tuple(x for x in argv.args if x != token),
+                tuple(x for x in argv.args if x not in _MODE_TOKENS),
             )
             mode, options = _MODE_TOKENS[token]
             kwargs.update(options)

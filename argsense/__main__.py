@@ -1,4 +1,5 @@
 import os.path
+import shlex
 import typing as tp
 
 from neoprint import print
@@ -16,6 +17,7 @@ def create_launcher(
     source: str,
     name: str = '',
     output_directory: str = DESKTOP,
+    target_args: str = '',
     kind: tp.Literal['auto', 'exe', 'lnk'] = 'auto',
     title: str = '',
     size: str = '',
@@ -44,6 +46,10 @@ def create_launcher(
             To give a name contains whitespaces, you need to quote it as the -
             convention of regular command line args.
         output_directory (-o): Be default, it outputs to Desktop path.
+        target_args (-a):
+            The args to pass to the target, written as one command line
+            string, for example "--aaa Alice". The `:gui` token is appended
+            after them.
         kind (-k):
             'auto': auto deduce the proper value, it prefers "exe" if possible -
             else fallback to "lnk".
@@ -82,6 +88,7 @@ def create_launcher(
         window_size=size,
         port=port,
         show_console=show_console,
+        args=(*_split_target_args(target_args), ':gui'),
     )
 
     if file_shortcut:  # add_to_desktop_shortcut
@@ -156,7 +163,7 @@ def _parse_params(
     file_target = os.path.abspath(
         '{}/{}.{}'.format(output_directory, name_stem, kind)
     )
-    # note that DESKTOP is forward slashed path. we need to normalize the 
+    # note that DESKTOP is forward slashed path. we need to normalize the
     # separator before comparing.
     on_desktop = os.path.normcase(file_target).startswith(
         os.path.normcase(DESKTOP)
@@ -176,10 +183,30 @@ def _parse_params(
     return (source, file_target, file_shortcut, kind, size)
 
 
+def _split_target_args(text: str) -> tp.Tuple[str, ...]:
+    """
+    Split `target_args` into the tokens the target will receive.
+
+    `shlex` in its non-posix mode is the right reader here: it honours quotes
+    (so one value may hold spaces) and leaves backslashes alone, which matters
+    as soon as a windows path is among the arguments. The quotes it keeps
+    around a token are dropped afterwards.
+    """
+    if not text.strip():
+        return ()
+    tokens = shlex.split(text, posix=False)
+    return tuple(
+        token[1:-1]
+        if len(token) >= 2 and token[0] == token[-1] and token[0] in '"\''
+        else token
+        for token in tokens
+    )
+
+
 def _default_stem(source: str) -> str:
     """
     The name a launcher borrows from `source` and titlize.
-    
+
     E.g. "hello_world.py" -> "Hello World",  "foo.bar" -> "Bar".
     """
     if is_module_source(source):
