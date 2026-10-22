@@ -21,6 +21,7 @@ struct Config {
 mut:
 	python       string
 	script       string
+	module       string
 	cwd          string
 	args         []string
 	log          string
@@ -41,12 +42,17 @@ fn main() {
 		alert('The interpreter this launcher needs is missing:\n\n' + cfg.python)
 		return
 	}
-	if !os.exists(cfg.script) {
-		alert('The script this launcher starts is missing:\n\n' + cfg.script)
-		return
+	// a payload names either a script file or a module to run with `-m`.
+	mut args := []string{}
+	if cfg.module != '' {
+		args << ['-m', cfg.module]
+	} else {
+		if !os.exists(cfg.script) {
+			alert('The script this launcher starts is missing:\n\n' + cfg.script)
+			return
+		}
+		args << cfg.script
 	}
-
-	mut args := [cfg.script]
 	args << cfg.args
 	args << launcher_options(cfg)
 
@@ -104,6 +110,7 @@ fn read_config(path string) !Config {
 		match key {
 			'python' { cfg.python = value }
 			'script' { cfg.script = value }
+			'module' { cfg.module = value }
 			'cwd' { cfg.cwd = value }
 			'args' { cfg.args = split_args(value) }
 			'log' { cfg.log = value }

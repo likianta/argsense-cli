@@ -24,6 +24,12 @@ from .path import RCEDIT
 from .path import STUB
 
 
+def is_module_source(source: str) -> bool:
+    if source.endswith('.py'):
+        return False
+    return all(part.isidentifier() for part in source.split('.'))
+
+
 def check_requirements(
     source: str = '',
     kind: str = '',
@@ -72,7 +78,9 @@ def check_requirements(
 
     try:
         if source:
-            assert source.endswith('.py') and os.path.exists(source)
+            assert is_module_source(source) or (
+                source.endswith('.py') and os.path.exists(source)
+            ), 'no such script or module: {!r}'.format(source)
 
         if kind == 'exe':
             assert os.path.exists(STUB), dedent(
@@ -175,11 +183,19 @@ def create_launcher(
     """
     Write the launcher (and, optionally, a shortcut to it on the desktop).
     Returns the files written, in the order they were created.
+
+    `source` is either a ".py" file to start, or a dotted module to run with
+    `-m` (the form of `python -m foo.bar`).
     """
+    is_module = is_module_source(source)
     if target:
         name = os.path.basename(target).rsplit('.', 1)[0]
     else:
-        name = os.path.basename(source).removesuffix('.py')
+        name = (
+            source.rsplit('.', 1)[-1]
+            if is_module
+            else os.path.basename(source).removesuffix('.py')
+        )
         target = '{}/{}.{}'.format(DESKTOP, name, kind)
 
     if icon and icon.endswith('.png'):
@@ -192,10 +208,11 @@ def create_launcher(
 
     cfg = LaunchConfig(
         python=get_interpreter_path(show_console),
-        script=source,
+        script='' if is_module else source,
         cwd=os.getcwd(),
         args=(':gui',),
         name=name,
+        module=source if is_module else '',
         icon=icon,
         port=port,
         window_size=window_size,

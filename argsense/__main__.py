@@ -6,11 +6,12 @@ from .launcher import ASSETS
 from .launcher import DESKTOP
 from .launcher import check_requirements
 from .launcher import create_launcher as _do_create_launcher
+from .launcher import is_module_source
 from .launcher import make_lnk
 
 
 def create_launcher(
-    script: str,
+    source: str,
     name: str = '',
     output_directory: str = DESKTOP,
     kind: tp.Literal['auto', 'exe', 'lnk'] = 'auto',
@@ -22,12 +23,12 @@ def create_launcher(
     add_to_desktop_shortcut: bool = True,
 ) -> None:
     """
-    Wrap a script in a launcher that can be double-clicked.
-    For a practical scene, we suggest passing at least `script` and `name` to -
+    Wrap a script (or a module) in a launcher that can be double-clicked.
+    For a practical scene, we suggest passing at least `source` and `name` to -
     this command.
 
     Args:
-        script (-s): The path of the ".py" file to start.
+        source (-s): The path to ".py" file, or module form like "aaa.bbb.ccc".
         name (-n):
             The name can be one of the three forms:
 
@@ -36,7 +37,7 @@ def create_launcher(
             2. `<stem>.<kind>`, for example "MyApp.exe" or "MyApp.lnk".
                 It creates file with the exact name under `output_directory`.
             3. `.<kind>`, can only be ".exe" or ".lnk".
-                The name stem borrows from `script`.
+                The name stem borrows from `source`.
 
             To give a name contains whitespaces, you need to quote it as the -
             convention of regular command line args.
@@ -60,7 +61,7 @@ def create_launcher(
             create a desktop shortcut points to the origin launcher.
     """
     check_requirements(
-        source=script,
+        source=source,
         kind=('exe' if _is_exe_tooling_ready(icon) else 'lnk')
         if kind == 'auto'
         else kind,
@@ -68,10 +69,10 @@ def create_launcher(
         show_console=show_console,
         autofix=True,
     )
-    script, file_target, file_shortcut, kind, size = _parse_params(**locals())
+    source, file_target, file_shortcut, kind, size = _parse_params(**locals())
 
     _, cfg = _do_create_launcher(
-        source=script,
+        source=source,
         target=file_target,
         kind=kind,
         icon=icon,
@@ -110,7 +111,7 @@ def _is_exe_tooling_ready(icon: str = '') -> bool:
 
 def _parse_params(
     *,
-    script: str,
+    source: str,
     name: str,
     output_directory: str,
     kind: str,
@@ -119,7 +120,14 @@ def _parse_params(
     add_to_desktop_shortcut: bool,
     **_,
 ) -> tuple:
-    assert script.endswith('.py') and os.path.exists(script)
+    if not (
+        is_module_source(source)
+        or (source.endswith('.py') and os.path.exists(source))
+    ):
+        raise ValueError(
+            '`source` should be an existing ".py" file, or a module name '
+            'like "aaa.bbb.ccc": {!r}'.format(source)
+        )
     if icon:
         assert icon.endswith(('.ico', '.png')) and os.path.exists(icon)
 
@@ -128,9 +136,9 @@ def _parse_params(
     name_kind: str = ''
     if name.endswith(('.exe', '.lnk')):
         name_kind = name[-3:]
-        name_stem = name[:-4] or os.path.basename(script).removesuffix('.py')
+        name_stem = name[:-4] or _default_stem(source)
     else:
-        name_stem = name or os.path.basename(script).removesuffix('.py')
+        name_stem = name or _default_stem(source)
 
     # resolve kind: an explicit one wins, then the name's suffix, and 'auto'
     # falls back to whichever form can be built here.
@@ -158,7 +166,14 @@ def _parse_params(
     else:
         size = None
 
-    return (script, file_target, file_shortcut, kind, size)
+    return (source, file_target, file_shortcut, kind, size)
+
+
+def _default_stem(source: str) -> str:
+    """The name a launcher borrows from `source`: "bar" for "foo.bar"."""
+    if is_module_source(source):
+        return source.rsplit('.', 1)[-1]
+    return os.path.basename(source).removesuffix('.py')
 
 
 def _prefer_kind(icon: str) -> tp.Literal['exe', 'lnk']:

@@ -29,8 +29,10 @@ class LaunchConfig:
     """
     One launcher's settings.
 
-    `python` is the interpreter to start, `script` the file to hand it, `cwd`
-    the directory to run in. `port` is 0 for "pick a free one at run time".
+    `python` is the interpreter to start. `script` is a file to hand it, or
+    `module` a dotted module to run with `-m`; exactly one of the two is set.
+    `cwd` is the directory to run in, and `port` is 0 for "pick a free one at
+    run time".
     """
 
     python: str
@@ -38,6 +40,7 @@ class LaunchConfig:
     cwd: str
     args: tp.Tuple[str, ...] = ()
     name: str = ''
+    module: str = ''
     log: str = ''
     icon: str = ''
     port: int = 0
@@ -50,6 +53,7 @@ class LaunchConfig:
             'name={}'.format(self.name),
             'python={}'.format(self.python),
             'script={}'.format(self.script),
+            'module={}'.format(self.module),
             'cwd={}'.format(self.cwd),
             'args={}'.format(ARGS_SEP.join(self.args)),
             'log={}'.format(self.log),
@@ -78,6 +82,7 @@ class LaunchConfig:
             cwd=data['cwd'],
             args=tuple(args.split(ARGS_SEP)) if args else (),
             name=data.get('name', ''),
+            module=data.get('module', ''),
             log=data.get('log', ''),
             icon=data.get('icon', ''),
             port=int(data.get('port', '0')),

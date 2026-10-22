@@ -74,7 +74,12 @@ def _stringify_arguments(config: LaunchConfig) -> str:
     """
     parts = []
 
-    parts.append(_quote_arg(config.script))
+    # a payload names either a script file or a module (the `-m` form).
+    if config.module:
+        parts.append('-m')
+        parts.append(config.module)
+    else:
+        parts.append(_quote_arg(config.script))
     parts.extend(_quote_arg(x) for x in config.args)
 
     parts.append('--argsense-port')
