@@ -11,6 +11,7 @@ from .launcher import check_requirements
 from .launcher import create_launcher as _do_create_launcher
 from .launcher import is_module_source
 from .launcher import make_lnk
+from .launcher import pull_assets
 
 
 def create_launcher(
@@ -47,8 +48,8 @@ def create_launcher(
             convention of regular command line args.
         output_directory (-o): Be default, it outputs to Desktop path.
         target_args (-a):
-            The args to pass to the target, written as one command line
-            string, for example "--aaa Alice". The `:gui` token is appended
+            The args to pass to the target, written as one command line -
+            string, for example "--aaa Alice". The `:gui` token is appended -
             after them.
         kind (-k):
             'auto': auto deduce the proper value, it prefers "exe" if possible -
@@ -106,6 +107,26 @@ def create_launcher(
         )
     else:
         print(':tv4', 'done. see launcher at "{}"'.format(file_target))
+
+
+def pull_launcher_misc(mirror_site: bool = False, force: bool = False) -> None:
+    """
+    Download the two binaries that argsense does not ship with its "whl".
+
+    "rcedit.exe" (puts an icon and a name on a generated ".exe") and
+    "stub.exe" (the launcher itself) are about 1.2 MB each, so they live in
+    the repository instead of the package. Run this once; every later
+    `create_launcher` finds them under `<argsense>/launcher/assets`.
+
+    Args:
+        mirror_site (-m):
+            Download through a mirror site, for when github is slow or -
+            unreachable.
+        force (-f):
+            Download again even when both files are already in place.
+    """
+    for path in pull_assets(mirror_site=mirror_site, force=force):
+        print(path)
 
 
 def _is_exe_tooling_ready(icon: str = '') -> bool:
@@ -229,4 +250,5 @@ def _prefer_kind(icon: str) -> tp.Literal['exe', 'lnk']:
 if __name__ == '__main__':
     # python -m argsense -h
     # python -m argsense create_launcher -h
-    CommandLineInterface().run((create_launcher,))
+    # python -m argsense pull_launcher_misc -h
+    CommandLineInterface().run((create_launcher, pull_launcher_misc))

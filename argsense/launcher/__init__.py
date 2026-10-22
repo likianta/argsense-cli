@@ -11,6 +11,7 @@ from .creator import create_launcher
 from .creator import is_module_source
 from .exe import make_exe
 from .lnk import make_lnk
+from .misc import pull_assets
 from .path import ASSETS
 from .path import DESKTOP
 from .path import PKG_ROOT

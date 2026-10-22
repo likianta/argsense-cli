@@ -18,6 +18,7 @@ from .interpreter import get_interpreter_path
 from .interpreter import get_pythonw
 from .interpreter import is_real_pythonw
 from .lnk import make_lnk
+from .misc import BRANCH
 from .path import ASSETS
 from .path import DESKTOP
 from .path import RCEDIT
@@ -51,28 +52,29 @@ def check_requirements(
                     ArgSense does not ship "rcedit.exe" and "stub.exe" with its
                     ".whl" package, so to get the full ability of generating 
                     launcher from a function, you need to download those 
-                    binaries from argsense repository or build by yourself.
+                    binaries. Run this once:
+
+                        python -m argsense pull-launcher-misc
+
+                    (add `--mirror-site` when github is slow or unreachable.)
+
+                    If that does not work, put both files under 
+                    "<argsense>/launcher/assets" by hand:
 
                     (a) The repository link: 
-                        https://github.com/likianta/argsense-cli/tree/main/misc
+                        https://github.com/likianta/argsense-cli/tree/{BRANCH}/misc
 
-                        Fetch "rcedit.exe" and "stub.exe" then put them under 
-                        `<argsense>/launcher/assets` folder.
-                    
                     (b) Build by yourself:
 
                         - rcedit.exe: download it from the official releases 
-                            (https://github.com/electron/rcedit/releases), put
-                            it under `<argsense>/launcher/assets` folder.
+                            (https://github.com/electron/rcedit/releases).
 
                         - stub.exe: install V compiler (at least v0.5.x) then:
                             ```
-                            python -m argsense.launcher.misc build_stub
+                            python argsense/launcher/src/build.py
                             ```
-                            It generates a "stub.exe" in 
-                            `<argsense>/launcher/assets`.
                     """
-                )
+                ).format(BRANCH=BRANCH)
             )
         return True
 
@@ -89,14 +91,16 @@ def check_requirements(
                 you see it at first time after `pip install argsense`, because 
                 argsense does not ship this binary with its ".whl" package.
                 
-                To get it, you can download from the repository site's "misc" 
-                folder (link: {LINK}), or -- if you have installed V (0.5.x) in 
-                your computer -- you can build it by yourself by 
-                `python -m argsense.launcher.misc build_stub`.
+                To get it, run `python -m argsense pull-launcher-misc` (add 
+                `--mirror-site` when github is slow or unreachable), or 
+                download it from the repository site's "misc" folder 
+                (link: {LINK}).
                 """
             ).format(
                 PATH=ASSETS,
-                LINK='https://github.com/likianta/argsense-cli/tree/main/misc',
+                LINK='https://github.com/likianta/argsense-cli/tree/{}/misc'.format(
+                    BRANCH
+                ),
             )
 
         if not show_console and (not quiet or autofix):
@@ -146,9 +150,11 @@ def check_requirements(
                         `pip install argsense`, because argsense does not ship 
                         this binary with its ".whl" package.
 
-                        To get it, you can download from the repository site's 
-                        "misc" folder (link: {LINK}), or download it from the 
-                        official releases 
+                        To get it, run `python -m argsense pull-launcher-misc` 
+                        (add `--mirror-site` when github is slow or 
+                        unreachable), or download "rcedit.exe" from the 
+                        repository's "misc" folder (link: {LINK}), or from 
+                        the official releases 
                         (https://github.com/electron/rcedit/releases).
 
                         Finally put it under `<argsense>/launcher/assets` 
@@ -157,7 +163,7 @@ def check_requirements(
                     ).format(
                         PATH=ASSETS,
                         LINK='https://github.com/likianta/argsense-cli/tree'
-                        '/main/misc',
+                        '/{}/misc'.format(BRANCH),
                     )
                 )
     except Exception:
@@ -210,7 +216,9 @@ def create_launcher(
 
     cfg = LaunchConfig(
         python=get_interpreter_path(show_console),
-        script='' if is_module else source,
+        # absolute: the launcher may be double-clicked from anywhere, and
+        # the stub checks the file before it enters `cwd`.
+        script='' if is_module else os.path.abspath(source),
         cwd=os.getcwd(),
         args=tuple(args),
         name=name,
@@ -222,6 +230,7 @@ def create_launcher(
         show_console=show_console,
     )
 
+    os.makedirs(os.path.dirname(target) or '.', exist_ok=True)
     if kind == 'exe':
         return make_exe(cfg, target), cfg
     else:
