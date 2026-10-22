@@ -59,6 +59,7 @@ class Param:
         desc: str,
         required: bool,
         short: str,
+        initial: tp.Any = ...,
     ) -> None:
         self.name = name
         self.kind = kind
@@ -67,6 +68,10 @@ class Param:
         self.desc = desc
         self.required = required
         self.short = short
+        # the value the command line gave, if it gave one (`...` = none). It
+        # seeds the widget, and it is what Run uses while the user has not
+        # touched the field -- see `read_param`.
+        self.initial = initial
 
     @property
     def label(self) -> str:
@@ -109,8 +114,16 @@ class Command:
         self.params = params
 
 
-def spec_of(func_info: FuncInfo) -> Command:
-    """Read one command off its `FuncInfo` -- the same read the tui does."""
+def spec_of(
+    func_info: FuncInfo, initials: tp.Optional[tp.Dict[str, tp.Any]] = None
+) -> Command:
+    """
+    Read one command off its `FuncInfo` -- the same read the tui does.
+
+    `initials` are the values the command line gave (see `renderer.initials`);
+    they seed the widgets of the form.
+    """
+    initials = initials or {}
     params: tp.List[Param] = []
     for name, raw in _collect_raw(func_info):
         plain_type = raw.get('plain_type', '')
@@ -132,6 +145,7 @@ def spec_of(func_info: FuncInfo) -> Command:
                 desc=raw.get('desc', ''),
                 required=required,
                 short=short_flag_of(raw.get('cname', '')),
+                initial=initials.get(name, ...),
             )
         )
     return Command(func_info.name, func_info.desc, func_info.target, params)

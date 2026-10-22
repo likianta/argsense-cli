@@ -134,12 +134,16 @@ def param_field(
         # both are text boxes. The absent-able number reads an empty box as
         # "leave this parameter out" (see `read_param`), which is why it is
         # not a number box: that one cannot be emptied.
-        value = '' if param.default is None else str(param.default)
-        return sc.TextInput(param.label, value, help=param.desc)
+        value = param.initial if param.initial is not ... else param.default
+        text = '' if value is None else str(value)
+        return sc.TextInput(param.label, text, help=param.desc)
 
     if param.kind == NUMBER:
+        seed = param.initial
+        if seed is ... or seed is None:
+            seed = param.seed
         field = sc.NumberInput(
-            param.label, param.seed, width='stretch', help=param.desc
+            param.label, seed, width='stretch', help=param.desc
         )
         if on_change is not None:
             field.value.on_change.connect(on_change)
@@ -149,7 +153,7 @@ def param_field(
         return sc.SegmentedControl(
             param.label,
             (MARK_FALSE, MARK_TRUE),
-            index=double_index_of(param.default),
+            index=double_index_of(_value_of_param(param)),
             width='content',
             help=param.desc,
         )
@@ -157,10 +161,15 @@ def param_field(
     return sc.SegmentedControl(
         param.label,
         (MARK_FALSE, MARK_NONE, MARK_TRUE),
-        index=triple_index_of(param.default),
+        index=triple_index_of(_value_of_param(param)),
         width='content',
         help=param.desc,
     )
+
+
+def _value_of_param(param: Param) -> tp.Any:
+    """The value a switch starts at: the command line's, else the default."""
+    return param.initial if param.initial is not ... else param.default
 
 
 def double_index_of(default: tp.Any) -> int:
@@ -194,7 +203,10 @@ def read_param(
         # untouched: the box still shows the seed. That is a real default for
         # most parameters, but a mere placeholder for one that has none --
         # and for a required `port` it is `SKIP`, so Run refuses rather than
-        # opening a server on port 0.
+        # opening a server on port 0. A value given on the command line is
+        # as real as a default.
+        if param.initial is not ...:
+            return param.initial
         return SKIP if param.default is None else param.default
     elif param.kind == FLAG:  # SegmentedControl[False, True]
         return field.index.get() == 1

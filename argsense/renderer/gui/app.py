@@ -27,7 +27,9 @@ from .spec import Command
 from .spec import Param
 from .spec import resolve_groups
 from .spec import spec_of
+from ..initials import resolve_initials
 from ...cli import DEFAULT_GUI_PORT
+from ...parser import Argv
 from ...parser import FuncInfo
 
 GroupStructure = tp.List[tp.Tuple[str, tp.List[str]]]
@@ -53,7 +55,7 @@ class GuiScene:
     once the runtime has built the tree.
     """
 
-    def __init__(self, groups: SceneGroups) -> None:
+    def __init__(self, groups: SceneGroups, active: str = '') -> None:
         if not groups:
             raise RuntimeError('the gui needs at least one command.')
 
@@ -67,6 +69,9 @@ class GuiScene:
             for name, commands in groups
             for command in commands
         }
+        # the command the command line referred to (see
+        # `renderer.initials.resolve_initials`): its group and tab open first
+        self.active = active
 
         # The sidebar is what makes the window wide: with a single group there
         # is nothing to pick, so the form drops it and the window turns
@@ -94,7 +99,7 @@ class GuiScene:
         self.logger: tp.Optional[sc.LogPanel] = None
 
         self.state = _State()
-        self.state.group.set(groups[0][0])
+        self.state.group.set(self.group_of.get(active, groups[0][0]))
 
     # --------------------------------------------------------------------------
     # the page
@@ -162,7 +167,14 @@ class GuiScene:
             # leaves it out too.
             self._command_pane(commands[0])
             return
-        with sc.Tabs(tuple(command.name for command in commands)) as tabs:
+        active = (
+            self.active
+            if self.group_of.get(self.active) == group_name
+            else None
+        )
+        with sc.Tabs(
+            tuple(command.name for command in commands), active=active
+        ) as tabs:
             self.tabs[group_name] = tabs
             for command in commands:
                 with next(tabs):
@@ -300,6 +312,7 @@ def run_form(
     port: int = DEFAULT_GUI_PORT,
     window: bool = False,
     options: tp.Optional[tp.Dict[str, str]] = None,
+    argv: tp.Optional[Argv] = None,
 ) -> None:
     """
     Open the form on `func_infos` and serve it.
@@ -321,6 +334,10 @@ def run_form(
             was started by one (see `cli._take_launcher_options`): `port`,
             `window-size`, `window-title`, `window-icon` and `log`. They win
             over the arguments above.
+        argv:
+            the command line, so that its arguments open the form already
+            filled in (`python main.py Alice 22 :gui`), and its command name
+            picks the tab (`python main.py serve 8080 :gui`).
     """
     overrides = options or {}
 
@@ -342,8 +359,12 @@ def run_form(
     window_icon = overrides.get('window-icon') or None
     window_size = parse_size(overrides.get('window-size', ''))
 
-    commands = [spec_of(func_info) for func_info in func_infos]
-    scene = GuiScene(resolve_groups(groups, commands))
+    initials, active = resolve_initials(func_infos, argv)
+    commands = [
+        spec_of(func_info, initials.get(func_info.name))
+        for func_info in func_infos
+    ]
+    scene = GuiScene(resolve_groups(groups, commands), active=active)
     layout: Layout = 'wide' if window else 'centered'
     sc.run(
         partial(scene.setup_ui, title, layout),

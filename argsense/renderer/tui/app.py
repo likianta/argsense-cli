@@ -22,6 +22,9 @@ from textual.widgets import Tab
 from textual.widgets import Tabs
 
 from .triple_switch import TripleSwitch
+from ..initials import collect_initial_values as _collect_initial_values
+from ..initials import front_matter
+from ..initials import resolve_initials as _resolve_initials
 from ...converter import args_2_cargs
 from ...parser import Argv
 from ...parser import FuncInfo
@@ -193,48 +196,19 @@ def group_id(group_name: str) -> str:
     return 'group-{}'.format(group_name)
 
 
-def front_matter(func_info: FuncInfo) -> dict:
-    """
-    The same `front_matter` that the cli interface hands to the parser.
-    """
-    return {
-        'args': {k: v['ctype'] for k, v in func_info.args.items()},
-        'kwargs': {k: v['ctype'] for k, v in func_info.extended_kwargs.items()},
-        'index': func_info.cname_2_name,
-    }
-
-
 def collect_initial_values(func_info: FuncInfo, argv: Argv) -> T.InitialValues:
     """
     Best effort: map a command line onto form values, so that
     `python main.py Alice 22` opens the form with 'Alice' and '22' filled in.
 
-    Only the parameters the user actually gave are returned, and a command
-    line that does not parse at all simply yields nothing.
+    The values arrive typed (see `renderer.initials`) and are spelled as the
+    text an `Input` holds here.
     """
-    try:
-        result = parse_argv(
-            argv,
-            mode='command',
-            front_matter=front_matter(func_info),  # type: ignore
-            implicit_help=False,
-            raise_on_error=True,
-        )
-    except e.ArgvParsingFailed:
-        return {}
-
-    assert result is not None
-    infos = {**func_info.args, **func_info.kwargs}
-    values: T.InitialValues = {}
-    for name, value in {**result['args'], **result['kwargs']}.items():
-        info = infos.get(name)
-        if info is None:
-            continue
-        if value == info.get('default', ...):
-            # not given by the user; the form shows the default anyway.
-            continue
-        values[name] = value if isinstance(value, bool) else _value_text(value)
-    return values
+    values = _collect_initial_values(func_info, argv)
+    return {
+        name: value if isinstance(value, bool) else _value_text(value)
+        for name, value in values.items()
+    }
 
 
 def resolve_initials(
@@ -246,30 +220,14 @@ def resolve_initials(
 
     Returns `(initials, active_command_name)`.
     """
-    func_infos = list(func_infos)
-    initials: T.InitialsMap = {fi.name: {} for fi in func_infos}
-    active = func_infos[0].name
-    if argv is None:
-        return initials, active
-
-    if len(func_infos) == 1:
-        initials[func_infos[0].name] = collect_initial_values(
-            func_infos[0], argv
-        )
-        return initials, active
-
-    # multi-command: the first positional token is the command name, and the
-    # tokens that follow it are that command's arguments.
-    tokens = list(argv.args)
-    for i, token in enumerate(tokens):
-        if token.startswith(('-', '_')):
-            continue
-        target = next((x for x in func_infos if x.name == token), None)
-        if target is not None:
-            active = target.name
-            sub_argv = Argv(argv.launcher, argv.target, tuple(tokens[i + 1 :]))
-            initials[target.name] = collect_initial_values(target, sub_argv)
-        break
+    typed, active = _resolve_initials(func_infos, argv)
+    initials: T.InitialsMap = {
+        command: {
+            name: value if isinstance(value, bool) else _value_text(value)
+            for name, value in values.items()
+        }
+        for command, values in typed.items()
+    }
     return initials, active
 
 
