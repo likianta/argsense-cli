@@ -1,6 +1,8 @@
 import os.path
 import typing as tp
 
+from neoprint import print
+
 from .cli import CommandLineInterface
 from .launcher import ASSETS
 from .launcher import DESKTOP
@@ -24,7 +26,7 @@ def create_launcher(
 ) -> None:
     """
     Wrap a script (or a module) in a launcher that can be double-clicked.
-    For a practical scene, we suggest passing at least `source` and `name` to -
+    In a practical scene, we suggest passing at least `source` and `name` to -
     this command.
 
     Args:
@@ -154,9 +156,14 @@ def _parse_params(
     file_target = os.path.abspath(
         '{}/{}.{}'.format(output_directory, name_stem, kind)
     )
+    # note that DESKTOP is forward slashed path. we need to normalize the 
+    # separator before comparing.
+    on_desktop = os.path.normcase(file_target).startswith(
+        os.path.normcase(DESKTOP)
+    )
     file_shortcut = (
         '{}/{}.{}'.format(DESKTOP, name_stem, 'lnk')
-        if add_to_desktop_shortcut and not file_target.startswith(DESKTOP)
+        if add_to_desktop_shortcut and not on_desktop
         else ''
     )
 
@@ -170,10 +177,17 @@ def _parse_params(
 
 
 def _default_stem(source: str) -> str:
-    """The name a launcher borrows from `source`: "bar" for "foo.bar"."""
+    """
+    The name a launcher borrows from `source` and titlize.
+    
+    E.g. "hello_world.py" -> "Hello World",  "foo.bar" -> "Bar".
+    """
     if is_module_source(source):
-        return source.rsplit('.', 1)[-1]
-    return os.path.basename(source).removesuffix('.py')
+        src_name = source.rsplit('.', 1)[-1]
+    else:
+        src_name = os.path.basename(source).removesuffix('.py')
+    app_name = src_name.replace('_', ' ').title()
+    return app_name
 
 
 def _prefer_kind(icon: str) -> tp.Literal['exe', 'lnk']:
