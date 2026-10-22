@@ -8,7 +8,6 @@ module holds what that command delegates to.
 import hashlib
 import os
 import typing as tp
-from pathlib import Path
 from textwrap import dedent
 
 from .config import LaunchConfig
@@ -19,6 +18,7 @@ from .interpreter import get_interpreter_path
 from .interpreter import get_pythonw
 from .interpreter import is_real_pythonw
 from .lnk import make_lnk
+from .path import APPDATA
 from .path import ASSETS
 from .path import DESKTOP
 from .path import RCEDIT
@@ -92,14 +92,14 @@ def check_requirements(
                 LINK='https://github.com/likianta/argsense-cli/tree/main/misc',
             )
 
-        elif kind == 'lnk' and not show_console and (not quiet or autofix):
+        if not show_console and (not quiet or autofix):
             pythonw = get_pythonw()
             if not is_real_pythonw(pythonw):
                 if autofix:
                     fix_pythonw()
                 elif not quiet:
                     print(
-                        ':pv8',
+                        ':pv6',
                         dedent(
                             """
                             The pythonw.exe ({}) is not a real pythonw which is 
@@ -135,9 +135,9 @@ def check_requirements(
                     dedent(
                         """
                         Cannot find "rcedit.exe" in "{PATH}". This is usual 
-                        problem if you see it at first time after `pip install 
-                        argsense`, because argsense does not ship this binary 
-                        with its ".whl" package.
+                        problem if you see it at first time after 
+                        `pip install argsense`, because argsense does not ship 
+                        this binary with its ".whl" package.
 
                         To get it, you can download from the repository site's 
                         "misc" folder (link: {LINK}), or download it from the 
@@ -177,8 +177,11 @@ def create_launcher(
     Write the launcher (and, optionally, a shortcut to it on the desktop).
     Returns the files written, in the order they were created.
     """
-    if not target:
-        target = '{}/{}.{}'.format(DESKTOP, source.removesuffix('.py'), kind)
+    if target:
+        name = os.path.basename(target).rsplit('.', 1)[0]
+    else:
+        name = os.path.basename(source).removesuffix('.py')
+        target = '{}/{}.{}'.format(DESKTOP, name, kind)
 
     if icon and icon.endswith('.png'):
         icon = png_to_ico(
@@ -190,8 +193,10 @@ def create_launcher(
         script=source,
         cwd=os.getcwd(),
         args=(':gui',),
-        name=os.path.basename(target).rsplit('.', 1)[0],
-        log='',
+        name=name,
+        # without a log there is nowhere to read why a windowless app died:
+        # the stub can only report the exit code (see `boot.setup`).
+        log='{}/logs/{}.log'.format(APPDATA, name),
         icon=icon,
         port=port,
         window_size=window_size,

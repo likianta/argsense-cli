@@ -63,7 +63,10 @@ def parse_docstring(doc: str, funsig: 'FuncInfo') -> T.DocsInfo:
         return out
 
     doc = dedent(doc).strip()
-    doc = re.sub(r' - *\n +', ' ', doc)
+    # a line ending in " -" continues on the next one. the next line may keep
+    # an indent (a description under a param) or sit at the left margin (the
+    # top description), and both should join with a single space.
+    doc = re.sub(r' - *\n *', ' ', doc)
 
     flag = 'INIT'
     temp_str: str = ''

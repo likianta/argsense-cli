@@ -7,19 +7,35 @@ own: no dependency, and a single place to quote paths correctly.
 """
 
 import subprocess
+import typing as tp
 
 from .config import LaunchConfig
 
 
-def make_lnk(config: LaunchConfig, file_o: str, description: str = '') -> str:
-    """Create (or overwrite) `file_o` pointing at `target`."""
+def make_lnk(
+    config: LaunchConfig,
+    file_o: str,
+    *,
+    description: str = '',
+    arguments: tp.Optional[str] = None,
+) -> str:
+    """
+    Create (or overwrite) `file_o` pointing at `config.python`.
+
+    `arguments` defaults to the command line built from `config`; pass `''`
+    when the target is a launcher that already knows what to start.
+    """
 
     parts = [
         '$s=(New-Object -ComObject WScript.Shell).CreateShortcut({});'.format(
             _quote_psarg(file_o)
         ),
         '$s.TargetPath={};'.format(_quote_psarg(config.python)),
-        '$s.Arguments={};'.format(_quote_psarg(_stringify_arguments(config))),
+        '$s.Arguments={};'.format(
+            _quote_psarg(
+                _stringify_arguments(config) if arguments is None else arguments
+            )
+        ),
         '$s.WorkingDirectory={};'.format(_quote_psarg(config.cwd)),
         '$s.Description={};'.format(_quote_psarg(description or config.name)),
     ]
@@ -79,7 +95,7 @@ def _stringify_arguments(config: LaunchConfig) -> str:
         parts.append(_quote_arg(config.icon))
 
     if config.log:
-        parts.append('--argsense-window-log')
+        parts.append('--argsense-log')
         parts.append(_quote_arg(config.log))
 
     return ' '.join(parts)

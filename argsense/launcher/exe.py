@@ -42,7 +42,8 @@ def _rcedit(file_exe: str, *args: str) -> None:
 
 
 class Payload:
-    MAGIC = b'ARGSENSE'
+    # keep in sync with `magic` in `src/stub.v`.
+    MAGIC = b'ARGSNCHR'
     FOOTER = len(MAGIC) + 4
 
     def append_payload(self, file_exe: str, config: LaunchConfig) -> None:

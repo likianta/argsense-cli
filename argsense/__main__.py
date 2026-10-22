@@ -13,11 +13,11 @@ def create_launcher(
     script: str,
     name: str = '',
     output_directory: str = DESKTOP,
-    port: int = 0,
     kind: tp.Literal['auto', 'exe', 'lnk'] = 'auto',
     title: str = '',
     size: str = '',
-    icon: str = '{}/python.png'.format(ASSETS),
+    icon: str = '{}/launcher.png'.format(ASSETS),
+    port: int = 0,
     show_console: bool = False,
     add_to_desktop_shortcut: bool = True,
 ) -> None:
@@ -28,7 +28,6 @@ def create_launcher(
 
     Args:
         script (-s): The path of the ".py" file to start.
-        output_directory (-o): Be default, it outputs to Desktop path.
         name (-n):
             The name can be one of the three forms:
 
@@ -41,13 +40,14 @@ def create_launcher(
 
             To give a name contains whitespaces, you need to quote it as the -
             convention of regular command line args.
+        output_directory (-o): Be default, it outputs to Desktop path.
         kind (-k):
             'auto': auto deduce the proper value, it prefers "exe" if possible -
             else fallback to "lnk".
             Or you can explicitly set "exe" or "lnk".
             Be noted if the `kind` conflicts with `name` (if set), it raises -
             an error.
-        title: The text in the window's title bar.
+        title (-t): The text in the window's title bar.
         size (-z): The window size, written as "980x820".
         icon (-i): A ".png" or ".ico" file. Both for launcher and window.
         port (-p):
@@ -81,12 +81,13 @@ def create_launcher(
         show_console=show_console,
     )
 
-    if (
-        file_shortcut and file_shortcut != file_target
-    ):  # add_to_desktop_shortcut
-        cfg.python = file_target  # FIXME
-        cfg.icon = file_target  # FIXME
-        make_lnk(cfg, file_shortcut)
+    if file_shortcut:  # add_to_desktop_shortcut
+        # the shortcut points at the launcher itself, and carries no
+        # arguments of its own: the launcher already knows what to start.
+        cfg.python = file_target
+        cfg.args = ()
+        cfg.icon = file_target if kind == 'exe' else icon
+        make_lnk(cfg, file_shortcut, arguments='')
         print(
             ':tv4',
             'done. see launcher at "{}" and its desktop shortcut "{}"'.format(
@@ -122,29 +123,29 @@ def _parse_params(
     if icon:
         assert icon.endswith(('.ico', '.png')) and os.path.exists(icon)
 
-    # resolve name_stem
-    if name:
-        if name.endswith(('.exe', '.lnk')):
-            name_stem = name[:-4] or os.path.basename(script).removesuffix(
-                '.py'
-            )
-            if kind == 'auto':
-                kind = name[-3:]
-            else:
-                assert kind == name[-3:]
-        else:
-            name_stem = name
+    # resolve name_stem, and the kind its suffix claims (if any).
+    name_stem: str
+    name_kind: str = ''
+    if name.endswith(('.exe', '.lnk')):
+        name_kind = name[-3:]
+        name_stem = name[:-4] or os.path.basename(script).removesuffix('.py')
     else:
-        name_stem = os.path.basename(script).removesuffix('.py')
+        name_stem = name or os.path.basename(script).removesuffix('.py')
 
-    # resolve kind
+    # resolve kind: an explicit one wins, then the name's suffix, and 'auto'
+    # falls back to whichever form can be built here.
     if kind == 'auto':
-        kind = _prefer_kind(icon)
+        kind = name_kind or _prefer_kind(icon)
     else:
         assert kind in ('exe', 'lnk')
+        if name_kind:
+            assert kind == name_kind
 
-    # resolve final paths
-    file_target = '{}/{}.{}'.format(output_directory, name_stem, kind)
+    # resolve final paths. the target is absolute because a shortcut on the
+    # desktop can only point at an absolute path.
+    file_target = os.path.abspath(
+        '{}/{}.{}'.format(output_directory, name_stem, kind)
+    )
     file_shortcut = (
         '{}/{}.{}'.format(DESKTOP, name_stem, 'lnk')
         if add_to_desktop_shortcut and not file_target.startswith(DESKTOP)
@@ -160,21 +161,13 @@ def _parse_params(
     return (script, file_target, file_shortcut, kind, size)
 
 
-def _prefer_kind(window_icon: str) -> tp.Literal['exe', 'lnk']:
+def _prefer_kind(icon: str) -> tp.Literal['exe', 'lnk']:
     """
-    Settle on 'exe' or 'lnk'. We prefer 'exe' if any condition meets it; if -
-    none of the conditions meet, fallback to 'lnk' or raise error.
+    Settle on 'exe' or 'lnk' when the caller left it to us. 'exe' looks like a
+    normal application, so it wins whenever its tooling is there; 'lnk' needs
+    no binaries at all and is the fallback.
     """
-    if window_icon:
-        if os.path.exists('{}/rcedit.exe'.format(ASSETS)):
-            return 'exe'
-        else:
-            raise Exception
-    else:
-        if os.path.exists('{}/stub.exe'.format(ASSETS)):
-            return 'exe'
-        else:
-            return 'lnk'
+    return 'exe' if _is_exe_tooling_ready(icon) else 'lnk'
 
 
 if __name__ == '__main__':

@@ -19,6 +19,13 @@ def desktop_dir() -> str:
         return str(Path.home() / 'Desktop')
 
 
+_LOCAL_APPDATA = os.environ.get('LOCALAPPDATA', '').replace('\\', '/')
+APPDATA = (
+    '{}/argsense'.format(_LOCAL_APPDATA)
+    if _LOCAL_APPDATA
+    else os.path.expanduser('~/.argsense').replace('\\', '/')
+)
+
 DESKTOP = os.path.expanduser('~/Desktop').replace('\\', '/')
 
 PKG_ROOT = os.path.normpath('{}/../../'.format(__file__)).replace('\\', '/')
@@ -28,3 +35,4 @@ ASSETS = '{}/launcher/assets'.format(PKG_ROOT)
 
 RCEDIT = '{}/rcedit.exe'.format(ASSETS)
 STUB = '{}/stub.exe'.format(ASSETS)
+ICON = '{}/launcher.png'.format(ASSETS)
