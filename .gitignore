@@ -2,12 +2,15 @@
 /.trae/
 /argsense/launcher/assets/rcedit.exe
 /argsense/launcher/assets/stub.exe
+/argsense/launcher/assets/generated_icons/*
 /dist/
 /docs/advertisement/
 /docs/images/svg/
 /lib/
 /references/
 /test/temp/
+
 __pycache__/
-*.pyc
 .DS_Store
+
+!/argsense/launcher/assets/generated_icons/.gitkeep

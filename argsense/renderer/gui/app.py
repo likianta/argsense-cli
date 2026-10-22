@@ -8,6 +8,7 @@ scene is the registry that build fills in and Run reads back.
 """
 
 import socket
+import sys
 import typing as tp
 from datetime import datetime
 from functools import partial
@@ -324,7 +325,10 @@ def run_form(
     overrides = options or {}
 
     log_file = overrides.get('log', '')
-    if log_file:
+    # a launcher starts us under pythonw, where both streams are `None`; the
+    # setup gives them a sink (the log, or the null device) before uvicorn's
+    # logging asks whether stdout is a tty.
+    if log_file or sys.stdout is None:
         from ...launcher import boot
 
         boot.setup(log_file)

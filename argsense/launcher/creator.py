@@ -18,7 +18,6 @@ from .interpreter import get_interpreter_path
 from .interpreter import get_pythonw
 from .interpreter import is_real_pythonw
 from .lnk import make_lnk
-from .path import APPDATA
 from .path import ASSETS
 from .path import DESKTOP
 from .path import RCEDIT
@@ -185,7 +184,10 @@ def create_launcher(
 
     if icon and icon.endswith('.png'):
         icon = png_to_ico(
-            icon, '{}/{}.ico'.format(ASSETS, _file_to_unique_id(icon))
+            icon,
+            '{}/generated_icons/{}.ico'.format(
+                ASSETS, _file_to_unique_id(icon)
+            ),
         )
 
     cfg = LaunchConfig(
@@ -194,9 +196,6 @@ def create_launcher(
         cwd=os.getcwd(),
         args=(':gui',),
         name=name,
-        # without a log there is nowhere to read why a windowless app died:
-        # the stub can only report the exit code (see `boot.setup`).
-        log='{}/logs/{}.log'.format(APPDATA, name),
         icon=icon,
         port=port,
         window_size=window_size,
