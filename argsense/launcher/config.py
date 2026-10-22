@@ -16,14 +16,9 @@ a newline, so no escaping is needed -- and the stub parses it with `split`
 calls instead of a json parser.
 """
 
-import struct
 import typing as tp
 from dataclasses import dataclass
-from dataclasses import field
-from pathlib import Path
 
-MAGIC = b'ARGSNCHR'
-FOOTER = len(MAGIC) + 4
 # the separator for `args`: a unit separator, which no sane command line
 # argument contains, so the list survives the round trip.
 ARGS_SEP = '\x1f'
@@ -46,7 +41,7 @@ class LaunchConfig:
     log: str = ''
     icon: str = ''
     port: int = 0
-    window_size: str = ''
+    window_size: tp.Optional[tp.Tuple[int, int]] = None
     window_title: str = ''
     show_console: bool = False
 
@@ -60,7 +55,9 @@ class LaunchConfig:
             'log={}'.format(self.log),
             'icon={}'.format(self.icon),
             'port={}'.format(self.port),
-            'window_size={}'.format(self.window_size),
+            'window_size={}'.format(
+                LaunchConfig.size_tuple_to_str(self.window_size)
+            ),
             'window_title={}'.format(self.window_title),
             'show_console={}'.format('1' if self.show_console else '0'),
         ]
@@ -84,58 +81,17 @@ class LaunchConfig:
             log=data.get('log', ''),
             icon=data.get('icon', ''),
             port=int(data.get('port', '0')),
-            window_size=data.get('window_size', ''),
+            window_size=data.get('window_size', None)
+            and LaunchConfig.size_str_to_tuple(data['window_size']),
             window_title=data.get('window_title', ''),
             show_console=data.get('show_console', '0') == '1',
         )
 
+    @staticmethod
+    def size_str_to_tuple(size: str):
+        w, _, h = size.partition('x')
+        return (int(w), int(h))
 
-@dataclass
-class Built:
-    """What `build` produced, so the caller can print or test it."""
-
-    path: Path
-    config: LaunchConfig
-    extra: tp.Dict[str, Path] = field(default_factory=dict)
-
-
-def append_payload(file_exe: tp.Union[str, Path], config: LaunchConfig) -> None:
-    """Write `config` after the last PE section, replacing any earlier one."""
-    path = Path(file_exe)
-    data = path.read_bytes()
-    data = _strip_payload(data)
-    payload = config.to_text().encode('utf-8')
-    path.write_bytes(data + payload + struct.pack('<I', len(payload)) + MAGIC)
-
-
-def read_payload(file_exe: tp.Union[str, Path]) -> LaunchConfig:
-    path = Path(file_exe)
-    return LaunchConfig.from_text(
-        _payload_of(path.read_bytes()).decode('utf-8')
-    )
-
-
-def has_payload(file_exe: tp.Union[str, Path]) -> bool:
-    try:
-        _payload_of(Path(file_exe).read_bytes())
-    except ValueError:
-        return False
-    return True
-
-
-def _payload_of(data: bytes) -> bytes:
-    if len(data) < FOOTER or not data.endswith(MAGIC):
-        raise ValueError('no launcher payload in this file')
-    length = struct.unpack_from('<I', data, len(data) - FOOTER)[0]
-    start = len(data) - FOOTER - length
-    if start < 0:
-        raise ValueError('the launcher payload is truncated')
-    return data[start : len(data) - FOOTER]
-
-
-def _strip_payload(data: bytes) -> bytes:
-    try:
-        payload = _payload_of(data)
-    except ValueError:
-        return data
-    return data[: len(data) - FOOTER - len(payload)]
+    @staticmethod
+    def size_tuple_to_str(size: tp.Optional[tp.Tuple[int, int]]):
+        return '{}x{}'.format(*size) if size else ''

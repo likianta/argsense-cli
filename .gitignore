@@ -1,6 +1,7 @@
 /.idea/
 /.trae/
-/argsense/launcher/assets/*
+/argsense/launcher/assets/rcedit.exe
+/argsense/launcher/assets/stub.exe
 /dist/
 /docs/advertisement/
 /docs/images/svg/
@@ -10,4 +11,3 @@
 __pycache__/
 *.pyc
 .DS_Store
-!**/.gitkeep
