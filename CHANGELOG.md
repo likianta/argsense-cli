@@ -1,6 +1,6 @@
 # Changelog
 
-### 3.1.0 (WIP)
+### 3.1.0 (2026-10-23)
 
 - Create desktop shortcuts for ArgSense GUI ports.
 

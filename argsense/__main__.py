@@ -1,5 +1,7 @@
 import os.path
 import shlex
+import subprocess
+import sys
 import typing as tp
 
 from neoprint import print
@@ -7,11 +9,53 @@ from neoprint import print
 from .cli import CommandLineInterface
 from .launcher import ASSETS
 from .launcher import DESKTOP
+from .launcher import RCEDIT
+from .launcher import STUB
 from .launcher import check_requirements
 from .launcher import create_launcher as _do_create_launcher
 from .launcher import is_module_source
 from .launcher import make_lnk
 from .launcher import pull_assets
+
+
+def welcome(
+    mode: tp.Literal['cli', 'tui', 'gui'] = 'cli',
+    create_desktop_shortcut: bool = False,
+) -> None:
+    """
+    A quick tour of ArgSense's visual features.
+
+    Args:
+        mode:
+            cli: Show a pretty help interface.
+            tui: Show the classic textual interface in a terminal.
+            gui: Show the delicate graphical interface in a native window.
+        create_desktop_shortcut (-d):
+            Create a launcher on the desktop that starts this tour in "gui" -
+            mode next time.
+    """
+    if create_desktop_shortcut:
+        if not (os.path.exists(STUB) and os.path.exists(RCEDIT)):
+            pull_assets()
+        create_launcher(
+            source='argsense.welcome',
+            name='ArgSense Welcome',
+            title='ArgSense Welcome',
+            add_to_desktop_shortcut=False,
+        )
+        return
+
+    if mode == 'cli':
+        # `create_launcher` has the prettiest help page in the package, so it
+        # is what the cli part of the tour shows.
+        subprocess.run(
+            (sys.executable, '-m', 'argsense', 'create_launcher', '-h')
+        )
+        return
+
+    from .welcome import run
+
+    run(mode, window=True)
 
 
 def create_launcher(
@@ -251,4 +295,4 @@ if __name__ == '__main__':
     # python -m argsense -h
     # python -m argsense create_launcher -h
     # python -m argsense pull_launcher_misc -h
-    CommandLineInterface().run((create_launcher, pull_launcher_misc))
+    CommandLineInterface().run((welcome, create_launcher, pull_launcher_misc))

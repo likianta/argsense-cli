@@ -15,3 +15,5 @@ from .misc import pull_assets
 from .path import ASSETS
 from .path import DESKTOP
 from .path import PKG_ROOT
+from .path import RCEDIT
+from .path import STUB

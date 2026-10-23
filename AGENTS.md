@@ -17,11 +17,12 @@ argsense 是一个基于 [Rich](https://github.com/Textualize/rich) 的 Python �
 argsense-cli/
 ├── argsense/                 # 源码包
 │   ├── __init__.py           # 对外导出的公共 API
-│   ├── __main__.py           # 命令行入口: create_launcher / pull_launcher_misc
+│   ├── __main__.py           # 命令行入口: welcome / create_launcher / pull_launcher_misc
 │   ├── cli.py                # CommandLineInterface: 命令注册, 运行, docstring 引用解析
 │   ├── config.py             # 全局配置项
 │   ├── converter.py          # 名称/类型转换
 │   ├── tui.py                # TuiInterface: cli 接口的文本界面 (TUI) 形态
+│   ├── welcome.py            # welcome 命令的演示程序 (cli / tui / gui 三种形态共用)
 │   ├── parser/               # 解析层
 │   │   ├── func_parser.py    # parse_function(): 解析函数签名 (FuncInfo)
 │   │   ├── docs_parser.py    # parse_docstring(): 解析 docstring
@@ -136,6 +137,12 @@ Commit 信息格式:
    - `stub.exe` 与 `rcedit.exe` 不随 whl 发布: 用户执行 `python -m argsense pull-launcher-misc` 从仓库 `misc/` 下载 (支持 `--mirror-site`); 维护者改了 `launcher/src/stub.v` 后要运行 `launcher/src/build.py`, 它会同时更新 `launcher/assets/stub.exe` 和仓库根部的 `misc/stub.exe`
 
 **内置命令**: `-h` / `:help` 显示帮助; `:loop` 进入循环调用模式; `:true` `:false` `:none` `:empty` 为特殊值. 模式令牌 `:cli` `:gui` `:guiw` `:tui` `:itui` 可以出现在命令行的任何位置, 会覆盖 `mode` 参数.
+
+**`python -m argsense` 的子命令** (定义在 `__main__.py`):
+
+- `welcome [cli|tui|gui]`: 用 `welcome.py` 里的演示命令展示三种界面形态; `-d` 会先生成 (必要时下载二进制) 一个指向 `argsense.welcome` 的桌面启动器.
+- `create_launcher <source> ...`: 生成 `.exe` / `.lnk` 启动器 (见上面的启动器阶段).
+- `pull_launcher_misc`: 下载 `rcedit.exe` / `stub.exe` (`--mirror-site` 走镜像, `--force` 覆盖已有文件).
 
 ## Docstring 格式约定
 
