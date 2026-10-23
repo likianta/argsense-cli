@@ -17,7 +17,7 @@ argsense 是一个基于 [Rich](https://github.com/Textualize/rich) 的 Python �
 argsense-cli/
 ├── argsense/                 # 源码包
 │   ├── __init__.py           # 对外导出的公共 API
-│   ├── __main__.py           # 命令行入口: `python -m argsense create_launcher ...`
+│   ├── __main__.py           # 命令行入口: create_launcher / pull_launcher_misc
 │   ├── cli.py                # CommandLineInterface: 命令注册, 运行, docstring 引用解析
 │   ├── config.py             # 全局配置项
 │   ├── converter.py          # 名称/类型转换
@@ -26,19 +26,36 @@ argsense-cli/
 │   │   ├── func_parser.py    # parse_function(): 解析函数签名 (FuncInfo)
 │   │   ├── docs_parser.py    # parse_docstring(): 解析 docstring
 │   │   └── args_parser/      # parse_argv(): 把 argv 解析成实参
+│   ├── launcher/             # 桌面启动器 (仅 Windows): 生成 .exe / .lnk
+│   │   ├── assets/           # launcher.png 随包发布; rcedit.exe / stub.exe 不进仓库与 whl
+│   │   │                     # generated_icons/ 是 png->ico 的缓存 (已 gitignore)
+│   │   ├── src/              # stub.v (V 写的启动器存根) + build.py (编译并同步到 misc/)
+│   │   ├── boot.py           # 应用的日志与异常弹窗 (gui 表单启动时调用)
+│   │   ├── config.py         # LaunchConfig + PE 尾部载荷的读写
+│   │   ├── creator.py        # create_launcher(): 决策与编排
+│   │   ├── exe.py            # 存根副本 + rcedit 图标 + 追加载荷
+│   │   ├── icon.py           # png -> 多尺寸 ico
+│   │   ├── interpreter.py    # pythonw 真伪检测与修复
+│   │   ├── lnk.py            # 用 PowerShell 的 WScript.Shell 写快捷方式
+│   │   ├── misc.py           # pull-launcher-misc: 从仓库 misc/ 下载两个二进制
+│   │   └── path.py           # ASSETS / DESKTOP / APPDATA 等路径
 │   └── renderer/             # 渲染层
-│       ├── rich/             # 命令行帮助界面 (palette.py 为配色表)
+│       ├── initials.py       # 命令行参数 -> 表单初始值 (tui / gui 共用)
+│       ├── cli/              # 命令行帮助界面 (palette.py 为配色表)
 │       ├── tui/              # 文本界面 (Textual; app.py 为表单应用)
-│       └── psg/              # PySimpleGUI 图形界面后端
+│       └── gui/              # 图形界面 (streamlit-canary; app/spec/fields/layout)
+├── misc/                     # 仓库分发用的 stub.exe / rcedit.exe
 ├── sidework/                 # 辅助脚本 (文档插图生成等)
 │   ├── readme_screenshots.py # 批量生成 README 插图
 │   ├── readme_scenes.py      # README 插图的场景定义 (console scene / tui scene)
 │   ├── record_help_interface.py    # 单张帮助界面截图的底层入口
 │   └── screenshot_console_output.py # 单个控制台会话截图的底层入口
-├── examples/                 # 示例脚本
+├── examples/                 # 示例脚本 (08_gui_showcase.py 为 GUI 场景)
 ├── test/                     # 手工运行的测试脚本 (非 pytest), 部分测试可能过时, 注意甄别
+│   ├── gui_test/             # GUI 的场景脚本与无头测试
 │   └── tui_test/             # TUI 的场景脚本与无头测试
 ├── docs/                     # 补充文档 (部分可能已过时)
+│   ├── advertisement/        # 推广文章 (本地维护, 在 .gitignore 内)
 │   └── images/               # 文档所使用到的插图 (由 sidework 脚本生成)
 ├── README.md                 # 自述文档
 └── CHANGELOG.md              # 更新日志 (只维护英文版)
@@ -91,6 +108,7 @@ Commit 信息格式:
 - 图片名是稳定的 (不带时间戳), 所以刷新插图不会产生孤儿文件; README 通过图片名引用插图.
 - 新增或修改 README 插图时, 必须同步更新 `readme_scenes.py` 与 `readme_screenshots.py` 中的清单, 以确保插图始终可重现.
 - `sidework/record_help_interface.py` 与 `sidework/screenshot_console_output.py` 是底层录制工具的单独入口; 日常刷新插图直接用 `readme_screenshots.py` 即可.
+- GUI 章节目前没有 README 插图 (原生窗口/表单截图无法由 sidework 自动生成); `docs/advertisement/` 下的推广文章使用手工截图, 且该目录在 `.gitignore` 内, 不随仓库发布.
 
 ## 核心架构
 
@@ -105,11 +123,19 @@ Commit 信息格式:
 3. **运行阶段** (`cli.py`)
    - `cli.run()` / `cli.exec_argv()` → 交给 `parser/args_parser` 解析 argv, 再调用目标函数
    - `exec_argv()` 入口会先调用 `resolve_doc_references()`, 解析 docstring 中的参数引用 (见下)
-4. **渲染阶段** (两种形态)
-   - `renderer/rich`: 生成帮助界面, 参数表格, 错误提示
+4. **渲染阶段** (三种形态)
+   - `renderer/cli`: 生成帮助界面, 参数表格, 错误提示
    - `renderer/tui`: 用 Textual 把命令渲染成可填写的表单 (`mode='tui'`, 或命令行里的 `:tui` / `:itui`)
+   - `renderer/gui`: 用 streamlit-canary 渲染表单, 用 pyapp-window 开原生窗口 (`mode='gui'`, 或命令行里的 `:gui` / `:guiw`)
+   - 表单的初始值由 `renderer/initials.py` 从命令行解析而来: 已经给出的参数会预填进表单, 多点命令时据此决定默认打开哪个 tab (tui 与 gui 共用这套解析)
+5. **启动器阶段** (`launcher/`, 仅 Windows)
+   - `python -m argsense create_launcher <source> ...` → `creator.create_launcher()`, 决策 (kind/name/输出路径) 都集中在那里
+   - `.exe`: 复制 `assets/stub.exe` → 可选地用 rcedit 打图标 → 把 `LaunchConfig` 文本追加到 PE 尾部. **顺序不能反**: rcedit 会重建资源节, 丢掉尾部数据
+   - `.lnk`: 用 PowerShell (WScript.Shell) 写快捷方式, 不依赖 pywin32
+   - 双击后, stub 从自己的尾部读出配置, 用记录下来的 pythonw 启动 `<script> <args> :gui`, 并通过 `--argsense-*` 选项把端口/窗口尺寸/标题/图标/日志传给应用 (`cli._take_launcher_options`)
+   - `stub.exe` 与 `rcedit.exe` 不随 whl 发布: 用户执行 `python -m argsense pull-launcher-misc` 从仓库 `misc/` 下载 (支持 `--mirror-site`); 维护者改了 `launcher/src/stub.v` 后要运行 `launcher/src/build.py`, 它会同时更新 `launcher/assets/stub.exe` 和仓库根部的 `misc/stub.exe`
 
-**内置命令**: `-h` / `:help` 显示帮助; `:loop` 进入循环调用模式; `:true` `:false` `:none` `:empty` 为特殊值 (详见 README).
+**内置命令**: `-h` / `:help` 显示帮助; `:loop` 进入循环调用模式; `:true` `:false` `:none` `:empty` 为特殊值. 模式令牌 `:cli` `:gui` `:guiw` `:tui` `:itui` 可以出现在命令行的任何位置, 会覆盖 `mode` 参数.
 
 ## Docstring 格式约定
 

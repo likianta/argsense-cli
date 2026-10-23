@@ -24,6 +24,7 @@ Screenshots:
 - Less peripheral code. No decorator is required: pass a function to `cli.run(...)`, or call a bare `cli.run()` to publish every public function in the module.
 - Rich panel of help interface.
 - A [text user interface (TUI)](#tui) to fill a command in, instead of typing it.
+- A [graphical user interface (GUI)](#gui) for the same commands, and a double-clickable [desktop launcher](#desktop-launcher-windows) for them.
 - A color palette based on [Catppuccin](https://catppuccin.com/), which falls back to the 16 basic ANSI colors on a legacy terminal.
 
 ## Comparison with Other Libraries
@@ -703,6 +704,22 @@ The text user interface ([TUI](#tui)) is built on [Textual](https://textual.text
 pip install argsense[tui]
 ```
 
+The [GUI](#gui) form is optional too. It is served by [streamlit-canary](https://github.com/likianta/streamlit-canary) and shown in a native window by [pyapp-window](https://github.com/likianta/pyapp-window):
+
+```shell
+pip install argsense[gui]
+
+# or everything: the CLI, the TUI, the GUI, and the pillow dependency that
+# the launcher's icon step uses.
+pip install argsense[all]
+```
+
+Desktop launchers are a Windows feature, and need two binaries that are kept out of the wheel. Fetch them once (see [Desktop Launcher](#desktop-launcher-windows)):
+
+```shell
+python -m argsense pull-launcher-misc
+```
+
 ## Quick Start
 
 ```python
@@ -769,6 +786,95 @@ A `bool | None` parameter (i.e. `typing.Optional[bool]`) is drawn as a **triple 
 ![](docs/images/tui-log.png)
 
 The tui is built on [Textual](https://textual.textualize.io/), and is an [optional dependency](#install).
+
+## GUI
+
+The same commands can also be rendered as a web form and shown in a native window. Append `:gui` or `:guiw` to the command line:
+
+```python
+from argsense import cli
+
+def resize(src: str, width: int = 800, overwrite: bool = False):
+    """
+    resize images in a folder.
+
+    params:
+        src: the folder of images.
+        width: the target width in pixels.
+        overwrite: replace the originals instead of writing copies.
+    """
+    print(f'resizing {src} to {width}px ...')
+
+if __name__ == '__main__':
+    cli.run(resize)
+```
+
+```shell
+python main.py :gui      # a native window
+python main.py :guiw     # a browser tab (w = windowless, like "pythonw")
+```
+
+The form is built from the same signature and docstring as the help page: a text parameter becomes an input, a number gets a compact number box, a flag becomes a switch, and the `params:` text is the widget's help. What the command prints goes to the log panel at the bottom, so it does not mix into the form. Command groups (see [Command Groups](#command-groups)) become a sidebar plus tabs, exactly as they do in the [TUI](#tui).
+
+**Prefilled forms.** Arguments given on the command line open the form already filled in:
+
+```shell
+python main.py ./photos --width 1280 :gui
+```
+
+The same applies to a command of a multi-command script (`python main.py serve 8080 :gui` opens the `serve` tab with its arguments in place).
+
+**GUI by default.** Pass `mode='gui'` instead of typing the token:
+
+```python
+if __name__ == '__main__':
+    cli.run(resize, mode='gui', window=True)  # omit `window=True` for a browser tab
+```
+
+The GUI is built on [streamlit-canary](https://github.com/likianta/streamlit-canary) and [pyapp-window](https://github.com/likianta/pyapp-window), both of which are [optional dependencies](#install).
+
+### Desktop Launcher (Windows)
+
+`create_launcher` wraps a script (or a module) in a small launcher that can be double-clicked. It starts the interpreter of your current venv with the `:gui` token, so the result feels like a normal desktop application:
+
+```shell
+python -m argsense create_launcher main.py -n "Image Resizer"
+
+# a module works too: the equivalent of `python -m myapp.main :gui`
+python -m argsense create_launcher myapp.main -n "My App"
+```
+
+| Option | Meaning |
+| --- | --- |
+| `source` (`-s`) | a `.py` file, or a dotted module name |
+| `-n` / `--name` | the output name; `MyApp`, `MyApp.exe`, `MyApp.lnk` and `.exe` / `.lnk` are all accepted |
+| `-o` / `--output-directory` | where to write it; the desktop by default |
+| `-a` / `--target-args` | arguments to hand the target, e.g. `"--width 1280"` (the form opens prefilled) |
+| `-k` / `--kind` | `auto` (default), `exe` or `lnk` |
+| `-i` / `--icon` | a `.png` or `.ico` file, used for both the launcher and the window |
+| `-t` / `-z` | window title, and window size as `980x820` |
+| `-p` / `--port` | the port to serve on; `0` (default) picks a free one at every start |
+| `-c` / `--show-console` | keep a console window open, for debugging |
+| `-d` / `--add-to-desktop-shortcut` | also leave a shortcut on the desktop; on by default, `-D` turns it off |
+
+There are two forms of output:
+
+- `.exe` — the launcher itself: a ~1.2 MB stub with the settings appended to it. It looks like a regular application and shows no console.
+- `.lnk` — a shortcut to `pythonw.exe`. Only a few KB, but its icon handling is up to Windows.
+
+`auto` prefers `.exe` when its tooling is available and falls back to `.lnk` otherwise.
+
+The launcher does **not** bundle a Python runtime: it records the interpreter of the venv it was built from. That is what keeps it small, and also why it is meant for your own machine rather than for handing to someone without your environment.
+
+**One-time setup.** `rcedit.exe` and `stub.exe` are kept out of the wheel to keep the package small. Fetch them once:
+
+```shell
+python -m argsense pull-launcher-misc
+```
+
+Both files land in `<argsense>/launcher/assets/`. Add `--mirror-site` when GitHub is slow or unreachable (it downloads through `ghproxy.net`), and `--force` to download again over existing files.
+
+The icon step also uses pillow, which is part of `argsense[all]` — install that, or `pip install pillow` next to `argsense[gui]`.
 
 ## In-Depth Reading
 
