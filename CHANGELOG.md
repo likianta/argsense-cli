@@ -1,6 +1,6 @@
 # Changelog
 
-### 3.1.1 (WIP)
+### 3.1.1 (2026-10-30)
 
 - Redirect insufficient bare invocation to help interface.
 - Fix argdoc reuse.

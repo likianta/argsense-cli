@@ -88,6 +88,32 @@ class ParamNotFound(ArgvParsingFailed):
             ).format(self.param)
 
 
+class FunctionNotFound(ArgvParsingFailed):
+    """the first bare word of a group command line names no command."""
+
+    def __init__(
+        self, index: int, function: str, candidates: t.Iterable[str]
+    ) -> None:
+        self.index = index
+        self.function = function
+        self.candidates = candidates
+
+    def __str__(self) -> str:
+        if x := did_you_mean(self.function, self.candidates):
+            return _dedent(
+                """
+                Command "{}" not found, did you mean "{}"?
+                """
+            ).format(self.function, x)
+        else:
+            return _dedent(
+                """
+                Command "{}" not found, it may be a typo or a missing name.
+                Please check your command `--help` for more information.
+                """
+            ).format(self.function)
+
+
 class ShortOptionFormat(ArgvParsingFailed):
     def __init__(self, index: int, param: str) -> None:
         self.index = index

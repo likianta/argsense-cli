@@ -792,8 +792,30 @@ class CommandLineInterface:
         if preset_func:
             func = preset_func
         else:
-            if argv.possible_function:
-                func = self._cname_2_func[argv.possible_function]
+            name = argv.possible_function
+            if name:
+                func = self._cname_2_func.get(name)
+                if func is None:
+                    # the first bare word is read as a command name. when it
+                    # names no command, say so -- with a suggestion when
+                    # there is a near match -- instead of raising a KeyError.
+                    # the message echoes what was typed, while the lookup
+                    # above used the command line spelling.
+                    offset = next(
+                        i
+                        for i, arg in enumerate(argv.args)
+                        if not arg.startswith(('_', '-'))
+                    )
+                    index = argv.argx + offset
+                    report(
+                        index,
+                        str(
+                            e.FunctionNotFound(
+                                index, argv.args[offset], self._cname_2_func
+                            )
+                        ),
+                    )
+                    return None
             else:
                 func = None
 
