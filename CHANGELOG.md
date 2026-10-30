@@ -2,7 +2,8 @@
 
 ### 3.1.1 (WIP)
 
-...
+- Redirect insufficient bare invocation to help interface.
+- Fix argdoc reuse.
 
 ### 3.1.0 (2026-10-23)
 

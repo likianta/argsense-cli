@@ -15,6 +15,8 @@ from .parser import parse_argstring
 from .parser import parse_argv
 from .parser import parse_docstring
 from .parser import parse_function
+from .parser.args_parser import exceptions as e
+from .parser.args_parser.argv import report
 
 
 class T:
@@ -796,31 +798,53 @@ class CommandLineInterface:
                 func = None
 
         func_info = tp.cast(T.FuncInfo, func and self.commands[id(func)])
-        result = parse_argv(
-            argv,
-            mode=cli_help_form,
-            front_matter={
-                'args': {
-                    k: v['ctype']
-                    for k, v in (
-                        {} if func_info is None else func_info.args
-                    ).items()
-                },
-                'kwargs': {
-                    k: v['ctype']
-                    for k, v in (
-                        FuncInfo.GLOBAL_KWARGS
+
+        from . import renderer
+
+        try:
+            result = parse_argv(
+                argv,
+                mode=cli_help_form,
+                front_matter={
+                    'args': {
+                        k: v['ctype']
+                        for k, v in (
+                            {} if func_info is None else func_info.args
+                        ).items()
+                    },
+                    'kwargs': {
+                        k: v['ctype']
+                        for k, v in (
+                            FuncInfo.GLOBAL_KWARGS
+                            if func_info is None
+                            else func_info.extended_kwargs
+                        ).items()
+                    },
+                    'index': (
+                        FuncInfo.GLOBAL_CNAME_2_NAME
                         if func_info is None
-                        else func_info.extended_kwargs
-                    ).items()
+                        else func_info.cname_2_name
+                    ),
                 },
-                'index': (
-                    FuncInfo.GLOBAL_CNAME_2_NAME
-                    if func_info is None
-                    else func_info.cname_2_name
-                ),
-            },
-        )
+                raise_on_error=True,
+            )
+        except e.InsufficientArguments:
+            # a bare command name (`python main.py foo`) means "tell me how
+            # to call it", so show the help page instead of a panel about
+            # the arguments that are missing.
+            if func_info is None:
+                raise
+            renderer.render_function_parameters(
+                argv,
+                func_info,
+                show_func_name_in_title=not single_func_entrance,
+            )
+            return
+        except e.ArgvParsingFailed as err:
+            # what `parse_argv` does by default: point at the offending
+            # element, then exit with a failure code.
+            report(err.index, str(err))
+            return
         assert result
 
         if result['command']:
@@ -847,8 +871,6 @@ class CommandLineInterface:
                     return True, False
                 else:
                     return False, False
-
-        from . import renderer
 
         if func:
             has_help, is_explicit = get_help_option(
@@ -937,8 +959,8 @@ class CommandLineInterface:
                             )
                 return out
         else:
-            has_help, is_explicit = get_help_option()
-            assert has_help
+            # no command was named (a bare `python main.py`, or `-h`): show
+            # the command list.
             renderer.render_functions(
                 argv, self.commands.values(), group_structure
             )

@@ -53,7 +53,7 @@ wheels = [
 
 [[package]]
 name = "argsense"
-version = "3.1.0a0"
+version = "3.1.1b0"
 source = { editable = "." }
 dependencies = [
     { name = "neoprint" },
@@ -96,7 +96,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "neoprint", specifier = ">=1.0.0" },
+    { name = "neoprint", specifier = ">=1.0.1" },
     { name = "pillow", marker = "python_full_version >= '3.11' and extra == 'all'", specifier = ">=13.0.0" },
     { name = "pyapp-window", marker = "python_full_version >= '3.11' and extra == 'all'", specifier = ">=2.3.0", index = "http://localhost:2131/" },
     { name = "pyapp-window", marker = "python_full_version >= '3.11' and extra == 'gui'", specifier = ">=2.3.0", index = "http://localhost:2131/" },
@@ -794,13 +794,13 @@ wheels = [
 
 [[package]]
 name = "neoprint"
-version = "1.0.0"
+version = "1.0.1"
 source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple/" }
 dependencies = [
     { name = "rich" },
 ]
 wheels = [
-    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/80/7b/1c1300093c5c762c52714d866201525f4c3e2e02908470737ae51c4b4ce9/neoprint-1.0.0-py3-none-any.whl", hash = "sha256:b4687d0b33cc839708c6d0f7388b60fb5ada00927e30efe3be04ec7a942c0cd4", size = 46993, upload-time = "2026-10-21T07:03:56.509Z" },
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/6c/87/3e362dcf2a4bc97b6dc700cf3addc9b6e1b34c07bac9bf015516aa589d0d/neoprint-1.0.1-py3-none-any.whl", hash = "sha256:c27cc68264de4fff77ff63b0a286d75d646040b1f26903398d8169bfcd13382b", size = 47079, upload-time = "2026-10-29T03:29:47.829Z" },
 ]
 
 [[package]]

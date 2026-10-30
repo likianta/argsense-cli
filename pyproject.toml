@@ -1,13 +1,13 @@
 [project]
 name = "argsense"
-version = "3.1.1a0"
+version = "3.1.1b0"
 description = "New command line interface based on Rich library."
 authors = [{ name = "Likianta", email = "likianta@foxmail.com" }]
 license = "MIT"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "neoprint>=1.0.0",
+    "neoprint>=1.0.1",
     "rich>=14.0.0",
 ]
 
