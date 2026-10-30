@@ -1,19 +1,14 @@
-"""
-Fetch the two launcher binaries from the repository.
-
-The wheel leaves `rcedit.exe` and `stub.exe` out (see `check_requirements`),
-so a fresh install has to pull them once. `python -m argsense
-pull-launcher-misc` is the command that does it; this module is the part
-that talks to the network.
-"""
-
 import os
+import shutil
+import subprocess
 import typing as tp
 import urllib.error
 import urllib.request
 from pathlib import Path
 
 from .path import ASSETS
+from .path import PKG_ROOT
+from .path import STUB
 
 REPO = 'https://github.com/likianta/argsense-cli'
 BRANCH = 'master'
@@ -53,6 +48,41 @@ def pull_assets(
         _download(_url_of(name, mirror_site), file_o)
         written.append(file_o)
     return written
+
+
+def build_launcher_stub(file_o: str = STUB) -> None:
+    """
+    Compile `src/stub.v` into `assets/stub.exe`.
+    """
+    v = shutil.which('v')
+    if v is None:
+        raise Exception('`v` is not on PATH. see https://vlang.io/')
+
+    target = Path(file_o)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        (v, '-cc', 'tcc', '-o', str(target), f'{PKG_ROOT}/launcher/stub.v')
+    )
+    if result.returncode == 0:
+        # v drops a debug symbol file next to the binary; it is not part of
+        # what ships, and leaving it in the package only adds noise.
+        pdb = target.with_suffix('.pdb')
+        if pdb.exists():
+            pdb.unlink()
+        print('built: {} ({} bytes)'.format(target, target.stat().st_size))
+
+        possible_proj_path = os.path.dirname(PKG_ROOT)
+        if (
+            os.path.exists(f'{possible_proj_path}/.git')
+            and os.path.exists(f'{possible_proj_path}/pyproject.toml')
+            and os.path.exists(f'{possible_proj_path}/misc')
+        ):
+            shutil.copy2(target, f'{possible_proj_path}/misc/stub.exe')
+            print(
+                'also updated: {}'.format(f'{possible_proj_path}/misc/stub.exe')
+            )
+    else:
+        print('v compile failed. return code: {}'.format(result.returncode))
 
 
 def _url_of(name: str, mirror_site: bool) -> str:
@@ -106,3 +136,7 @@ def _download(url: str, file_o: Path) -> None:
 
     os.replace(part, file_o)
     print('  saved {} ({:,} bytes)'.format(file_o, size))
+
+
+if __name__ == '__main__':
+    build_launcher_stub()

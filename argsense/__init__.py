@@ -30,4 +30,4 @@ from .parser import parse_function
 from .tui import TextualUserInterface
 from .tui import tui
 
-__version__ = '3.1.0'
+__version__ = '3.1.1'

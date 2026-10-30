@@ -56,7 +56,9 @@ class T:
 
 # matches a docstring that reuses another command's parameter description.
 # for example: "see `@foo:name`" (case-insensitive on the leading letter,
-# with an optional trailing period after the closing backtick).
+# with an optional trailing period after the closing backtick). names are
+# written the python way, with underscores: "bump_version", not
+# "bump-version" -- the latter is only how the command line spells it.
 _ARGDOC_REF_PATTERN = re.compile(r'[Ss]ee\s+`@(\w+):(\w+)`\.?')
 
 # special values that select the interface at run time; they are read from
@@ -224,13 +226,27 @@ class CommandLineInterface:
         After resolution, `bar`'s `name` description becomes "the leader's
         name.".
 
+        Both names are written the python way, with underscores. A command's
+        `name` is its command line spelling ("bump-version"), while the
+        docstring keeps the function's own name ("bump_version"), so the
+        lookup accepts both; the reference itself is still
+        `@bump_version:new_version`.
+
         Note:
             - References are resolved lazily and only once per command, so the
               registration order of commands does not matter.
             - Unresolved references (e.g. a non-existent command or parameter)
               are left as-is.
         """
-        lookup = {fi.name: fi for fi in self.commands.values()}
+        # a command is registered under its command line name, which turns
+        # underscores into hyphens ("bump_version" -> "bump-version"), while
+        # a docstring refers to it by the python name. index both spellings.
+        lookup: tp.Dict[str, T.FuncInfo] = {}
+        for func_info in self.commands.values():
+            lookup[func_info.name] = func_info
+            python_name = getattr(func_info.target, '__name__', '')
+            if python_name:
+                lookup.setdefault(python_name, func_info)
         resolved: tp.Set[int] = set()
 
         def resolve_text(text: str, stack: tp.Set[int]) -> str:
