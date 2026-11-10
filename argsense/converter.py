@@ -181,8 +181,8 @@ def ctype_2_type(t: T.ParamType2, v: tp.Any = None) -> T.ParamType3:
 
 PYTHON_ACCEPTABLE_NUMBER_PATTERN = re.compile(
     r'^ *-?'
-    r'(?:[0-9]+'
-    r'|[0-9]*\.[0-9]+'
+    r'(?:[0-9]+(?:[eE][+-]?[0-9]+)?'
+    r'|[0-9]*\.[0-9]+(?:[eE][+-]?[0-9]+)?'
     r'|0b[01]+'
     r'|0x[0-9a-fA-F]+'
     r') *$'
